@@ -105,6 +105,19 @@ const toVM = (f, idx, formTitle = '') => {
   return vm;
 };
 
+function formatDate(date) {
+  if (!date) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).format(new Date(date));
+}
+
+
 // ---------------------- Validation helpers (server-side) ----------------------
 const NEEDS_OPTS = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
 const parseOpts = (s = '') => String(s).split(',').map(x => x.trim()).filter(Boolean);
@@ -156,8 +169,8 @@ app.get('/forms', async (_req, res) => {
     const forms = rows.map(r => ({
       id: r.id,
       title: r.title || '(Untitled)',
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt
+      createdAt: formatDate(r.createdAt),
+      updatedAt: formatDate(r.updatedAt)
     }));
     res.render('forms', {
       title: 'Forms',
@@ -169,6 +182,7 @@ app.get('/forms', async (_req, res) => {
     res.status(500).send('Server error');
   }
 });
+
 
 // Builder deep-link (preloads a form, then opens the builder page)
 app.get('/builder/:id', async (req, res) => {
@@ -206,6 +220,11 @@ app.get('/builder/:id', async (req, res) => {
 // If req.body.id exists → update; else → create (DB assigns autoincrement id)
 app.post('/api/forms', async (req, res) => {
   const { id, title = '', fields = [] } = req.body || {};
+
+  if (!title.trim()) {
+    return res.status(400).json({ error: 'Form title is required.' });
+  }
+
   if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
 
   const clean = sanitizeFields(fields);
@@ -271,6 +290,10 @@ app.put('/api/forms/:id', async (req, res) => {
   try {
     const form = await Form.findByPk(req.params.id);
     if (!form) return res.status(404).json({ error: 'Not found' });
+
+    if (title !== undefined && !String(title).trim()) {
+      return res.status(400).json({ error: 'Form title is required.' });
+    }
 
     if (title !== undefined) form.title = title;
     if (fields !== undefined) {

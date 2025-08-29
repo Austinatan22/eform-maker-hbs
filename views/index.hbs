@@ -95,15 +95,11 @@
             <div class="form-text">If set, options are fetched at render time.</div>
           </div>
 
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-sm-6">
-              <label for="editPrefix" class="form-label">DB Prefix</label>
-              <span class="text-danger">*</span>
-              <input id="editPrefix" type="text" class="form-control" readonly>
-            </div>
-            <div class="col-12 col-sm-6">
-              <label for="editSuffix" class="form-label">DB Suffix</label>
-              <span class="text-danger">*</span>
+          <div class="mb-3">
+            <label class="form-label">DB Suffix</label>
+            <span class="text-danger">*</span>
+            <div class="input-group">
+              <input id="editPrefix" type="text" class="form-control" readonly disabled>
               <input id="editSuffix" type="text" class="form-control" placeholder="DB_SUFFIX">
             </div>
           </div>
@@ -113,10 +109,9 @@
             <input id="editClass" type="text" class="form-control" placeholder="optional css class">
           </div>
 
-          <div class="btn-group w-100" role="group">
-            <button id="editSave" class="btn btn-primary">Update</button>
-            <button id="editCancel" class="btn btn-danger" type="button">Delete</button>
-          </div>
+          <button id="editCancel" class="btn btn-danger waves-effect waves-light w-100">
+            Delete Field
+          </button>
         </div>
       </div>
     </div>

@@ -12,7 +12,9 @@ export const Form = sequelize.define('Form', {
   title: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    defaultValue: ''
+    validate: {
+      notEmpty: true
+    }
   },
   fieldsJson: {
     type: DataTypes.TEXT,

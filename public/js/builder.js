@@ -768,6 +768,14 @@
     async handleSaveToDB(e) {
       e?.preventDefault?.();
 
+      // Validate title
+      const title = (this.$.formTitle?.value || '').trim();
+      if (!title) {
+        alert('Form must have a title before saving.');
+        this.$.formTitle?.focus();
+        return;
+      }
+
       // ensure derived prefix up-to-date on all fields
       const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
       this.fields.forEach(f => { f.prefix = prefix; });
