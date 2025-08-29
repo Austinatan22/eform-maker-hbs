@@ -84,6 +84,39 @@
     setTimeout(() => whenIntlReady(cb, tries - 1), 50); // ~2 seconds total
   }
 
+  // Convert Display Label to internal + suffix variants
+  function toSafeSnake(s) {
+    return String(s || '')
+      .trim()
+      .replace(/[\s\-]+/g, '_')       // spaces/dashes -> underscore
+      .replace(/[^a-zA-Z0-9_]/g, '')  // strip non-alnum/underscore
+      .replace(/_+/g, '_')            // collapse ___
+      .replace(/^_+|_+$/g, '')        // trim _
+      .toLowerCase();
+  }
+  
+  function toSafeUpperSnake(s) {
+    return toSafeSnake(s).toUpperCase();
+  }
+
+  function parseOptions(str = '') {
+  return String(str)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  }
+
+  function needsOptions(type) {
+    return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
+  }
+
+  function hasValidOptionsOrDataSource(field) {
+    if (!needsOptions(field.type)) return true;
+    const hasOptions = parseOptions(field.options).length > 0;
+    const hasDataSource = !!String(field.dataSource || '').trim();
+    return hasOptions || hasDataSource;
+  }
+
   // ---------- template loader (preload & compile once; then sync render) ----------
   const TEMPLATES = Object.create(null); // { 'text': compiledFn, ... }
 
@@ -132,17 +165,7 @@
 
   // ---------- defaults ----------
   const FIELDS_DEFAULTS = {
-    label: (t) => ({
-      singleLine: 'Single Line Text',
-      paragraph: 'Paragraph Text',
-      dropdown: 'Dropdown',
-      multipleChoice: 'Multiple Choice',
-      checkboxes: 'Checkboxes',
-      number: 'Number',
-      name: 'Name',
-      email: 'Email',
-      phone: 'Phone Number'
-    }[t] ?? 'Text'),
+    label: (_t) => '',
     options: (t) => OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
       singleLine: 'Enter text…',
@@ -224,6 +247,84 @@
         this.$.editName,  this.$.editSuffix, this.$.editClass, this.$.editDataSource
       ].forEach(el => el?.addEventListener('input', () => this.applyEdits({ incremental: true })));
 
+      // Keep auto-fill behavior in sync with label edits
+      this.$.editLabel?.addEventListener('input', () => {
+        // just persist; we auto-fill on blur to avoid fighting the user's typing
+        this.applyEdits({ incremental: true });
+      });
+
+      this.$.editLabel?.addEventListener('blur', () => {
+        const f = this.current();
+        if (!f) return;
+        // Only auto-fill if still following the label
+        if (f.autoName) {
+          f.name = toSafeSnake(this.$.editLabel.value);
+          if (this.$.editName) this.$.editName.value = f.name;
+        }
+        if (f.autoSuffix) {
+          f.suffix = toSafeUpperSnake(this.$.editLabel.value);
+          if (this.$.editSuffix) this.$.editSuffix.value = f.suffix;
+        }
+        this.persist();
+        this.renderOne(f.id);
+      });
+
+      // Field Name (internal) — input: break follow when user types; blur: re-enable if empty
+      this.$.editName?.addEventListener('input', () => {
+        const f = this.current();
+        if (!f) return;
+        const v = this.$.editName.value ?? '';
+        if (v.length > 0) {
+          f.autoName = false;            // user is customizing
+          f.name = v;
+        }
+        // If empty, wait for blur to decide (lets user finish editing)
+        this.persist();
+        this.renderOne(f?.id);
+      });
+
+      this.$.editName?.addEventListener('blur', () => {
+        const f = this.current();
+        if (!f) return;
+        const v = (this.$.editName.value || '').trim();
+        if (v === '') {
+          // Re-enable auto-follow and repopulate from Display Label
+          f.autoName = true;
+          f.name = toSafeSnake(this.$.editLabel?.value || f.label || '');
+          this.$.editName.value = f.name;
+          this.persist();
+          this.renderOne(f.id);
+        }
+      });
+
+      // DB Suffix — input: break follow when user types; blur: re-enable if empty
+      this.$.editSuffix?.addEventListener('input', () => {
+        const f = this.current();
+        if (!f) return;
+        const v = this.$.editSuffix.value ?? '';
+        if (v.length > 0) {
+          f.autoSuffix = false;          // user is customizing
+          f.suffix = v;
+        }
+        // If empty, wait for blur
+        this.persist();
+        this.renderOne(f?.id);
+      });
+
+      this.$.editSuffix?.addEventListener('blur', () => {
+        const f = this.current();
+        if (!f) return;
+        const v = (this.$.editSuffix.value || '').trim();
+        if (v === '') {
+          // Re-enable auto-follow and repopulate from Display Label
+          f.autoSuffix = true;
+          f.suffix = toSafeUpperSnake(this.$.editLabel?.value || f.label || '');
+          this.$.editSuffix.value = f.suffix;
+          this.persist();
+          this.renderOne(f.id);
+        }
+      });
+
       // Flags
       [this.$.editRequired, this.$.editDoNotStore]
         .forEach(el => el?.addEventListener('input', () => this.applyEdits({ incremental: true })));
@@ -265,7 +366,10 @@
         customClass: '',
         required: false,
         doNotStore: false,
-        dataSource: '' // for dynamic options, optional
+        dataSource: '', // for dynamic options, optional
+        // Follow label until user edits them manually:
+        autoName: true,
+        autoSuffix: true
       };
       this.fields.push(field);
       this.persist();
@@ -667,6 +771,31 @@
       // ensure derived prefix up-to-date on all fields
       const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
       this.fields.forEach(f => { f.prefix = prefix; });
+  
+      // Validate all fields
+      for (const f of this.fields) {
+        if (!String(f.label || '').trim()) {
+          alert('Each field must have a Display Label.');
+          this.select(f.id, { focusEdit: true });
+          return;
+        }
+        if (!String(f.name || '').trim()) {
+          alert('Each field must have an Internal Field Name.');
+          this.select(f.id, { focusEdit: true });
+          return;
+        }
+        if (!String(f.suffix || '').trim()) {
+          alert('Each field must have a DB Suffix.');
+          this.select(f.id, { focusEdit: true });
+          return;
+        }
+        // unless a data source is provided
+        if (!hasValidOptionsOrDataSource(f)) {
+          alert('This field needs options (comma-separated) or a data source.');
+          this.select(f.id, { focusEdit: true });
+          return;
+        }
+      }
 
       const payload = {
         id: this.formId || undefined, // upsert if present

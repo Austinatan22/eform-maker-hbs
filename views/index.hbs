@@ -50,11 +50,13 @@
 
           <div class="mb-3">
             <label for="editLabel" class="form-label">Display Label</label>
+            <span class="text-danger">*</span>
             <input id="editLabel" type="text" class="form-control" placeholder="Shown to users">
           </div>
 
           <div class="mb-3" id="editOptionsRow">
             <label for="editOptions" class="form-label">Options (comma-separated)</label>
+            <span class="text-danger">*</span>
             <input id="editOptions" type="text" class="form-control" placeholder="Option 1, Option 2">
           </div>
 
@@ -70,21 +72,20 @@
 
           <div class="mb-3">
             <label for="editName" class="form-label">Field Name (internal)</label>
+            <span class="text-danger">*</span>
             <input id="editName" type="text" class="form-control" placeholder="camelCase">
           </div>
 
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-sm-6">
-              <div class="form-check">
-                <input id="editRequired" class="form-check-input" type="checkbox">
-                <label class="form-check-label" for="editRequired">Required</label>
-              </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input id="editRequired" class="form-check-input" type="checkbox">
+              <label class="form-check-label" for="editRequired">Required</label>
             </div>
-            <div class="col-12 col-sm-6">
-              <div class="form-check">
-                <input id="editDoNotStore" class="form-check-input" type="checkbox">
-                <label class="form-check-label" for="editDoNotStore">Do not store this field</label>
-              </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input id="editDoNotStore" class="form-check-input" type="checkbox">
+              <label class="form-check-label" for="editDoNotStore">Do not store this field</label>
             </div>
           </div>
 
@@ -96,11 +97,13 @@
 
           <div class="row g-3 mb-3">
             <div class="col-12 col-sm-6">
-              <label for="editPrefix" class="form-label">DB Prefix (derived)</label>
+              <label for="editPrefix" class="form-label">DB Prefix</label>
+              <span class="text-danger">*</span>
               <input id="editPrefix" type="text" class="form-control" readonly>
             </div>
             <div class="col-12 col-sm-6">
               <label for="editSuffix" class="form-label">DB Suffix</label>
+              <span class="text-danger">*</span>
               <input id="editSuffix" type="text" class="form-control" placeholder="DB_SUFFIX">
             </div>
           </div>

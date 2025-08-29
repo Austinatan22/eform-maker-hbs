@@ -1,6 +1,7 @@
 // app.js (ESM)
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { engine } from 'express-handlebars';
 import { sequelize } from './db.js';
@@ -22,6 +23,10 @@ const VIEWS_DIR = path.join(ROOT, 'views');
 const LAYOUTS_DIR = path.join(VIEWS_DIR, 'layouts');
 const PARTIALS_DIR = path.join(VIEWS_DIR, 'partials');
 const PUBLIC_DIR = path.join(ROOT, 'public');
+
+// Ensure SQLite 'data' dir exists if your db.js stores there (harmless otherwise)
+const DATA_DIR = path.join(ROOT, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // ---------------------------------------------------------------------
 // App
@@ -100,6 +105,45 @@ const toVM = (f, idx, formTitle = '') => {
   return vm;
 };
 
+// ---------------------- Validation helpers (server-side) ----------------------
+const NEEDS_OPTS = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
+const parseOpts = (s = '') => String(s).split(',').map(x => x.trim()).filter(Boolean);
+const isNonEmpty = (v) => !!String(v || '').trim();
+
+function isValidField(f) {
+  if (!f) return false;
+  if (!isNonEmpty(f.label)) return false;
+  if (!isNonEmpty(f.name)) return false;
+  if (!isNonEmpty(f.suffix)) return false;
+  if (NEEDS_OPTS.has(f.type)) {
+    const hasOptions = parseOpts(f.options).length > 0;
+    const hasDataSource = isNonEmpty(f.dataSource);
+    if (!hasOptions && !hasDataSource) return false;
+  }
+  return true;
+}
+
+function sanitizeFields(fields = []) {
+  // Optionally mirror client-side sanitize; here we just JSON round-trip each field.
+  return fields.map(f => {
+    const cleaned = { ...f };
+    // Normalize options for option-based fields
+    if (NEEDS_OPTS.has(cleaned.type)) {
+      if (Array.isArray(cleaned.options)) {
+        cleaned.options = cleaned.options.map(x => String(x).trim()).filter(Boolean).join(', ');
+      } else {
+        cleaned.options = parseOpts(cleaned.options).join(', ');
+      }
+    } else {
+      delete cleaned.options;
+    }
+    // Drop any builder-only flags if present
+    delete cleaned.autoName;
+    delete cleaned.autoSuffix;
+    return cleaned;
+  });
+}
+
 // ---------------------------------------------------------------------
 // Routes (Builder UI)
 // ---------------------------------------------------------------------
@@ -158,35 +202,38 @@ app.get('/builder/:id', async (req, res) => {
 // Forms API (CRUD)
 // ---------------------------------------------------------------------
 
-// Create or upsert
-// POST /api/forms
+// Create or update (clean semantics; no random ID generation)
+// If req.body.id exists → update; else → create (DB assigns autoincrement id)
 app.post('/api/forms', async (req, res) => {
   const { id, title = '', fields = [] } = req.body || {};
-  if (!Array.isArray(fields)) {
-    return res.status(400).json({ error: 'fields must be an array' });
+  if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
+
+  const clean = sanitizeFields(fields);
+  for (const f of clean) {
+    if (!isValidField(f)) {
+      return res.status(400).json({
+        error: 'Invalid field definition: label, name, suffix are required; option-based fields need options or a dataSource.'
+      });
+    }
   }
 
   try {
     let form;
-    if (id) {
-      // update existing
+    if (id !== undefined && id !== null && String(id).trim() !== '') {
       form = await Form.findByPk(id);
       if (!form) return res.status(404).json({ error: 'Not found' });
       form.title = title;
-      form.fieldsJson = fields;
+      form.fieldsJson = clean;
       await form.save();
     } else {
-      // create new (auto-increment id)
-      form = await Form.create({ title, fieldsJson: fields });
+      form = await Form.create({ title, fieldsJson: clean });
     }
-
     res.json({ ok: true, form: { id: form.id, title: form.title, fields: form.fieldsJson } });
   } catch (err) {
-    console.error('Form save error:', err);
+    console.error('Create/update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 // List
 app.get('/api/forms', async (_req, res) => {
@@ -228,7 +275,15 @@ app.put('/api/forms/:id', async (req, res) => {
     if (title !== undefined) form.title = title;
     if (fields !== undefined) {
       if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
-      form.fieldsJson = fields;
+      const clean = sanitizeFields(fields);
+      for (const f of clean) {
+        if (!isValidField(f)) {
+          return res.status(400).json({
+            error: 'Invalid field definition: label, name, suffix are required; option-based fields need options or a dataSource.'
+          });
+        }
+      }
+      form.fieldsJson = clean;
     }
     await form.save();
     res.json({ ok: true, form: { id: form.id, title: form.title, fields: form.fieldsJson } });
@@ -307,24 +362,31 @@ app.post('/public/forms/:id/submissions', async (req, res) => {
         reduced[`${prefix}_${safeKey(k)}`] = v;
       }
       await FormSubmission.create({
+        // Using random ID OK here, this is submission row id (not exposed)
         id: crypto.randomBytes(9).toString('base64url'),
         formId: form.id,
         payloadJson: reduced
       });
     }
 
-    // 2) Forward full payload to client's webhook (non-blocking best-effort)
-    if (forwardUrl) {
-      try {
-        await fetch(forwardUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ formId: form.id, data })
-        });
-      } catch (err) {
-        console.error('Forwarding failed:', err);
-        // Do not fail the submit because of webhook issues
-      }
+    // 2) Forward full payload to client's webhook (fire-and-forget with timeout)
+    if (forwardUrl && /^https?:\/\//i.test(forwardUrl)) {
+      const ctl = new AbortController();
+      const timeout = setTimeout(() => ctl.abort(), 5000); // 5s timeout
+      (async () => {
+        try {
+          await fetch(forwardUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ formId: form.id, data }),
+            signal: ctl.signal
+          });
+        } catch (err) {
+          console.error('Forwarding failed:', err);
+        } finally {
+          clearTimeout(timeout);
+        }
+      })();
     }
 
     res.json({ ok: true });
@@ -342,6 +404,8 @@ const port = process.env.PORT || 5173;
 (async () => {
   try {
     await sequelize.authenticate();
+    // Ensure SQLite foreign keys are enforced
+    await sequelize.query('PRAGMA foreign_keys = ON;');
     await sequelize.sync(); // create tables if not present
     app.listen(port, () => {
       console.log(`Listening on http://localhost:${port}`);
