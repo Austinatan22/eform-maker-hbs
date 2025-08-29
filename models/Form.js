@@ -1,37 +1,17 @@
-// models/Form.js
+// /models/Form.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
 
-// /models/Form.js
 export const Form = sequelize.define('Form', {
   id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true   // will start at 1 and increment
+    type: DataTypes.STRING(64),   // was 40; 64 gives more room for long titles + suffix
+    primaryKey: true
   },
   title: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  fieldsJson: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    defaultValue: '[]',
-    get() {
-      const raw = this.getDataValue('fieldsJson');
-      try { return JSON.parse(raw ?? '[]'); } catch { return []; }
-    },
-    set(val) {
-      try {
-        const json = JSON.stringify(val ?? []);
-        this.setDataValue('fieldsJson', json);
-      } catch {
-        this.setDataValue('fieldsJson', '[]');
-      }
-    }
+    defaultValue: '',
+    unique: true                  // you asked earlier for unique titles; keeping it
   }
 }, {
   tableName: 'forms',

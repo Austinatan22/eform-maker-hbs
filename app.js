@@ -5,8 +5,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { engine } from 'express-handlebars';
 import { sequelize } from './db.js';
+import { Op, fn, col } from 'sequelize';
 import { Form } from './models/Form.js';
 import { FormSubmission } from './models/FormSubmission.js';
+import { FormField } from './models/FormField.js';
 import crypto from 'crypto';
 
 // Node 18+ has global fetch; for Node 16 uncomment the next line:
@@ -53,7 +55,6 @@ app.engine('hbs', engine({
   partialsDir: PARTIALS_DIR,
   helpers: {
     section(name, options) {
-      // allow {{#section "scripts"}}...{{/section}} in views
       const root = options.data.root;
       root._sections ??= {};
       root._sections[name] = options.fn(this);
@@ -117,7 +118,6 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
-
 // ---------------------- Validation helpers (server-side) ----------------------
 const NEEDS_OPTS = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
 const parseOpts = (s = '') => String(s).split(',').map(x => x.trim()).filter(Boolean);
@@ -127,7 +127,7 @@ function isValidField(f) {
   if (!f) return false;
   if (!isNonEmpty(f.label)) return false;
   if (!isNonEmpty(f.name)) return false;
-  if (!isNonEmpty(f.suffix)) return false;
+  if (!isNonEmpty(f.suffix)) return false; // suffix is required
   if (NEEDS_OPTS.has(f.type)) {
     const hasOptions = parseOpts(f.options).length > 0;
     const hasDataSource = isNonEmpty(f.dataSource);
@@ -137,7 +137,6 @@ function isValidField(f) {
 }
 
 function sanitizeFields(fields = []) {
-  // Optionally mirror client-side sanitize; here we just JSON round-trip each field.
   return fields.map(f => {
     const cleaned = { ...f };
     // Normalize options for option-based fields
@@ -156,6 +155,47 @@ function sanitizeFields(fields = []) {
     return cleaned;
   });
 }
+
+const rid = () => crypto.randomBytes(9).toString('base64url');
+
+// Trim + normalize, but don't collapse spaces
+const normalizeTitle = (t) => String(t || '').normalize('NFKC').trim();
+
+/** true if some OTHER row already has this title (case-insensitive) */
+async function isTitleTaken(title, excludeId = null) {
+  const tnorm = normalizeTitle(title);
+  let sql = `SELECT id FROM forms WHERE title = ? COLLATE NOCASE LIMIT 1`;
+  let repl = [tnorm];
+
+  if (excludeId) {
+    sql = `SELECT id FROM forms WHERE title = ? COLLATE NOCASE AND id <> ? LIMIT 1`;
+    repl = [tnorm, String(excludeId)];
+  }
+
+  const [rows] = await sequelize.query(sql, { replacements: repl });
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+// Lowercased, URL-safe slug from title
+const formIdFromTitle = (title) => {
+  const base = String(title || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return base || 'form';
+};
+
+// Short base62 random suffix (8–10 chars)
+const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const shortRand = (n = 8) =>
+  Array.from(crypto.randomBytes(n)).map(b => B62[b % 62]).join('');
+
+// Compose a readable id: "<slug>-<suffix>"
+const makeReadableId = (title, maxLen = 64) => {
+  const slug = formIdFromTitle(title);
+  return `${slug}-${shortRand(8)}`.slice(0, maxLen);
+};
 
 // ---------------------------------------------------------------------
 // Routes (Builder UI)
@@ -183,29 +223,34 @@ app.get('/forms', async (_req, res) => {
   }
 });
 
-
 // Builder deep-link (preloads a form, then opens the builder page)
 app.get('/builder/:id', async (req, res) => {
   try {
-    const form = await Form.findByPk(req.params.id);
+    // app.get('/builder/:id', …)
+    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).send('Form not found');
 
-    // Normalize fields (accept {fields, meta} or legacy array)
-    const raw = form.fieldsJson || [];
-    const fields = Array.isArray(raw.fields) ? raw.fields : (Array.isArray(raw) ? raw : []);
+    // ✅ make it plain
+    const formPlain = form.get({ plain: true });
+    const fields = (formPlain.fields || [])
+      .sort((a,b)=>a.position-b.position)
+      .map(f => ({
+        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
+        placeholder: f.placeholder, customClass: f.customClass,
+        required: f.required, doNotStore: f.doNotStore,
+        options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
+        prefix: f.prefix || prefixFromTitle(formPlain.title)
+      }));
 
-    // Preload JSON into localStorage via <script> on the page
-    const preload = JSON.stringify({
-      title: form.title || '',
-      fields
-    });
+    const preload = JSON.stringify({ title: formPlain.title || '', fields });
 
     res.render('index', {
-      title: `Editing: ${form.title || '(Untitled)'}`,
+      title: `Editing: ${formPlain.title || '(Untitled)'}`,
       currentPath: '/builder',
-      form,
+      form: formPlain,              // <- pass plain object
       preloadJson: preload
     });
+
   } catch (err) {
     console.error('Open builder error:', err);
     res.status(500).send('Server error');
@@ -216,15 +261,12 @@ app.get('/builder/:id', async (req, res) => {
 // Forms API (CRUD)
 // ---------------------------------------------------------------------
 
-// Create or update (clean semantics; no random ID generation)
-// If req.body.id exists → update; else → create (DB assigns autoincrement id)
+
+// Create or update
 app.post('/api/forms', async (req, res) => {
   const { id, title = '', fields = [] } = req.body || {};
 
-  if (!title.trim()) {
-    return res.status(400).json({ error: 'Form title is required.' });
-  }
-
+  if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
   if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
 
   const clean = sanitizeFields(fields);
@@ -236,32 +278,100 @@ app.post('/api/forms', async (req, res) => {
     }
   }
 
-  try {
-    let form;
-    if (id !== undefined && id !== null && String(id).trim() !== '') {
-      form = await Form.findByPk(id);
-      if (!form) return res.status(404).json({ error: 'Not found' });
-      form.title = title;
-      form.fieldsJson = clean;
-      await form.save();
-    } else {
-      form = await Form.create({ title, fieldsJson: clean });
+  // Enforce unique suffixes within this form
+  const derivedPrefix = prefixFromTitle(title);
+  {
+    const seen = new Set();
+    for (const f of clean) {
+      const p = (f.prefix && String(f.prefix).trim()) || derivedPrefix;
+      const s = String(f.suffix || '').trim().toUpperCase();
+      const key = `${p}__${s}`;
+      if (seen.has(key)) return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
+      seen.add(key);
     }
-    res.json({ ok: true, form: { id: form.id, title: form.title, fields: form.fieldsJson } });
+  }
+
+  // Keep your case-insensitive unique title rule
+  if (await isTitleTaken(title, id ? String(id) : null)) {
+    return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+  }
+
+
+  try {
+    await sequelize.transaction(async (t) => {
+      let form;
+
+      if (!id) {
+        // ---------- CREATE: generate readable PK (slug + random) ----------
+        let newId;
+        for (let tries = 0; tries < 5; tries++) {
+          const candidate = makeReadableId(title);
+          const hit = await Form.findByPk(candidate, { transaction: t });
+          if (!hit) { newId = candidate; break; }
+        }
+        if (!newId) throw new Error('Could not generate unique form id');
+
+        form = await Form.create({ id: newId, title }, { transaction: t });
+      } else {
+        // ---------- UPDATE: keep PK stable, only change title ----------
+        form = await Form.findByPk(id, { transaction: t });
+        if (!form) return res.status(404).json({ error: 'Not found' });
+
+        form.title = title;
+        await form.save({ transaction: t });
+
+        // Replace fields under the same formId
+        await FormField.destroy({ where: { formId: form.id }, transaction: t });
+      }
+
+      // Insert fresh fields
+      const rows = clean.map((f, idx) => ({
+        id: f.id && String(f.id).trim() ? f.id : crypto.randomBytes(9).toString('base64url'),
+        formId: form.id,
+        prefix: (f.prefix && String(f.prefix).trim()) || derivedPrefix,
+        type: f.type,
+        label: f.label,
+        name: f.name,
+        suffix: f.suffix,
+        placeholder: f.placeholder || '',
+        customClass: f.customClass || '',
+        required: !!f.required,
+        doNotStore: !!f.doNotStore,
+        countryIso2: f.countryIso2 || '',
+        options: f.options || '',
+        dataSource: f.dataSource || '',
+        position: idx
+      }));
+
+      await FormField.bulkCreate(rows, { transaction: t });
+
+      res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
+    });
   } catch (err) {
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ error: 'Uniqueness constraint failed.' });
+    }
     console.error('Create/update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+
+
 // List
 app.get('/api/forms', async (_req, res) => {
   try {
-    const rows = await Form.findAll({ order: [['updatedAt', 'DESC']] });
+    const rows = await Form.findAll({ order: [['updatedAt', 'DESC']], include: [{ model: FormField, as: 'fields' }] });
     const forms = rows.map(r => ({
       id: r.id,
       title: r.title,
-      fields: r.fieldsJson,
+      fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
+        placeholder: f.placeholder, customClass: f.customClass,
+        required: f.required, doNotStore: f.doNotStore,
+        options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
+        prefix: f.prefix
+      })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
     }));
@@ -275,9 +385,16 @@ app.get('/api/forms', async (_req, res) => {
 // Read one
 app.get('/api/forms/:id', async (req, res) => {
   try {
-    const form = await Form.findByPk(req.params.id);
+    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).json({ error: 'Not found' });
-    res.json({ ok: true, form: { id: form.id, title: form.title, fields: form.fieldsJson } });
+    const fields = (form.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+      id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
+      placeholder: f.placeholder, customClass: f.customClass,
+      required: f.required, doNotStore: f.doNotStore,
+      options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
+      prefix: f.prefix
+    }));
+    res.json({ ok: true, form: { id: form.id, title: form.title, fields } });
   } catch (err) {
     console.error('Read form error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -295,7 +412,17 @@ app.put('/api/forms/:id', async (req, res) => {
       return res.status(400).json({ error: 'Form title is required.' });
     }
 
-    if (title !== undefined) form.title = title;
+    if (title !== undefined) {
+      if (!String(title).trim()) {
+        return res.status(400).json({ error: 'Form title is required.' });
+      }
+      if (await isTitleTaken(title, String(req.params.id))) {
+        return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+      }
+      form.title = title;
+    }
+
+
     if (fields !== undefined) {
       if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
       const clean = sanitizeFields(fields);
@@ -306,30 +433,89 @@ app.put('/api/forms/:id', async (req, res) => {
           });
         }
       }
-      form.fieldsJson = clean;
+
+      const derivedPrefix = prefixFromTitle(form.title);
+
+      // duplicate check
+      {
+        const seen = new Set();
+        for (const f of clean) {
+          const p = (f.prefix && String(f.prefix).trim()) || derivedPrefix;
+          const s = String(f.suffix || '').trim().toUpperCase();
+          const key = `${p}__${s}`;
+          if (seen.has(key)) {
+            return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
+          }
+          seen.add(key);
+        }
+      }
+
+      await FormField.destroy({ where: { formId: form.id } });
+      const rows = clean.map((f, idx) => ({
+        id: f.id && String(f.id).trim() ? f.id : rid(),
+        formId: form.id,
+        prefix: (f.prefix && String(f.prefix).trim()) || derivedPrefix,
+        type: f.type,
+        label: f.label,
+        name: f.name,
+        suffix: f.suffix,
+        placeholder: f.placeholder || '',
+        customClass: f.customClass || '',
+        required: !!f.required,
+        doNotStore: !!f.doNotStore,
+        countryIso2: f.countryIso2 || '',
+        options: f.options || '',
+        dataSource: f.dataSource || '',
+        position: idx
+      }));
+
+      try {
+        await FormField.bulkCreate(rows);
+      } catch (err) {
+          if (err?.name === 'SequelizeUniqueConstraintError') {
+            // We're inside bulkCreate of FormField rows → much more likely a (formId,prefix,suffix) conflict.
+            return res.status(400).json({
+              error: 'Duplicate (prefix, suffix) in this form. Each DB Suffix must be unique.'
+            });
+          }
+          throw err;
+        }
     }
+
     await form.save();
-    res.json({ ok: true, form: { id: form.id, title: form.title, fields: form.fieldsJson } });
+
+    const withFields = await Form.findByPk(form.id, { include: [{ model: FormField, as: 'fields' }] });
+    const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+      id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
+      placeholder: f.placeholder, customClass: f.customClass,
+      required: f.required, doNotStore: f.doNotStore,
+      options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
+      prefix: f.prefix
+    }));
+
+    res.json({ ok: true, form: { id: form.id, title: form.title, fields: fieldsOut } });
   } catch (err) {
     console.error('Update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Delete
-app.delete('/api/forms/:id', async (req, res) => {
-  try {
-    const deleted = await Form.destroy({ where: { id: req.params.id } });
-    if (!deleted) return res.status(404).json({ error: 'Not found' });
-    res.json({ ok: true, deleted: req.params.id });
-  } catch (err) {
-    console.error('Delete form error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // Health
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// Live uniqueness check for form titles
+app.get('/api/forms/check-title', async (req, res) => {
+  try {
+    const title = String(req.query.title || '');
+    const excludeId = req.query.excludeId ? String(req.query.excludeId) : null;
+    if (!title.trim()) return res.json({ unique: false });
+    const taken = await isTitleTaken(title, excludeId);
+    res.json({ unique: !taken });
+  } catch (err) {
+    console.error('check-title error:', err);
+    res.status(500).json({ unique: false, error: 'Server error' });
+  }
+});
 
 // ---------------------------------------------------------------------
 // Hosted Form (End-user view) + Submission flow
@@ -338,20 +524,22 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 // Hosted form page — renders a full document via views/hosted-form.hbs
 app.get('/f/:id', async (req, res) => {
   try {
-    const form = await Form.findByPk(req.params.id);
+    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).send('Form not found');
 
-    const raw = form.fieldsJson || [];
-    const fields = Array.isArray(raw.fields) ? raw.fields : (Array.isArray(raw) ? raw : []);
+    const fields = (form.fields || []).sort((a,b)=>a.position-b.position);
 
-    // Build view-model for the template and partials
     const vmFields = fields.map((f, idx) => ({
-      partial: PARTIAL_FOR[f.type] || 'fields/text',  // used with {{> (lookup this "partial") this}}
-      ...toVM(f, idx, form.title || '')
+      partial: PARTIAL_FOR[f.type] || 'fields/text',
+      ...toVM({
+        name: f.name, label: f.label, required: f.required,
+        placeholder: f.placeholder, customClass: f.customClass,
+        options: f.options,
+      }, idx, form.title || '')
     }));
 
     res.render('hosted-form', {
-      layout: false,                 // hosted-form.hbs is a full HTML doc
+      layout: false,
       formId: form.id,
       title: form.title || 'Form',
       fields: vmFields
@@ -362,21 +550,19 @@ app.get('/f/:id', async (req, res) => {
   }
 });
 
-// Public submission endpoint (called by hosted form iframe OR direct)
+// Public submission endpoint
 app.post('/public/forms/:id/submissions', async (req, res) => {
   try {
-    const form = await Form.findByPk(req.params.id);
+    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).json({ error: 'Form not found' });
 
-    const def = form.fieldsJson || {};
-    const fields = Array.isArray(def.fields) ? def.fields : (def || []);
-    const forwardUrl = def.meta?.forwardUrl || null;
+    const fields = form.fields || [];
+    const forwardUrl = null; // optional: store in another table if needed
 
     const { data = {}, storeConsent = false } = req.body || {};
-    const byKey = new Map(fields.map(f => [f.name || f.id, f]));
+    const byKey = new Map(fields.map(f => [f.name, f]));
     const prefix = prefixFromTitle(form.title);
 
-    // 1) Optionally store a filtered copy server-side (exclude doNotStore)
     if (storeConsent) {
       const reduced = {};
       for (const [k, v] of Object.entries(data)) {
@@ -385,37 +571,40 @@ app.post('/public/forms/:id/submissions', async (req, res) => {
         reduced[`${prefix}_${safeKey(k)}`] = v;
       }
       await FormSubmission.create({
-        // Using random ID OK here, this is submission row id (not exposed)
         id: crypto.randomBytes(9).toString('base64url'),
         formId: form.id,
         payloadJson: reduced
       });
     }
 
-    // 2) Forward full payload to client's webhook (fire-and-forget with timeout)
-    if (forwardUrl && /^https?:\/\//i.test(forwardUrl)) {
-      const ctl = new AbortController();
-      const timeout = setTimeout(() => ctl.abort(), 5000); // 5s timeout
-      (async () => {
-        try {
-          await fetch(forwardUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ formId: form.id, data }),
-            signal: ctl.signal
-          });
-        } catch (err) {
-          console.error('Forwarding failed:', err);
-        } finally {
-          clearTimeout(timeout);
-        }
-      })();
-    }
-
+    // (Optional) Forward to webhook if you add that back in
     res.json({ ok: true });
   } catch (err) {
     console.error('Public submit error:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a form (and its fields + submissions)
+app.delete('/api/forms/:id', async (req, res) => {
+  try {
+    await sequelize.transaction(async (t) => {
+      const form = await Form.findByPk(req.params.id, { transaction: t });
+      if (!form) return res.status(404).json({ error: 'Not found' });
+
+      // If your FKs are ON DELETE CASCADE, the next line is enough:
+      // await form.destroy({ transaction: t });
+
+      // If not, delete dependents explicitly:
+      await FormField.destroy({ where: { formId: form.id }, transaction: t });
+      await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });
+      await form.destroy({ transaction: t });
+
+      res.json({ ok: true });
+    });
+  } catch (err) {
+    console.error('Delete form error:', err);
+    res.status(500).json({ error: 'Could not delete form' });
   }
 });
 
@@ -427,7 +616,6 @@ const port = process.env.PORT || 5173;
 (async () => {
   try {
     await sequelize.authenticate();
-    // Ensure SQLite foreign keys are enforced
     await sequelize.query('PRAGMA foreign_keys = ON;');
     await sequelize.sync(); // create tables if not present
     app.listen(port, () => {

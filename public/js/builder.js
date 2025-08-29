@@ -5,6 +5,10 @@
  * - DnD, edit panel, phone flags (intl-tel-input) in preview
  * - Sanitized save payload (fixes saving issues)
  * - LocalStorage persistence
+ * - Unsaved-changes warning (dirty-state + beforeunload guard)
+ * - UPDATED:
+ *    • suffix no longer auto-follows label
+ *    • live duplicate-suffix validation per form (blocks Save)
  * ========================================================================= */
 
 (() => {
@@ -94,16 +98,16 @@
       .replace(/^_+|_+$/g, '')        // trim _
       .toLowerCase();
   }
-  
+
   function toSafeUpperSnake(s) {
     return toSafeSnake(s).toUpperCase();
   }
 
   function parseOptions(str = '') {
-  return String(str)
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+    return String(str)
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
   }
 
   function needsOptions(type) {
@@ -190,8 +194,23 @@
       this.dnd = { draggingId: null, fromIndex: -1 };
       this.placeholderEl = null;
 
+      // Dirty tracking & bootstrap gate
+      this.isDirty = false;
+      this._bootstrapped = false;
+
       this.$ = this.bindDom();
       this.persist = debounce(this.persist.bind(this), 140);
+    }
+
+    // ---- Dirty helpers ----
+    setDirty() { if (this._bootstrapped) this.isDirty = true; }
+    clearDirty() { this.isDirty = false; }
+    installUnloadGuard() {
+      window.addEventListener('beforeunload', (e) => {
+        if (!this.isDirty) return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
     }
 
     bindDom() {
@@ -208,7 +227,7 @@
 
       // deep-link /builder/:id
       const m = location.pathname.match(/\/builder\/([^/]+)/);
-      if (m && m[1]) this.formId = this.formId || m[1];
+      if (m && m[1]) this.formId = m[1];  // <- overwrite unconditionally
 
       // preload shared field templates up-front (compile once)
       await preloadTemplates();
@@ -226,6 +245,11 @@
 
       // init flags after full preview is in the DOM
       whenIntlReady(() => this.initPhoneInputs());
+
+      // Unload guard starts after initial render/restore
+      this.installUnloadGuard();
+      // Start tracking dirty from here on (ignore init/restore noise)
+      this._bootstrapped = true;
     }
 
     bindEvents() {
@@ -245,27 +269,24 @@
       [
         this.$.editLabel, this.$.editOptions, this.$.editValue, this.$.editPlaceholder,
         this.$.editName,  this.$.editSuffix, this.$.editClass, this.$.editDataSource
-      ].forEach(el => el?.addEventListener('input', () => this.applyEdits({ incremental: true })));
+      ].forEach(el => el?.addEventListener('input', () => { this.applyEdits({ incremental: true }); this.setDirty(); }));
 
-      // Keep auto-fill behavior in sync with label edits
+      // Keep auto-fill behavior in sync with label edits (ONLY for name now)
       this.$.editLabel?.addEventListener('input', () => {
-        // just persist; we auto-fill on blur to avoid fighting the user's typing
         this.applyEdits({ incremental: true });
+        this.setDirty();
       });
 
       this.$.editLabel?.addEventListener('blur', () => {
         const f = this.current();
         if (!f) return;
-        // Only auto-fill if still following the label
+        // Only auto-fill for Internal Name; DO NOT auto-fill suffix anymore
         if (f.autoName) {
           f.name = toSafeSnake(this.$.editLabel.value);
           if (this.$.editName) this.$.editName.value = f.name;
         }
-        if (f.autoSuffix) {
-          f.suffix = toSafeUpperSnake(this.$.editLabel.value);
-          if (this.$.editSuffix) this.$.editSuffix.value = f.suffix;
-        }
         this.persist();
+        this.setDirty();
         this.renderOne(f.id);
       });
 
@@ -278,8 +299,8 @@
           f.autoName = false;            // user is customizing
           f.name = v;
         }
-        // If empty, wait for blur to decide (lets user finish editing)
         this.persist();
+        this.setDirty();
         this.renderOne(f?.id);
       });
 
@@ -288,52 +309,38 @@
         if (!f) return;
         const v = (this.$.editName.value || '').trim();
         if (v === '') {
-          // Re-enable auto-follow and repopulate from Display Label
           f.autoName = true;
           f.name = toSafeSnake(this.$.editLabel?.value || f.label || '');
           this.$.editName.value = f.name;
           this.persist();
+          this.setDirty();
           this.renderOne(f.id);
         }
       });
 
-      // DB Suffix — input: break follow when user types; blur: re-enable if empty
+      // DB Suffix — now always manual; validate uniqueness as user types
       this.$.editSuffix?.addEventListener('input', () => {
         const f = this.current();
         if (!f) return;
-        const v = this.$.editSuffix.value ?? '';
-        if (v.length > 0) {
-          f.autoSuffix = false;          // user is customizing
-          f.suffix = v;
-        }
-        // If empty, wait for blur
+        f.autoSuffix = false;          // permanently manual now
+        f.suffix = this.$.editSuffix.value ?? '';
+        this.validateSuffixUnique(f);
         this.persist();
+        this.setDirty();
         this.renderOne(f?.id);
       });
 
-      this.$.editSuffix?.addEventListener('blur', () => {
-        const f = this.current();
-        if (!f) return;
-        const v = (this.$.editSuffix.value || '').trim();
-        if (v === '') {
-          // Re-enable auto-follow and repopulate from Display Label
-          f.autoSuffix = true;
-          f.suffix = toSafeUpperSnake(this.$.editLabel?.value || f.label || '');
-          this.$.editSuffix.value = f.suffix;
-          this.persist();
-          this.renderOne(f.id);
-        }
-      });
+      // No auto-follow behavior for suffix on blur anymore
 
       // Flags
       [this.$.editRequired, this.$.editDoNotStore]
-        .forEach(el => el?.addEventListener('input', () => this.applyEdits({ incremental: true })));
+        .forEach(el => el?.addEventListener('input', () => { this.applyEdits({ incremental: true }); this.setDirty(); }));
 
       // Title updates (affects derived prefix) — no full re-render
       this.$.formTitle?.addEventListener('input', () => {
         this.updateDerivedPrefix();
         this.persist();
-        // only re-render current field if needed (prefix doesn't affect visible UI normally)
+        this.setDirty();
         if (this.selectedId) this.renderOne(this.selectedId);
       });
 
@@ -349,7 +356,17 @@
         const item = e.target.closest('[data-fid]');
         if (item) this.select(item.dataset.fid, { focusEdit: true });
       });
+
+      this.$.formTitle?.addEventListener('input', () => {
+        this.updateDerivedPrefix();
+        this.persist();
+        this.setDirty();
+        if (this.selectedId) this.renderOne(this.selectedId);
+        // Live check (quiet)
+        this.checkTitleUnique();
+      });
     }
+    
 
     // ---------- operations ----------
     addField(type) {
@@ -366,13 +383,14 @@
         customClass: '',
         required: false,
         doNotStore: false,
-        dataSource: '', // for dynamic options, optional
-        // Follow label until user edits them manually:
+        dataSource: '',
+        // Follow label for name only; suffix is manual now
         autoName: true,
-        autoSuffix: true
+        autoSuffix: false
       };
       this.fields.push(field);
       this.persist();
+      this.setDirty();
 
       // append only the new field (faster than full re-render)
       this.appendOne(field, this.fields.length - 1);
@@ -390,7 +408,8 @@
       this.fields.splice(idx, 1);
       this.selectedId = null;
       this.persist();
-      this.renderPreview();                // simpler to rebuild after delete
+      this.setDirty();
+      this.renderPreview();
       whenIntlReady(() => this.initPhoneInputs());
       this.showTab(this.$.tabAddBtn);
       this.updateEditPanel();
@@ -420,7 +439,10 @@
 
       if (this.$.editDataSource) f.dataSource = this.$.editDataSource.value || '';
 
+      this.validateSuffixUnique(f);
+
       this.persist();
+      this.setDirty();
 
       if (incremental) {
         this.renderOne(this.selectedId);
@@ -430,6 +452,24 @@
       }
 
       this.highlight(this.selectedId);
+    }
+
+    // -- NEW: check if current suffix is unique within this form
+    validateSuffixUnique(forField) {
+      const suffixEl = this.$.editSuffix;
+      if (!suffixEl || !forField) return true;
+      const entered = String(suffixEl.value || '').trim();
+      const conflict = this.fields.find(f =>
+        f.id !== forField.id &&
+        String(f.suffix || '').trim().toUpperCase() === entered.toUpperCase()
+      );
+      if (conflict && entered) {
+        suffixEl.setCustomValidity('This DB Suffix already exists in this form.');
+        suffixEl.reportValidity();
+        return false;
+      }
+      suffixEl.setCustomValidity('');
+      return true;
     }
 
     // ---------- selection & panel ----------
@@ -490,6 +530,9 @@
 
       if (this.$.editRequired)   this.$.editRequired.checked   = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
+
+      // show any existing suffix error
+      this.validateSuffixUnique(f);
     }
 
     updateDerivedPrefix() {
@@ -585,11 +628,9 @@
     }
 
     _initOnePhone(input) {
-      // Destroy previous instance if the card re-rendered
       const existing = window.intlTelInputGlobals?.getInstance?.(input);
       if (existing) existing.destroy();
 
-      // Find the field this input belongs to via the card wrapper
       const card = input.closest('[data-fid]');
       const field = this.fields.find(f => f.id === card?.dataset?.fid);
 
@@ -599,18 +640,16 @@
         utilsScript: window.INTL_UTILS_URL || "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
       });
 
-      // Make wrapper full width & ensure flags path if you ever switch to local assets
       const wrap = input.closest('.iti') || input.parentElement;
       if (wrap) {
         wrap.style.width = '100%';
         wrap.style.setProperty('--iti-path', '/vendor/intl-tel-input/build/img/');
       }
 
-      // Persist country selection so it survives reloads
       input.addEventListener('countrychange', () => {
         try {
           const iso2 = iti.getSelectedCountryData()?.iso2;
-          if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
+          if (field && iso2) { field.countryIso2 = iso2; this.persist(); this.setDirty(); }
         } catch {}
       });
     }
@@ -676,6 +715,7 @@
       if (Number.isInteger(to) && to >= 0 && !isNoop && from !== to) {
         this.fields = this.move(this.fields, from, to);
         this.persist();
+        this.setDirty();
         this.renderPreview();
         whenIntlReady(() => this.initPhoneInputs());
         if (this.dnd.draggingId) {
@@ -710,6 +750,7 @@
       if (Number.isInteger(to) && to >= 0 && !isNoop && from !== to) {
         this.fields = this.move(this.fields, from, to);
         this.persist();
+        this.setDirty();
         this.renderPreview();
         whenIntlReady(() => this.initPhoneInputs());
         if (this.dnd.draggingId) {
@@ -768,18 +809,54 @@
     async handleSaveToDB(e) {
       e?.preventDefault?.();
 
-      // Validate title
-      const title = (this.$.formTitle?.value || '').trim();
-      if (!title) {
-        alert('Form must have a title before saving.');
+  const title = (this.$.formTitle?.value || '').trim();
+  if (!title) {
+    alert('Form must have a title before saving.');
+    this.$.formTitle?.focus();
+    return;
+  }
+
+  // ✅ Only run the remote title-uniqueness check on CREATE.
+  // On UPDATE, rely on the server (it excludes the current ID correctly).
+  if (!this.formId) {
+    const params = new URLSearchParams({ title });
+    try {
+      const res  = await fetch(`/api/forms/check-title?${params.toString()}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!json?.unique) {
+        this.$.formTitle?.reportValidity?.();
         this.$.formTitle?.focus();
         return;
       }
+    } catch {
+      // network hiccup: let the server be the source of truth
+    }
+  }
 
-      // ensure derived prefix up-to-date on all fields
-      const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
-      this.fields.forEach(f => { f.prefix = prefix; });
-  
+  // ensure derived prefix up-to-date on all fields
+  const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
+  this.fields.forEach(f => { f.prefix = prefix; });
+
+      // Fail fast on duplicate suffix within this form
+      {
+        const seen = new Set();
+        for (const f of this.fields) {
+          const sx = String(f.suffix || '').trim().toUpperCase();
+          const key = `${prefix}__${sx}`;
+          if (!sx) {
+            alert('Each field must have a DB Suffix.');
+            this.select(f.id, { focusEdit: true });
+            return;
+          }
+          if (seen.has(key)) {
+            alert(`Duplicate DB Suffix "${f.suffix}" within this form. Each suffix must be unique.`);
+            this.select(f.id, { focusEdit: true });
+            return;
+          }
+          seen.add(key);
+        }
+      }
+
       // Validate all fields
       for (const f of this.fields) {
         if (!String(f.label || '').trim()) {
@@ -792,12 +869,6 @@
           this.select(f.id, { focusEdit: true });
           return;
         }
-        if (!String(f.suffix || '').trim()) {
-          alert('Each field must have a DB Suffix.');
-          this.select(f.id, { focusEdit: true });
-          return;
-        }
-        // unless a data source is provided
         if (!hasValidOptionsOrDataSource(f)) {
           alert('This field needs options (comma-separated) or a data source.');
           this.select(f.id, { focusEdit: true });
@@ -814,37 +885,104 @@
       if (this.$.btnSave) { this.$.btnSave.disabled = true; this.$.btnSave.textContent = 'Saving…'; }
 
       try {
-        const res = await fetch('/api/forms', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify(payload)
-        });
+  const res = await fetch('/api/forms', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify(payload)
+  });
 
-        const raw = await res.text();
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
+  // Handle common validation/uniqueness errors gracefully
+  if (!res.ok) {
+    let msg = 'Failed to save form.';
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      // body wasn't JSON; keep default msg
+    }
 
-        let json; try { json = JSON.parse(raw); } catch { throw new Error(`Bad JSON from server: ${raw}`); }
+    // Title duplicate → 409
+    if (res.status === 409) {
+      // show an inline validity error on the title input
+      this.setTitleValidity(false);
+      this.$.formTitle?.focus();
+      alert(msg);                // or replace with your toast/snackbar
+      return;                    // don't throw; handled
+    }
 
-        const newId = json?.form?.id || json?.id || null;
-        if (newId) {
-          this.formId = newId;
-          try {
-            localStorage.setItem(LS_KEY, JSON.stringify({
-              id: this.formId,
-              title: payload.title,
-              fields: payload.fields
-            }));
-          } catch {}
-        }
+    // Field duplicate / bad request → 400
+    if (res.status === 400) {
+      alert(msg);                // already descriptive from server
+      return;
+    }
 
-        if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
+    // Other statuses → generic
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  // OK path
+  const json = await res.json();
+  const newId = json?.form?.id || json?.id || null;
+  if (newId) {
+    this.formId = newId;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        id: this.formId,
+        title: payload.title,
+        fields: payload.fields
+      }));
+    } catch {}
+  }
+
+  if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
+  this.clearDirty();
       } catch (err) {
         console.error('Failed saving form:', err);
         alert('Failed to save form. See console for details.');
       } finally {
         if (this.$.btnSave) this.$.btnSave.disabled = false;
       }
-    }
+
+          }
+
+          // show/hide validation message on the title input
+          setTitleValidity(ok, speak = false) {
+            const el = this.$.formTitle;
+            if (!el) return;
+            if (ok) {
+              el.setCustomValidity('');
+            } else {
+              el.setCustomValidity('Form name already exists. Choose another.');
+              if (speak) {
+                el.reportValidity?.();
+                el.focus?.();
+              }
+            }
+          }
+
+          // debounced remote check against the server
+          checkTitleUnique = (() => {
+            const fn = async () => {
+              const title = (this.$.formTitle?.value || '').trim();
+              if (!title) { this.setTitleValidity(true); return true; } // don't warn mid-typing
+              const params = new URLSearchParams({ title });
+              if (this.formId) params.append('excludeId', this.formId);
+              try {
+                const res = await fetch(`/api/forms/check-title?${params.toString()}`, { cache: 'no-store' });
+                const json = await res.json();
+                const ok = !!json?.unique;
+                this.setTitleValidity(ok);
+                return ok;
+              } catch {
+                // on network error, let the server decide on save
+                this.setTitleValidity(true);
+                return true;
+              }
+            };
+            // debounce wrapper
+            let t; 
+            return () => { clearTimeout(t); t = setTimeout(fn, 200); };
+          })();
   }
 
   // ---------- boot ----------

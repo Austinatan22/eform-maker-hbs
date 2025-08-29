@@ -1,7 +1,6 @@
 // /models/FormSubmission.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
-import { Form } from './Form.js';
 
 /**
  * FormSubmission = optional stored copy of a user's submission
@@ -9,17 +8,13 @@ import { Form } from './Form.js';
  */
 export const FormSubmission = sequelize.define('FormSubmission', {
   id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,   // simpler, human-readable IDs
+    type: DataTypes.STRING(40),
+    primaryKey: true
   },
   formId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING(40),
     allowNull: false,
-    references: {
-      model: Form,
-      key: 'id'
-    }
+    index: true
   },
   payloadJson: {
     type: DataTypes.TEXT,
@@ -40,13 +35,5 @@ export const FormSubmission = sequelize.define('FormSubmission', {
   }
 }, {
   tableName: 'form_submissions',
-  timestamps: true,
-  indexes: [
-    { fields: ['formId'] },
-    { fields: ['createdAt'] }
-  ]
+  timestamps: true
 });
-
-// Optional explicit association
-Form.hasMany(FormSubmission, { foreignKey: 'formId' });
-FormSubmission.belongsTo(Form, { foreignKey: 'formId' });
