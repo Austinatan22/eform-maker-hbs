@@ -1,0 +1,154 @@
+{{!-- Uses layouts/main.hbs by default --}}
+
+<div class="row g-3">
+  <!-- Left column -->
+  <div class="col-12 col-lg-4 sticky-lg-top align-self-start">
+    <div class="card">
+      <div class="card-header">
+        <div class="nav-align-top">
+          <ul class="nav nav-pills nav-fill" role="tablist">
+            <li class="nav-item">
+              <button id="tabAdd" type="button" class="nav-link active"
+                      role="tab" data-bs-toggle="tab" data-bs-target="#lp-pill-add"
+                      aria-controls="lp-pill-add" aria-selected="true">
+                Add Fields
+              </button>
+            </li>
+            <li class="nav-item">
+              <button id="tabEdit" type="button" class="nav-link"
+                      role="tab" data-bs-toggle="tab" data-bs-target="#lp-pill-edit"
+                      aria-controls="lp-pill-edit" aria-selected="false">
+                Edit Field
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-body tab-content">
+        <!-- Add Fields -->
+        <div class="tab-pane fade show active" id="lp-pill-add" role="tabpanel" aria-labelledby="tabAdd">
+          <div class="mb-3">
+            <label class="form-label">Quick Add</label>
+            <div id="quickAddButtons" class="row g-2">
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="singleLine">Single Line Text</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="paragraph">Paragraph Text</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="dropdown">Dropdown</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="multipleChoice">Multiple Choice</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="checkboxes">Checkboxes</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="number">Number</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="name">Name</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="email">Email</button></div>
+              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="phone">Phone Number</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Field -->
+        <div class="tab-pane fade" id="lp-pill-edit" role="tabpanel" aria-labelledby="tabEdit">
+          <h5 id="editTitle" class="text-body-secondary">No field selected</h5>
+
+          <div class="mb-3">
+            <label for="editLabel" class="form-label">Display Label</label>
+            <input id="editLabel" type="text" class="form-control" placeholder="Shown to users">
+          </div>
+
+          <div class="mb-3" id="editOptionsRow">
+            <label for="editOptions" class="form-label">Options (comma-separated)</label>
+            <input id="editOptions" type="text" class="form-control" placeholder="Option 1, Option 2">
+          </div>
+
+          <div class="mb-3">
+            <label for="editValue" class="form-label">Default Value</label>
+            <input id="editValue" type="text" class="form-control" placeholder="(optional)">
+          </div>
+
+          <div class="mb-3">
+            <label for="editPlaceholder" class="form-label">Placeholder</label>
+            <input id="editPlaceholder" type="text" class="form-control" placeholder="(optional)">
+          </div>
+
+          <div class="mb-3">
+            <label for="editName" class="form-label">Field Name (internal)</label>
+            <input id="editName" type="text" class="form-control" placeholder="camelCase">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6">
+              <div class="form-check">
+                <input id="editRequired" class="form-check-input" type="checkbox">
+                <label class="form-check-label" for="editRequired">Required</label>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="form-check">
+                <input id="editDoNotStore" class="form-check-input" type="checkbox">
+                <label class="form-check-label" for="editDoNotStore">Do not store this field</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="editDataSource" class="form-label">Data Source URL (for dropdowns)</label>
+            <input id="editDataSource" type="url" class="form-control" placeholder="https://client.api/options?type=accounts">
+            <div class="form-text">If set, options are fetched at render time.</div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6">
+              <label for="editPrefix" class="form-label">DB Prefix (derived)</label>
+              <input id="editPrefix" type="text" class="form-control" readonly>
+            </div>
+            <div class="col-12 col-sm-6">
+              <label for="editSuffix" class="form-label">DB Suffix</label>
+              <input id="editSuffix" type="text" class="form-control" placeholder="DB_SUFFIX">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="editClass" class="form-label">Custom Class</label>
+            <input id="editClass" type="text" class="form-control" placeholder="optional css class">
+          </div>
+
+          <div class="btn-group w-100" role="group">
+            <button id="editSave" class="btn btn-primary">Update</button>
+            <button id="editCancel" class="btn btn-danger" type="button">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column (Preview) -->
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-sm-between align-items-sm-center flex-column flex-sm-row z-2 border-bottom">
+        <h5 class="card-title mb-sm-0 me-sm-2">Preview</h5>
+        <div class="action-btns d-flex align-items-center w-100 w-sm-auto gap-2">
+          <input id="formTitle" type="text" class="form-control form-control-sm" value="{{form.title}}" placeholder="Form Title" />
+          <button id="saveBtn" class="btn btn-success">Save</button>
+        </div>
+      </div>
+      <div class="card-body pt-4">
+        <div id="preview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{#section 'scripts'}}
+  {{#if preloadJson}}
+  <script>
+    try { localStorage.setItem('eform-maker-hbs', '{{{preloadJson}}}'); } catch (e) {}
+  </script>
+  {{/if}}
+
+  <!-- Provide utils URL like the client page -->
+  <script>
+    window.INTL_UTILS_URL = "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js";
+  </script>
+
+  <script src="/js/builder.js"></script>
+{{/section}}
+
+

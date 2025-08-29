@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{title}}</title>
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous">
+
+  <!-- Your UI kit (Vuexy) & app CSS -->
+  <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css"/>
+  <link rel="stylesheet" href="/assets/vendor/libs/node-waves/node-waves.css"/>
+  <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css"/>
+  <link rel="stylesheet" href="/assets/vendor/css/core.css"/>
+  <link rel="stylesheet" href="/assets/css/demo.css"/>
+  <link rel="stylesheet" href="/css/custom.css"/>
+
+  <!-- Helpers & Config required by Vuexy -->
+  <script src="/assets/vendor/js/helpers.js"></script>
+  <script src="/assets/js/config.js"></script>
+
+  <!-- intl-tel-input CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css"/>
+
+  <style>body{max-width:720px;margin:40px auto}</style>
+</head>
+<body class="container py-4">
+  <h1 class="h3 mb-4">{{title}}</h1>
+
+  <form id="form" class="vstack gap-2">
+    {{#each fields}}
+      {{> (lookup this "partial") this}}
+    {{/each}}
+
+    <div class="form-check my-2">
+      <input id="storeConsent" class="form-check-input" type="checkbox">
+      <label class="form-check-label" for="storeConsent">
+        Save a copy here so I can retrieve/edit later
+      </label>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Submit</button>
+  </form>
+
+  <div id="status" class="mt-2 small text-muted"></div>
+
+  <script>
+    // --- autoresize → tell parent iframe our height ---
+    const ping = () => {
+      try { parent.postMessage({ type: 'FORM_HEIGHT', h: document.body.scrollHeight }, '*'); } catch (_){}
+    };
+    window.addEventListener('load', ping);
+    try { new ResizeObserver(ping).observe(document.body); } catch (_){}
+
+    // --- collect form data (supports checkbox arrays) ---
+    function collectFormData(form) {
+      const fd = new FormData(form), out = {};
+      for (const [k, v] of fd.entries()) {
+        if (k in out) { Array.isArray(out[k]) ? out[k].push(v) : (out[k] = [out[k], out[k] = v][0]); }
+        else out[k] = v;
+      }
+      return out;
+    }
+
+    // --- phone normalization (intl-tel-input) ---
+    const phoneRegistry = [];
+    function initIntlTel() {
+      const nodes = document.querySelectorAll('.js-intl-tel, input[type="tel"]');
+      nodes.forEach((input) => {
+        if (!window.intlTelInput) return; // script not loaded yet
+        const prev = window.intlTelInputGlobals?.getInstance?.(input);
+        if (prev) prev.destroy();
+
+        const iti = window.intlTelInput(input, {
+          initialCountry: 'id',
+          preferredCountries: ['id','us'],
+          utilsScript: typeof INTL_UTILS !== 'undefined' ? INTL_UTILS : undefined
+        });
+
+        const wrap = input.closest('.iti') || input.parentElement;
+        if (wrap) {
+          wrap.style.width = '100%';
+          wrap.style.setProperty('--iti-path', '/vendor/intl-tel-input/build/img/');
+        }
+
+        phoneRegistry.push({ name: input.name, iti, input });
+      });
+    }
+
+    function normalizePhones(dataObj) {
+      phoneRegistry.forEach(({ name, iti }) => {
+        try {
+          const val = iti.getNumber();
+          if (val) dataObj[name] = val; // replace with E.164
+        } catch (_) {}
+      });
+    }
+
+    // Init phone inputs after DOM is ready; retry once intl script is present
+    function tryInitIntl() {
+      if (window.intlTelInput) return initIntlTel();
+      setTimeout(initIntlTel, 0);
+    }
+    (document.readyState === 'loading')
+      ? document.addEventListener('DOMContentLoaded', tryInitIntl)
+      : tryInitIntl();
+
+    // --- submission handler: POSTS TO CLIENT WEBHOOK ---
+    const statusEl = document.getElementById('status');
+    const formEl = document.getElementById('form');
+
+    // Guard in case #form isn't present yet
+    (formEl || document).addEventListener('submit', async (e) => {
+      // Ensure we're handling the real <form> submit
+      const form = (e.target && e.target.tagName === 'FORM') ? e.target : formEl;
+      if (!form) return;
+
+      e.preventDefault();
+
+      const data = collectFormData(form);
+      normalizePhones(data);
+      const storeConsent = !!document.getElementById('storeConsent')?.checked;
+
+      try {
+        const resp = await fetch('http://localhost:5050/webhooks/form', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Your client server expects { formId, data }
+          body: JSON.stringify({ formId: '{{formId}}', data, storeConsent })
+        });
+
+        let out = {};
+        try { out = await resp.json(); } catch (_) {}
+
+        if (resp.ok && out.ok) {
+          statusEl.textContent = 'Thanks! Submitted.';
+          form.reset?.();
+        } else {
+          statusEl.textContent = out.error || 'Something went wrong.';
+        }
+      } catch (err) {
+        console.error('Submit failed:', err);
+        statusEl.textContent = 'Network error.';
+      }
+
+      ping();
+    });
+  </script>
+
+  <!-- intl-tel-input JS (after handlers, we detect availability before use) -->
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+  <script>const INTL_UTILS = "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js";</script>
+</body>
+</html>

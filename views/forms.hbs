@@ -1,0 +1,115 @@
+{{!-- views/forms.hbs --}}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Forms</h5>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFormModal">
+      + Add Form
+    </button>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:38%">Title</th>
+            <th style="width:22%">Updated</th>
+            <th style="width:22%">Created</th>
+            <th class="text-end" style="width:18%">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if forms.length}}
+            {{#each forms}}
+              <tr data-id="{{this.id}}">
+                <td class="fw-medium">{{this.title}}</td>
+                <td><span class="text-muted">{{this.updatedAt}}</span></td>
+                <td><span class="text-muted">{{this.createdAt}}</span></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary me-1" href="/builder/{{this.id}}">
+                    Edit
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger js-delete">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr><td colspan="4" class="text-center text-muted py-4">No forms yet.</td></tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{{!-- Add Form modal --}}
+<div class="modal fade" id="addFormModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="addForm">
+      <div class="modal-header">
+        <h5 class="modal-title">Create a form</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Form Name</label>
+        <input id="newFormName" type="text" class="form-control" placeholder="e.g. Contact Us" required>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" type="submit">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{#section 'scripts'}}
+<script>
+(function() {
+  // Create new form -> redirect to builder
+  document.getElementById('addForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('newFormName').value.trim();
+    if (!title) return;
+
+    try {
+      const res = await fetch('/api/forms', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ title, fields: [] })
+      });
+      const out = await res.json();
+      if (!res.ok || !out?.form?.id) throw new Error('Create failed');
+
+      // Close modal then go to builder
+      const m = bootstrap.Modal.getInstance(document.getElementById('addFormModal'));
+      m?.hide();
+      window.location.assign('/builder/' + out.form.id);
+    } catch (err) {
+      console.error(err);
+      alert('Could not create form.');
+    }
+  });
+
+  // Delete form (delegation)
+  document.querySelector('table')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.js-delete');
+    if (!btn) return;
+    const row = btn.closest('tr');
+    const id = row?.dataset.id;
+    if (!id) return;
+
+    if (!confirm('Delete this form?')) return;
+    try {
+      const res = await fetch('/api/forms/' + id, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      row.remove();
+    } catch (err) {
+      console.error(err);
+      alert('Could not delete form.');
+    }
+  });
+})();
+</script>
+{{/section}}

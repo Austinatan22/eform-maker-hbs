@@ -1,0 +1,31 @@
+/* Thin pill-shaped insertion indicator shown BETWEEN cards while dragging */
+.dnd-insert {
+  height: 6px;
+  margin: 4px 0 12px;
+  border-radius: 999px;
+  background: var(--bs-primary);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Flash the dropped card briefly */
+@keyframes dropFlash {
+  0% {
+    background-color: rgba(var(--bs-primary-rgb), 0.18);
+  }
+  60% {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.drop-flash {
+  animation: dropFlash 420ms ease-out;
+  border-color: var(--bs-primary) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drop-flash {
+    animation: none;
+  }
+}
