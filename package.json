@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "node tests/run-tests.js"
+    "test": "node tests/run-tests.js",
+    "build:builder": "node scripts/build-builder.js"
   },
   "dependencies": {
     "express": "^4.19.2",

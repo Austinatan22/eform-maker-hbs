@@ -1,0 +1,44 @@
+// src/client/builder/20-constants.js
+(function(){
+  const NS = (window.BuilderApp = window.BuilderApp || {});
+
+  // Field types that actually have options
+  NS.OPTION_TYPES = new Set(['dropdown','multipleChoice','checkboxes']);
+
+  // Only keep these keys when saving
+  NS.CLEAN_KEYS = new Set([
+    'id','type','label','options','value','placeholder','name',
+    'required','doNotStore','countryIso2'
+  ]);
+
+  // Map builder types -> partial filenames
+  NS.PARTIAL_FOR = {
+    singleLine:     'text',
+    paragraph:      'textarea',
+    dropdown:       'select',
+    multipleChoice: 'radios',
+    checkboxes:     'checkboxes',
+    number:         'number',
+    name:           'name',
+    email:          'email',
+    phone:          'phone'
+  };
+
+  // Defaults
+  NS.FIELDS_DEFAULTS = {
+    label: (_t) => '',
+    options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
+    placeholder: (t) => ({
+      singleLine: 'Enter text…',
+      paragraph: 'Type your message…',
+      dropdown: 'Select…',
+      multipleChoice: '',
+      checkboxes: '',
+      number: '0',
+      name: '',
+      email: 'email@example.com',
+      phone: 'Phone number'
+    }[t] ?? '')
+  };
+})();
+
