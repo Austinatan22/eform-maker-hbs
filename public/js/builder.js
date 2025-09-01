@@ -832,7 +832,25 @@
       // network hiccup: let the server be the source of truth
     }
   }
-
+  // Validate all fields
+  for (const f of this.fields) {
+    if (!String(f.label || '').trim()) {
+      alert('Each field must have a Display Label.');
+      this.select(f.id, { focusEdit: true });
+      return;
+    }
+    if (!String(f.name || '').trim()) {
+      alert('Each field must have an Internal Field Name.');
+      this.select(f.id, { focusEdit: true });
+      return;
+    }
+    if (!hasValidOptionsOrDataSource(f)) {
+      alert('This field needs options (comma-separated) or a data source.');
+      this.select(f.id, { focusEdit: true });
+      return;
+    }
+  }
+  
   // ensure derived prefix up-to-date on all fields
   const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
   this.fields.forEach(f => { f.prefix = prefix; });
@@ -854,25 +872,6 @@
             return;
           }
           seen.add(key);
-        }
-      }
-
-      // Validate all fields
-      for (const f of this.fields) {
-        if (!String(f.label || '').trim()) {
-          alert('Each field must have a Display Label.');
-          this.select(f.id, { focusEdit: true });
-          return;
-        }
-        if (!String(f.name || '').trim()) {
-          alert('Each field must have an Internal Field Name.');
-          this.select(f.id, { focusEdit: true });
-          return;
-        }
-        if (!hasValidOptionsOrDataSource(f)) {
-          alert('This field needs options (comma-separated) or a data source.');
-          this.select(f.id, { focusEdit: true });
-          return;
         }
       }
 
