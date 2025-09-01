@@ -28,12 +28,9 @@
     editValue:      '#editValue',
     editPlaceholder:'#editPlaceholder',
     editName:       '#editName',
-    editPrefix:     '#editPrefix',   // read-only; derived from title
-    editSuffix:     '#editSuffix',
-    editClass:      '#editClass',
+    
     editRequired:   '#editRequired',
     editDoNotStore: '#editDoNotStore',
-    editDataSource: '#editDataSource',
     btnEditSave:    '#editSave',
     btnEditCancel:  '#editCancel',
 
@@ -51,8 +48,8 @@
 
   // Only keep these keys when saving (strip cached html & internals)
   const CLEAN_KEYS = new Set([
-    'id','type','label','options','value','placeholder','name','prefix','suffix',
-    'customClass','required','doNotStore','countryIso2','dataSource'
+    'id','type','label','options','value','placeholder','name',
+    'required','doNotStore','countryIso2'
   ]);
 
   // Map builder types -> partial filenames
@@ -117,8 +114,7 @@
   function hasValidOptionsOrDataSource(field) {
     if (!needsOptions(field.type)) return true;
     const hasOptions = parseOptions(field.options).length > 0;
-    const hasDataSource = !!String(field.dataSource || '').trim();
-    return hasOptions || hasDataSource;
+    return hasOptions;
   }
 
   // ---------- template loader (preload & compile once; then sync render) ----------
@@ -144,12 +140,10 @@
       label:       field.label || '',
       required:    !!field.required,
       placeholder: field.placeholder || '',
-      customClass: field.customClass || '',
       options: String(field.options || '')
         .split(',')
         .map(s => s.trim())
-        .filter(Boolean),
-      prefix: deriveDbPrefixFromTitle(formTitle || '')
+        .filter(Boolean)
     });
   }
 
@@ -235,7 +229,6 @@
       this.bindEvents();
       this.renderPreview();            // fast, sync render
       this.updateEditPanel();
-      this.updateDerivedPrefix();
 
       if (this.fields.length) {
         this.select(this.fields[this.fields.length - 1].id, { focusEdit: true });
@@ -268,7 +261,7 @@
       // Live edit inputs → incremental re-render of just the current field
       [
         this.$.editLabel, this.$.editOptions, this.$.editValue, this.$.editPlaceholder,
-        this.$.editName,  this.$.editSuffix, this.$.editClass, this.$.editDataSource
+        this.$.editName
       ].forEach(el => el?.addEventListener('input', () => { this.applyEdits({ incremental: true }); this.setDirty(); }));
 
       this.$.editLabel?.addEventListener('blur', () => {
@@ -372,15 +365,10 @@
         value: '',
         placeholder: FIELDS_DEFAULTS.placeholder(type),
         name: '',
-        prefix: '',
-        suffix: '',
-        customClass: '',
         required: false,
         doNotStore: false,
-        dataSource: '',
-        // Follow label for name only; suffix is manual now
-        autoName: true,
-        autoSuffix: false
+        // Follow label for name only
+        autoName: true
       };
       this.fields.push(field);
       this.persist();
@@ -418,10 +406,6 @@
       f.placeholder = this.$.editPlaceholder?.value ?? f.placeholder;
       f.name        = this.$.editName?.value ?? f.name;
 
-      f.prefix      = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
-      f.suffix      = this.$.editSuffix?.value ?? f.suffix;
-      f.customClass = this.$.editClass?.value ?? f.customClass;
-
       if (OPTION_TYPES.has(f.type)) {
         f.options   = this.$.editOptions?.value ?? f.options;
       } else {
@@ -431,9 +415,6 @@
       f.required    = !!this.$.editRequired?.checked;
       f.doNotStore  = !!this.$.editDoNotStore?.checked;
 
-      if (this.$.editDataSource) f.dataSource = this.$.editDataSource.value || '';
-
-      this.validateSuffixUnique(f);
 
       this.persist();
       this.setDirty();
@@ -492,7 +473,7 @@
         if (this.$.editOptionsRow) this.$.editOptionsRow.style.display = 'none';
         [
           this.$.editLabel, this.$.editOptions, this.$.editValue, this.$.editPlaceholder,
-          this.$.editName,  this.$.editPrefix,  this.$.editSuffix, this.$.editClass, this.$.editDataSource
+          this.$.editName
         ].forEach(el => el && (el.value = ''));
         if (this.$.editRequired) this.$.editRequired.checked = false;
         if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
@@ -506,11 +487,7 @@
       set(this.$.editValue,       f.value);
       set(this.$.editPlaceholder, f.placeholder);
       set(this.$.editName,        f.name);
-      set(this.$.editClass,       f.customClass);
-      set(this.$.editSuffix,      f.suffix);
-      set(this.$.editDataSource,  f.dataSource || '');
-
-      if (this.$.editPrefix) this.$.editPrefix.value = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
+      
 
       if (this.$.editOptionsRow) {
         if (OPTION_TYPES.has(f.type)) {
@@ -525,15 +502,9 @@
       if (this.$.editRequired)   this.$.editRequired.checked   = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
 
-      // show any existing suffix error
-      this.validateSuffixUnique(f);
+      
     }
-
-    updateDerivedPrefix() {
-      const p = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
-      if (this.$.editPrefix) this.$.editPrefix.value = p;
-      this.fields.forEach(f => { f.prefix = p; });
-    }
+    
 
     showTab(btn) {
       if (!btn) return;
@@ -845,29 +816,6 @@
     }
   }
   
-  // ensure derived prefix up-to-date on all fields
-  const prefix = deriveDbPrefixFromTitle(this.$.formTitle?.value || '');
-  this.fields.forEach(f => { f.prefix = prefix; });
-
-      // Fail fast on duplicate suffix within this form
-      {
-        const seen = new Set();
-        for (const f of this.fields) {
-          const sx = String(f.suffix || '').trim().toUpperCase();
-          const key = `${prefix}__${sx}`;
-          if (!sx) {
-            alert('Each field must have a DB Suffix.');
-            this.select(f.id, { focusEdit: true });
-            return;
-          }
-          if (seen.has(key)) {
-            alert(`Duplicate DB Suffix "${f.suffix}" within this form. Each suffix must be unique.`);
-            this.select(f.id, { focusEdit: true });
-            return;
-          }
-          seen.add(key);
-        }
-      }
 
       const payload = {
         id: this.formId || undefined, // upsert if present

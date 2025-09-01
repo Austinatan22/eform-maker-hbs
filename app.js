@@ -96,12 +96,10 @@ const toVM = (f, idx, formTitle = '') => {
     label: f.label || '',
     required: !!f.required,
     placeholder: f.placeholder || '',
-    customClass: f.customClass || '',
     options: String(f.options || '')
       .split(',')
       .map(s => s.trim())
-      .filter(Boolean),
-    prefix: prefixFromTitle(formTitle)
+      .filter(Boolean)
   };
   return vm;
 };
@@ -127,11 +125,9 @@ function isValidField(f) {
   if (!f) return false;
   if (!isNonEmpty(f.label)) return false;
   if (!isNonEmpty(f.name)) return false;
-  if (!isNonEmpty(f.suffix)) return false; // suffix is required
   if (NEEDS_OPTS.has(f.type)) {
     const hasOptions = parseOpts(f.options).length > 0;
-    const hasDataSource = isNonEmpty(f.dataSource);
-    if (!hasOptions && !hasDataSource) return false;
+    if (!hasOptions) return false;
   }
   return true;
 }
@@ -235,16 +231,15 @@ app.get('/builder/:id', async (req, res) => {
     const fields = (formPlain.fields || [])
       .sort((a,b)=>a.position-b.position)
       .map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
-        placeholder: f.placeholder, customClass: f.customClass,
+        id: f.id, type: f.type, label: f.label, name: f.name,
+        placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
-        prefix: f.prefix || prefixFromTitle(formPlain.title)
+        options: f.options, countryIso2: f.countryIso2
       }));
 
     const preload = JSON.stringify({ title: formPlain.title || '', fields });
 
-    res.render('index', {
+    res.render('builder', {
       title: `Editing: ${formPlain.title || '(Untitled)'}`,
       currentPath: '/builder',
       form: formPlain,              // <- pass plain object
@@ -262,8 +257,8 @@ app.get('/builder/:id', async (req, res) => {
 // ---------------------------------------------------------------------
 
 
-// Create or update
-app.post('/api/forms', async (req, res) => {
+  // Create or update
+  app.post('/api/forms', async (req, res) => {
   const { id, title = '', fields = [] } = req.body || {};
 
   if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
@@ -273,21 +268,8 @@ app.post('/api/forms', async (req, res) => {
   for (const f of clean) {
     if (!isValidField(f)) {
       return res.status(400).json({
-        error: 'Invalid field definition: label, name, suffix are required; option-based fields need options or a dataSource.'
+        error: 'Invalid field definition: label and name are required; option-based fields need options.'
       });
-    }
-  }
-
-  // Enforce unique suffixes within this form
-  const derivedPrefix = prefixFromTitle(title);
-  {
-    const seen = new Set();
-    for (const f of clean) {
-      const p = (f.prefix && String(f.prefix).trim()) || derivedPrefix;
-      const s = String(f.suffix || '').trim().toUpperCase();
-      const key = `${p}__${s}`;
-      if (seen.has(key)) return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
-      seen.add(key);
     }
   }
 
@@ -328,18 +310,14 @@ app.post('/api/forms', async (req, res) => {
       const rows = clean.map((f, idx) => ({
         id: f.id && String(f.id).trim() ? f.id : crypto.randomBytes(9).toString('base64url'),
         formId: form.id,
-        prefix: (f.prefix && String(f.prefix).trim()) || derivedPrefix,
         type: f.type,
         label: f.label,
         name: f.name,
-        suffix: f.suffix,
         placeholder: f.placeholder || '',
-        customClass: f.customClass || '',
         required: !!f.required,
         doNotStore: !!f.doNotStore,
         countryIso2: f.countryIso2 || '',
         options: f.options || '',
-        dataSource: f.dataSource || '',
         position: idx
       }));
 
@@ -366,11 +344,10 @@ app.get('/api/forms', async (_req, res) => {
       id: r.id,
       title: r.title,
       fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
-        placeholder: f.placeholder, customClass: f.customClass,
+        id: f.id, type: f.type, label: f.label, name: f.name,
+        placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
-        prefix: f.prefix
+        options: f.options, countryIso2: f.countryIso2
       })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
@@ -388,11 +365,10 @@ app.get('/api/forms/:id', async (req, res) => {
     const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).json({ error: 'Not found' });
     const fields = (form.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-      id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
-      placeholder: f.placeholder, customClass: f.customClass,
+      id: f.id, type: f.type, label: f.label, name: f.name,
+      placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
-      options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
-      prefix: f.prefix
+      options: f.options, countryIso2: f.countryIso2
     }));
     res.json({ ok: true, form: { id: form.id, title: form.title, fields } });
   } catch (err) {
@@ -434,38 +410,21 @@ app.put('/api/forms/:id', async (req, res) => {
         }
       }
 
-      const derivedPrefix = prefixFromTitle(form.title);
 
-      // duplicate check
-      {
-        const seen = new Set();
-        for (const f of clean) {
-          const p = (f.prefix && String(f.prefix).trim()) || derivedPrefix;
-          const s = String(f.suffix || '').trim().toUpperCase();
-          const key = `${p}__${s}`;
-          if (seen.has(key)) {
-            return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
-          }
-          seen.add(key);
-        }
-      }
+      
 
       await FormField.destroy({ where: { formId: form.id } });
       const rows = clean.map((f, idx) => ({
         id: f.id && String(f.id).trim() ? f.id : rid(),
         formId: form.id,
-        prefix: (f.prefix && String(f.prefix).trim()) || derivedPrefix,
         type: f.type,
         label: f.label,
         name: f.name,
-        suffix: f.suffix,
         placeholder: f.placeholder || '',
-        customClass: f.customClass || '',
         required: !!f.required,
         doNotStore: !!f.doNotStore,
         countryIso2: f.countryIso2 || '',
         options: f.options || '',
-        dataSource: f.dataSource || '',
         position: idx
       }));
 
@@ -533,7 +492,7 @@ app.get('/f/:id', async (req, res) => {
       partial: PARTIAL_FOR[f.type] || 'fields/text',
       ...toVM({
         name: f.name, label: f.label, required: f.required,
-        placeholder: f.placeholder, customClass: f.customClass,
+        placeholder: f.placeholder,
         options: f.options,
       }, idx, form.title || '')
     }));
