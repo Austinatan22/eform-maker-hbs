@@ -1,4 +1,4 @@
-// /models/FormSubmission.js (ESM)
+// /src/server/models/FormSubmission.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
 

@@ -1,8 +1,8 @@
 // src/server/services/forms.service.js
-import { sequelize } from '../../../db.js';
+import { sequelize } from '../db.js';
 import crypto from 'crypto';
-import { Form } from '../../../models/Form.js';
-import { FormField } from '../../../models/FormField.js';
+import { Form } from '../models/Form.js';
+import { FormField } from '../models/FormField.js';
 
 export const normalizeTitle = (t) => String(t || '').normalize('NFKC').trim();
 
@@ -96,4 +96,3 @@ export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull) {
     return { form };
   });
 }
-

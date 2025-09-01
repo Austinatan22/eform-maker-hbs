@@ -207,7 +207,7 @@ async function run() {
     // verify via models against the same DB file
     try {
       process.env.DB_FILE = TEST_DB; // ensure models use test DB
-      const { FormSubmission } = await import('../models/FormSubmission.js');
+      const { FormSubmission } = await import('../src/server/models/FormSubmission.js');
       const rows = await FormSubmission.findAll({ where: { formId } });
       if (!(rows && rows.length > 0)) throw new Error('no submission rows');
       log('✓ public submission stored');

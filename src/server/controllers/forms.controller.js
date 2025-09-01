@@ -1,9 +1,9 @@
 // src/server/controllers/forms.controller.js
 import crypto from 'crypto';
-import { sequelize } from '../../../db.js';
-import { Form } from '../../../models/Form.js';
-import { FormSubmission } from '../../../models/FormSubmission.js';
-import { FormField } from '../../../models/FormField.js';
+import { sequelize } from '../db.js';
+import { Form } from '../models/Form.js';
+import { FormSubmission } from '../models/FormSubmission.js';
+import { FormField } from '../models/FormField.js';
 import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields } from '../services/forms.service.js';
 

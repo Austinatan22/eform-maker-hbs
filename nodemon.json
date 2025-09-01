@@ -1,6 +1,6 @@
 {
-  "watch": ["app.js", "models", "views", "public"],
+  "watch": ["src", "views", "public"],
   "ext": "js,json,hbs",
   "ignore": ["data/*", "client-data.sqlite"],
-  "exec": "node app.js"
+  "exec": "node src/server/app.js"
 }

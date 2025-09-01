@@ -1,4 +1,4 @@
-// /models/FormField.js (ESM)
+// /src/server/models/FormField.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
 import { Form } from './Form.js';
