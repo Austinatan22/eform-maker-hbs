@@ -137,7 +137,10 @@
 {{#section 'scripts'}}
   {{#if preloadJson}}
   <script>
-    try { localStorage.setItem('eform-maker-hbs', '{{{preloadJson}}}'); } catch (e) {}
+    try {
+      // Insert raw JSON into JS as an object literal, then stringify safely
+      localStorage.setItem('eform-maker-hbs', JSON.stringify({{{preloadJson}}}));
+    } catch (e) {}
   </script>
   {{/if}}
 
@@ -148,5 +151,4 @@
 
   <script src="/js/builder.js"></script>
 {{/section}}
-
 

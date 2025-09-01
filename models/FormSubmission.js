@@ -12,7 +12,7 @@ export const FormSubmission = sequelize.define('FormSubmission', {
     primaryKey: true
   },
   formId: {
-    type: DataTypes.STRING(40),
+    type: DataTypes.STRING(64),
     allowNull: false,
     index: true
   },

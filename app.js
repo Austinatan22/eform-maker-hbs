@@ -235,12 +235,11 @@ app.get('/builder/:id', async (req, res) => {
     const fields = (formPlain.fields || [])
       .sort((a,b)=>a.position-b.position)
       .map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.fieldKey,
+        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
         placeholder: f.placeholder, customClass: f.customClass,
         required: f.required, doNotStore: f.doNotStore,
         options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
-        // derived for UI only (no longer stored)
-        prefix: prefixFromTitle(formPlain.title)
+        prefix: f.prefix || prefixFromTitle(formPlain.title)
       }));
 
     const preload = JSON.stringify({ title: formPlain.title || '', fields });
@@ -279,14 +278,16 @@ app.post('/api/forms', async (req, res) => {
     }
   }
 
-  // Enforce unique field_key (derived from suffix) within this form
+  // Enforce unique suffixes within this form
+  const derivedPrefix = prefixFromTitle(title);
   {
     const seen = new Set();
     for (const f of clean) {
+      const p = (f.prefix && String(f.prefix).trim()) || derivedPrefix;
       const s = String(f.suffix || '').trim().toUpperCase();
-      if (!s) return res.status(400).json({ error: 'Each field must have a DB Suffix.' });
-      if (seen.has(s)) return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
-      seen.add(s);
+      const key = `${p}__${s}`;
+      if (seen.has(key)) return res.status(400).json({ error: `Duplicate DB Suffix "${f.suffix}" within this form.` });
+      seen.add(key);
     }
   }
 
@@ -301,11 +302,10 @@ app.post('/api/forms', async (req, res) => {
       let form;
 
       if (!id) {
-        // ---------- CREATE: id = "form-" + 8-char base62, no collisions ----------
-        const makeFormId = () => `form-${shortRand(8)}`;
+        // ---------- CREATE: generate readable PK (slug + random) ----------
         let newId;
-        for (let tries = 0; tries < 8; tries++) {
-          const candidate = makeFormId();
+        for (let tries = 0; tries < 5; tries++) {
+          const candidate = makeReadableId(title);
           const hit = await Form.findByPk(candidate, { transaction: t });
           if (!hit) { newId = candidate; break; }
         }
@@ -328,10 +328,11 @@ app.post('/api/forms', async (req, res) => {
       const rows = clean.map((f, idx) => ({
         id: f.id && String(f.id).trim() ? f.id : crypto.randomBytes(9).toString('base64url'),
         formId: form.id,
-        fieldKey: String(f.suffix || '').trim().toUpperCase(),
+        prefix: (f.prefix && String(f.prefix).trim()) || derivedPrefix,
         type: f.type,
         label: f.label,
         name: f.name,
+        suffix: f.suffix,
         placeholder: f.placeholder || '',
         customClass: f.customClass || '',
         required: !!f.required,
@@ -365,11 +366,11 @@ app.get('/api/forms', async (_req, res) => {
       id: r.id,
       title: r.title,
       fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.fieldKey,
+        id: f.id, type: f.type, label: f.label, name: f.name, suffix: f.suffix,
         placeholder: f.placeholder, customClass: f.customClass,
         required: f.required, doNotStore: f.doNotStore,
         options: f.options, dataSource: f.dataSource, countryIso2: f.countryIso2,
-        prefix: prefixFromTitle(r.title)
+        prefix: f.prefix
       })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt

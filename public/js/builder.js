@@ -271,12 +271,6 @@
         this.$.editName,  this.$.editSuffix, this.$.editClass, this.$.editDataSource
       ].forEach(el => el?.addEventListener('input', () => { this.applyEdits({ incremental: true }); this.setDirty(); }));
 
-      // Keep auto-fill behavior in sync with label edits (ONLY for name now)
-      this.$.editLabel?.addEventListener('input', () => {
-        this.applyEdits({ incremental: true });
-        this.setDirty();
-      });
-
       this.$.editLabel?.addEventListener('blur', () => {
         const f = this.current();
         if (!f) return;
