@@ -3,7 +3,17 @@
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.uuid = function uuid(){
-    return 'field_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
+    const n = 8; // random part length
+    const buf = new Uint8Array(n);
+    if (window.crypto?.getRandomValues) {
+      window.crypto.getRandomValues(buf);
+    } else {
+      for (let i = 0; i < n; i++) buf[i] = Math.floor(Math.random() * 256);
+    }
+    let rand = '';
+    for (let i = 0; i < n; i++) rand += ALPH[buf[i] % 36];
+    return 'field_' + rand;
   };
 
   NS.debounce = function debounce(fn, ms=160){
@@ -24,4 +34,3 @@
     return NS.toSafeSnake(s).toUpperCase();
   };
 })();
-

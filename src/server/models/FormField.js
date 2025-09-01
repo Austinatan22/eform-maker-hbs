@@ -41,7 +41,9 @@ position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   tableName: 'form_fields',
   timestamps: false,
   indexes: [
-    { name: 'idx_form_fields_formId', fields: ['formId'] }
+    { name: 'idx_form_fields_formId', fields: ['formId'] },
+    // Enforce uniqueness of field name within a form (requires migration for existing DBs)
+    { name: 'uq_form_fields_formId_name', unique: true, fields: ['formId', 'name'] }
   ]
 });
 

@@ -29,3 +29,22 @@
     animation: none;
   }
 }
+
+/* Field card actions (duplicate/delete) */
+.field-actions { z-index: 2; }
+.field-actions .action-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.15rem;
+  line-height: 1;
+  color: var(--bs-secondary-color, #6c757d);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+}
+.field-actions .action-btn:hover { background: transparent; }
+.field-actions .action-btn .ti { font-size: 1rem; vertical-align: middle; }
+/* Hover colors */
+.field-actions .action-dup:hover { color: var(--bs-primary, #7367f0); }
+.field-actions .action-del:hover { color: var(--bs-danger, #ea5455); }

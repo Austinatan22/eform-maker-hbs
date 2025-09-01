@@ -60,6 +60,15 @@ export async function createOrUpdateForm(req, res) {
       return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
     }
   }
+  // Ensure field names are unique within the form
+  const seen = new Set();
+  for (const f of clean) {
+    const key = String(f.name || '');
+    if (seen.has(key)) {
+      return res.status(400).json({ error: 'Field names must be unique within a form.' });
+    }
+    seen.add(key);
+  }
 
   try {
     // Enforce case-insensitive title uniqueness on create
@@ -155,6 +164,15 @@ export async function updateForm(req, res) {
         if (!isValidField(f)) {
           return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
         }
+      }
+      // Ensure field names are unique within the form
+      const seen = new Set();
+      for (const f of clean) {
+        const key = String(f.name || '');
+        if (seen.has(key)) {
+          return res.status(400).json({ error: 'Field names must be unique within a form.' });
+        }
+        seen.add(key);
       }
       await updateFormWithFields(form.id, undefined, clean);
     }

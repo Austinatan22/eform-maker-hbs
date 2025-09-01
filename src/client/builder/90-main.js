@@ -60,9 +60,27 @@
       card.dataset.index = String(idx);
       card.draggable = true;
       card.style.cursor = 'move';
+      // Actions (duplicate / delete) in top-right
+      const actions = document.createElement('div');
+      actions.className = 'field-actions position-absolute top-0 end-0 mt-2 me-3 d-flex gap-1';
+      const btnDup = document.createElement('button');
+      btnDup.type = 'button';
+      btnDup.className = 'action-btn action-dup';
+      btnDup.title = 'Duplicate';
+      btnDup.innerHTML = '<i class="ti tabler-copy"></i>';
+      btnDup.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.duplicateField(field.id); });
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'action-btn action-del';
+      btnDel.title = 'Delete';
+      btnDel.innerHTML = '<i class="ti tabler-trash"></i>';
+      btnDel.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.deleteField(field.id); });
+      actions.appendChild(btnDup);
+      actions.appendChild(btnDel);
       const body = document.createElement('div');
       body.className = 'field-body';
       body.innerHTML = NS.renderFieldHTML ? NS.renderFieldHTML(field, idx) : '';
+      card.appendChild(actions);
       card.appendChild(body);
       // DnD handled by SortableJS on the container
       return card;
@@ -116,6 +134,61 @@
         if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
         NS.UI?.showTab?.(this.$.tabAddBtn);
       }
+    }
+
+    deleteField(id){
+      const idx = this.fields.findIndex(f => f.id === id);
+      if (idx < 0) return;
+      const isSelected = this.selectedId === id;
+      this.fields.splice(idx, 1);
+      this.persist();
+      this.setDirty();
+      this.renderPreview();
+      if (this.fields.length > 0) {
+        const next = this.fields[Math.min(idx, this.fields.length - 1)];
+        if (next) this.select(next.id);
+      } else {
+        this.selectedId = null;
+        if (isSelected) {
+          if (this.$.editLabel) this.$.editLabel.value = '';
+          if (this.$.editPlaceholder) this.$.editPlaceholder.value = '';
+          if (this.$.editName) this.$.editName.value = '';
+          if (this.$.editOptions) this.$.editOptions.value = '';
+          if (this.$.editRequired) this.$.editRequired.checked = false;
+          if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
+          NS.UI?.showTab?.(this.$.tabAddBtn);
+        }
+      }
+    }
+
+    duplicateField(id){
+      const idx = this.fields.findIndex(f => f.id === id);
+      if (idx < 0) return;
+      const orig = this.fields[idx];
+      const copy = { ...orig };
+      copy.id = (NS.uuid ? NS.uuid() : String(Date.now()));
+      // Create a unique internal name by appending an incrementing number
+      const raw = String(orig.name || '').trim();
+      if (raw) {
+        const baseSafe = NS.toSafeSnake ? NS.toSafeSnake(raw) : raw;
+        const m = baseSafe.match(/^(.*?)(\d+)$/);
+        const stem = m ? m[1] : baseSafe;
+        let i = m ? (parseInt(m[2], 10) || 0) + 1 : 1;
+        const names = new Set(this.fields.map(f => f.name));
+        let candidate = `${stem}${i}`;
+        while (names.has(candidate)) { i++; candidate = `${stem}${i}`; }
+        copy.name = candidate;
+      } else {
+        copy.name = '';
+      }
+      // Keep label unchanged
+      copy.label = (orig.label || '');
+      // Insert after original
+      this.fields.splice(idx + 1, 0, copy);
+      this.persist();
+      this.setDirty();
+      this.renderPreview();
+      this.select(copy.id);
     }
 
     restore(){
@@ -486,6 +559,20 @@
         if (!String(f.label || '').trim()) { alert('Each field must have a Display Label.'); this.select(f.id); return; }
         if (!String(f.name || '').trim())  { alert('Each field must have an Internal Field Name.'); this.select(f.id); return; }
         if (!this.hasValidOptions(f)) { alert('This field needs options (comma-separated).'); this.select(f.id); return; }
+      }
+
+      // Uniqueness of field names within this form
+      {
+        const seen = new Set();
+        for (const f of this.fields) {
+          const key = String(f.name || '');
+          if (seen.has(key)) {
+            alert(`Field names must be unique. Duplicate: "${key}"`);
+            this.select(f.id);
+            return;
+          }
+          seen.add(key);
+        }
       }
 
       const payload = {
