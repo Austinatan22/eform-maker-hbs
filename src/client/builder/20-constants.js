@@ -8,7 +8,7 @@
   // Only keep these keys when saving
   NS.CLEAN_KEYS = new Set([
     'id','type','label','options','value','placeholder','name',
-    'required','doNotStore','countryIso2'
+    'required','doNotStore'
   ]);
 
   // Map builder types -> partial filenames
@@ -41,4 +41,3 @@
     }[t] ?? '')
   };
 })();
-

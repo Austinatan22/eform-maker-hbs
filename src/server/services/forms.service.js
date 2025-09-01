@@ -54,7 +54,6 @@ export async function createFormWithFields(title, cleanFields) {
       placeholder: f.placeholder || '',
       required: !!f.required,
       doNotStore: !!f.doNotStore,
-      countryIso2: f.countryIso2 || '',
       options: f.options || '',
       position: idx
     }));
@@ -86,7 +85,6 @@ export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull) {
         placeholder: f.placeholder || '',
         required: !!f.required,
         doNotStore: !!f.doNotStore,
-        countryIso2: f.countryIso2 || '',
         options: f.options || '',
         position: idx
       }));

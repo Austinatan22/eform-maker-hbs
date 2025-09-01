@@ -6,7 +6,8 @@
     "start": "node src/server/app.js",
     "dev": "nodemon src/server/app.js",
     "test": "node tests/run-tests.js",
-    "build:builder": "node scripts/build-builder.js"
+    "build:builder": "node scripts/build-builder.js",
+    "migrate:rm-country": "node scripts/migrate-remove-countryiso2.js"
   },
   "dependencies": {
     "express": "^4.19.2",

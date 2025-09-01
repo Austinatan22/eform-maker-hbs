@@ -41,8 +41,6 @@ const toVM = (f, idx) => ({
 });
 
 // Submission helpers
-const prefixFromTitle = (title) =>
-  (title || 'FORM').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
 const safeKey = (k) => String(k || '').replace(/[^a-zA-Z0-9_]/g, '_');
 
 // ---------------------- Controllers ----------------------
@@ -81,7 +79,7 @@ export async function createOrUpdateForm(req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options, countryIso2: f.countryIso2
+        options: f.options
       }));
       return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, fields: fieldsOut } });
     }
@@ -124,7 +122,7 @@ export async function readForm(req, res) {
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
-      options: f.options, countryIso2: f.countryIso2
+      options: f.options
     }));
     res.json({ ok: true, form: { id: form.id, title: form.title, fields } });
   } catch (err) {
@@ -168,7 +166,7 @@ export async function updateForm(req, res) {
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
-      options: f.options, countryIso2: f.countryIso2
+      options: f.options
     }));
     res.json({ ok: true, form: { id: form.id, title: form.title, fields: fieldsOut } });
   } catch (err) {
@@ -198,14 +196,14 @@ export async function publicSubmit(req, res) {
     const fields = form.fields || [];
     const { data = {}, storeConsent = false } = req.body || {};
     const byKey = new Map(fields.map(f => [f.name, f]));
-    const prefix = prefixFromTitle(form.title);
 
     if (storeConsent) {
       const reduced = {};
       for (const [k, v] of Object.entries(data)) {
         const f = byKey.get(k);
         if (f?.doNotStore) continue;
-        reduced[`${prefix}_${safeKey(k)}`] = v;
+        // Store by safe field key without any title prefix or suffix
+        reduced[safeKey(k)] = v;
       }
       await FormSubmission.create({
         id: crypto.randomBytes(9).toString('base64url'),
@@ -270,7 +268,7 @@ export async function builderPage(req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options, countryIso2: f.countryIso2
+        options: f.options
       }));
 
     const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', fields });

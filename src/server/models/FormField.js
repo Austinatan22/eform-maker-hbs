@@ -29,7 +29,6 @@ name: { type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
 placeholder: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
 required: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 doNotStore: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-countryIso2: { type: DataTypes.STRING(8), allowNull: false, defaultValue: '' },
 
 
 // Options (for dropdown/multipleChoice/checkboxes)
@@ -40,7 +39,7 @@ options: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }, // comma-
 position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 }, {
   tableName: 'form_fields',
-  timestamps: true,
+  timestamps: false,
   indexes: [
     { name: 'idx_form_fields_formId', fields: ['formId'] }
   ]
