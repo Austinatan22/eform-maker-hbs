@@ -10,11 +10,12 @@ type: DataTypes.STRING(40),
 primaryKey: true
 },
 formId: {
-type: DataTypes.STRING(40),
+type: DataTypes.STRING(64),
 allowNull: false,
 index: true
 },
-prefix:    { type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
+// New derived key (from user-entered suffix), stored as field_key
+fieldKey: { type: DataTypes.STRING(128), allowNull: false, defaultValue: '', field: 'field_key' },
 // Core field definition
 type: {
 type: DataTypes.ENUM(
@@ -25,7 +26,6 @@ allowNull: false
 },
 label: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
 name: { type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
-suffix:{ type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
 
 
 // Optional display/config
@@ -50,8 +50,8 @@ indexes: [
     {
       // make it unique *within the same form*
       unique: true,
-      fields: ['formId', 'prefix', 'suffix'],
-      name: 'uk_form_fields_formId_prefix_suffix'
+      fields: ['formId', 'field_key'],
+      name: 'uk_form_fields_formId_field_key'
     }
 ]
 });
