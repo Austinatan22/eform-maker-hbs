@@ -18,26 +18,18 @@ export async function isTitleTaken(title, excludeId = null) {
   return Array.isArray(rows) && rows.length > 0;
 }
 
-// Helpers for ID generation
+// Helpers for ID generation: form-XXXXXXXX (8 random base62, non-colliding)
 const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const shortRand = (n = 8) => Array.from(crypto.randomBytes(n)).map(b => B62[b % 62]).join('');
-const formIdFromTitle = (title) => {
-  const base = String(title || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return base || 'form';
-};
-export const makeReadableId = (title, maxLen = 64) => `${formIdFromTitle(title)}-${shortRand(8)}`.slice(0, maxLen);
+export const makeReadableId = () => `form-${shortRand(8)}`;
 
 // Create a form and its fields inside a transaction
 export async function createFormWithFields(title, cleanFields) {
   return sequelize.transaction(async (t) => {
-    // Generate unique readable id
+    // Generate unique id: form-XXXXXXXX (retry on collision)
     let newId;
     for (let tries = 0; tries < 5; tries++) {
-      const candidate = makeReadableId(title);
+      const candidate = makeReadableId();
       const hit = await Form.findByPk(candidate, { transaction: t });
       if (!hit) { newId = candidate; break; }
     }

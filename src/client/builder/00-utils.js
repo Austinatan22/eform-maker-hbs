@@ -3,7 +3,7 @@
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.uuid = function uuid(){
-    return 'fld_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    return 'field_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
   };
 
   NS.debounce = function debounce(fn, ms=160){

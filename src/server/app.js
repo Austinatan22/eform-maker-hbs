@@ -28,7 +28,8 @@ const app = express();
 app.use(express.static(PUBLIC_DIR));
 
 // Expose field partials for the builder to fetch (e.g. /tpl/fields/phone.hbs)
-app.use('/tpl', express.static(path.join(PARTIALS_DIR, 'fields')));
+// Serve partials so the builder can fetch field templates at /tpl/fields/*.hbs
+app.use('/tpl', express.static(PARTIALS_DIR));
 
 // Body parsers
 app.use(express.json({ limit: '1mb' }));

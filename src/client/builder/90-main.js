@@ -64,7 +64,7 @@
       body.className = 'field-body';
       body.innerHTML = NS.renderFieldHTML ? NS.renderFieldHTML(field, idx) : '';
       card.appendChild(body);
-      this.attachCardDnD(card);
+      // DnD handled by SortableJS on the container
       return card;
     }
 
@@ -92,6 +92,30 @@
       const body = card.querySelector('.field-body');
       if (body && NS.renderFieldHTML) body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch {}
+    }
+
+    deleteSelected(){
+      const id = this.selectedId;
+      if (!id) return;
+      const idx = this.fields.findIndex(f => f.id === id);
+      if (idx < 0) return;
+      this.fields.splice(idx, 1);
+      this.persist();
+      this.setDirty();
+      this.renderPreview();
+      if (this.fields.length > 0) {
+        const next = this.fields[Math.min(idx, this.fields.length - 1)];
+        if (next) this.select(next.id);
+      } else {
+        this.selectedId = null;
+        if (this.$.editLabel) this.$.editLabel.value = '';
+        if (this.$.editPlaceholder) this.$.editPlaceholder.value = '';
+        if (this.$.editName) this.$.editName.value = '';
+        if (this.$.editOptions) this.$.editOptions.value = '';
+        if (this.$.editRequired) this.$.editRequired.checked = false;
+        if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
+        NS.UI?.showTab?.(this.$.tabAddBtn);
+      }
     }
 
     restore(){
@@ -133,7 +157,8 @@
       this.fields.push(field);
       this.persist();
       this.setDirty();
-      this.appendOne(field, this.fields.length - 1);
+      // Full render ensures SortableJS picks up the new node and indexes are normalized
+      this.renderPreview();
       this.select(field.id);
     }
 
@@ -172,7 +197,6 @@
       this.dnd.draggingId = el.dataset.fid;
       this.dnd.fromIndex  = Number(el.dataset.index);
       el.classList.add('opacity-50');
-      if (this.$.btnSave) { this.$.btnSave.textContent = 'Saving...'; }
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dnd.draggingId);
@@ -188,11 +212,33 @@
 
     onDragLeave(_e, _el){ /* no-op */ }
 
-    onDrop(e, _el){
+    onDrop(e, el){
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
-      const { to, isNoop } = NS.computeDropTarget ? NS.computeDropTarget(this.$.preview, from) : { to: from, isNoop: true };
+      const preview = this.$.preview;
+      const ph = NS.getPlaceholder?.();
+      const hasPh = !!(ph && ph.parentNode === preview);
+      let to = from, isNoop = true;
+      if (hasPh && NS.computeDropTarget) {
+        ({ to, isNoop } = NS.computeDropTarget(preview, from));
+      } else {
+        // Fast drop before any dragover: compute by pointer Y relative to element or container
+        const kids = Array.from(preview.children).filter(k => k !== ph);
+        const idxEl = kids.indexOf(el);
+        let rawTo;
+        if (idxEl >= 0) {
+          const rect = el.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          rawTo = before ? idxEl : idxEl + 1;
+        } else if (NS.computeIndexByY) {
+          rawTo = NS.computeIndexByY(preview, e.clientY);
+        } else {
+          rawTo = from;
+        }
+        to = from < rawTo ? rawTo - 1 : rawTo;
+        isNoop = (to === from);
+      }
       if (Number.isInteger(to) && to >= 0 && !isNoop && from !== to) {
         this.fields = NS.move ? NS.move(this.fields, from, to) : this.fields;
         this.persist();
@@ -200,9 +246,10 @@
         this.renderPreview();
         if (this.dnd.draggingId) {
           this.select(this.dnd.draggingId);
-          const el = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
-          NS.UI?.flash?.(el);
+          const el2 = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
+          NS.UI?.flash?.(el2);
         }
+        if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
       }
       NS.removePlaceholder?.();
     }
@@ -216,16 +263,10 @@
 
     onContainerDragOver(e){
       e.preventDefault();
-      const last = this.$.preview?.lastElementChild;
-      const ph = NS.getPlaceholder?.();
-      if (!last) {
-        if (ph && ph.parentNode !== this.$.preview) this.$.preview.appendChild(ph);
-        return;
-      }
-      const rect = last.getBoundingClientRect();
-      const below = e.clientY > (rect.top + rect.height / 2);
-      if (below && ph && (ph.parentNode !== this.$.preview || ph.nextSibling !== null)) {
-        this.$.preview.appendChild(ph);
+      if (!this.$.preview) return;
+      const idx = NS.computeIndexByY ? NS.computeIndexByY(this.$.preview, e.clientY) : null;
+      if (idx !== null && idx !== undefined) {
+        NS.placePlaceholderAtIndex?.(this.$.preview, idx);
       }
     }
 
@@ -233,13 +274,28 @@
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
-      const { to, isNoop } = NS.computeDropTarget ? NS.computeDropTarget(this.$.preview, from) : { to: from, isNoop: true };
+      const preview = this.$.preview;
+      const ph = NS.getPlaceholder?.();
+      const hasPh = !!(ph && ph.parentNode === preview);
+      let to = from, isNoop = true;
+      if (hasPh && NS.computeDropTarget) {
+        ({ to, isNoop } = NS.computeDropTarget(preview, from));
+      } else {
+        let rawTo = NS.computeIndexByY ? NS.computeIndexByY(preview, e.clientY) : from;
+        to = from < rawTo ? rawTo - 1 : rawTo;
+        isNoop = (to === from);
+      }
       if (Number.isInteger(to) && to >= 0 && !isNoop && from !== to) {
         this.fields = NS.move ? NS.move(this.fields, from, to) : this.fields;
         this.persist();
         this.setDirty();
         this.renderPreview();
-        if (this.dnd.draggingId) this.select(this.dnd.draggingId);
+        if (this.dnd.draggingId) {
+          this.select(this.dnd.draggingId);
+          const el2 = this.$.preview?.querySelector(`[data-fid=\"${this.dnd.draggingId}\"]`);
+          NS.UI?.flash?.(el2);
+        }
+        if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
       }
       NS.removePlaceholder?.();
     }
@@ -261,9 +317,11 @@
         if (item) this.select(item.dataset.fid);
       });
 
-      // Container DnD hooks
-      this.$.preview?.addEventListener('dragover', (e) => this.onContainerDragOver(e));
-      this.$.preview?.addEventListener('drop', (e) => this.onContainerDrop(e));
+      // Container DnD hooks (fallback only if SortableJS not present)
+      if (typeof window.Sortable === 'undefined') {
+        this.$.preview?.addEventListener('dragover', (e) => this.onContainerDragOver(e));
+        this.$.preview?.addEventListener('drop', (e) => this.onContainerDrop(e));
+      }
 
       // Live edits (subset)
       const relayout = () => {
@@ -337,6 +395,7 @@
       this.restore();
       this.renderPreview();
       this.bindEvents();
+      this.initSortable?.();
       // init phone inputs after initial render
       try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch {}
       this.installUnloadGuard();
@@ -495,6 +554,53 @@
           if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
         } catch {}
       });
+    }
+
+    initSortable(){
+      if (this._sortableReady) return;
+      const host = this.$.preview;
+      if (!host || typeof window.Sortable === 'undefined') return;
+      try {
+        // eslint-disable-next-line no-new
+        new window.Sortable(host, {
+          animation: 150,
+          draggable: '[data-fid]',
+          filter: 'input,textarea,select,button,label',
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass: 'dragging',
+          fallbackOnBody: true,
+          swapThreshold: 0.5,
+          onStart: (evt) => {
+            const el = evt.item;
+            this.dnd.draggingId = el?.dataset?.fid || null;
+            this.dnd.fromIndex = evt.oldIndex ?? -1;
+          },
+          onEnd: (evt) => {
+            const from = (evt.oldIndex ?? -1);
+            const to   = (evt.newIndex ?? -1);
+            this.dnd.draggingId = null;
+            this.dnd.fromIndex  = -1;
+            if (from < 0 || to < 0 || from === to) return;
+            if (from >= this.fields.length || to >= this.fields.length) return;
+            const id = this.fields[from]?.id;
+            const [moved] = this.fields.splice(from, 1);
+            this.fields.splice(to, 0, moved);
+            this.persist();
+            this.setDirty();
+            this.renderPreview();
+            if (id) {
+              this.select(id);
+              const el = this.$.preview?.querySelector(`[data-fid=\"${id}\"]`);
+              NS.UI?.flash?.(el);
+            }
+            if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
+          }
+        });
+        this._sortableReady = true;
+      } catch (e) {
+        console.warn('Sortable init failed', e);
+      }
     }
   }
 

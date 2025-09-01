@@ -19,6 +19,35 @@
            : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
   };
 
+  // Compute insertion index based on pointer Y relative to children midlines
+  NS.computeIndexByY = function computeIndexByY(previewEl, clientY){
+    if (!previewEl) return 0;
+    const kids = Array.from(previewEl.children).filter(el => el !== NS.getPlaceholder());
+    for (let i = 0; i < kids.length; i++) {
+      const rect = kids[i].getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (clientY < mid) return i;
+    }
+    return kids.length; // append at end
+  };
+
+  // Place placeholder at a given child index within preview
+  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index){
+    const ph = NS.getPlaceholder();
+    if (!previewEl) return;
+    const kids = Array.from(previewEl.children).filter(el => el !== ph);
+    if (index <= 0) {
+      if (kids[0]) previewEl.insertBefore(ph, kids[0]);
+      else previewEl.appendChild(ph);
+      return;
+    }
+    if (index >= kids.length) {
+      previewEl.appendChild(ph);
+      return;
+    }
+    previewEl.insertBefore(ph, kids[index]);
+  };
+
   NS.removePlaceholder = function removePlaceholder(){
     const ph = NS.getPlaceholder();
     if (ph.parentNode) ph.parentNode.removeChild(ph);
@@ -47,4 +76,3 @@
     return copy;
   };
 })();
-
