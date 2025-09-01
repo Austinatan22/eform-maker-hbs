@@ -64,6 +64,12 @@ export async function createOrUpdateForm(req, res) {
   }
 
   try {
+    // Enforce case-insensitive title uniqueness on create
+    if (!id) {
+      if (await isTitleTaken(title)) {
+        return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+      }
+    }
     if (!id) {
       const { form, rows } = await createFormWithFields(title, clean);
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
@@ -137,10 +143,10 @@ export async function updateForm(req, res) {
       if (!String(title).trim()) {
         return res.status(400).json({ error: 'Form title is required.' });
       }
-      // If you want strict unique-before-update, uncomment the next lines:
-      // if (await isTitleTaken(title, String(req.params.id))) {
-      //   return res.status(409).json({ error: 'Form title already exists. Choose another.' });
-      // }
+      // Strict unique-before-update (case-insensitive)
+      if (await isTitleTaken(title, String(req.params.id))) {
+        return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+      }
       form.title = title;
     }
 

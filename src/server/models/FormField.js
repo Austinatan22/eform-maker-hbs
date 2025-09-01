@@ -11,8 +11,7 @@ primaryKey: true
 },
 formId: {
 type: DataTypes.STRING(64),
-allowNull: false,
-index: true
+allowNull: false
 },
 // Core field definition
 type: {
@@ -42,7 +41,9 @@ position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 }, {
   tableName: 'form_fields',
   timestamps: true,
-  
+  indexes: [
+    { name: 'idx_form_fields_formId', fields: ['formId'] }
+  ]
 });
 
 

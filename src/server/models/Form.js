@@ -10,8 +10,7 @@ export const Form = sequelize.define('Form', {
   title: {
     type: DataTypes.STRING(255),
     allowNull: false,
-    defaultValue: '',
-    unique: true
+    defaultValue: ''
   }
 }, {
   tableName: 'forms',

@@ -28,7 +28,7 @@ const app = express();
 app.use(express.static(PUBLIC_DIR));
 
 // Expose field partials for the builder to fetch (e.g. /tpl/fields/phone.hbs)
-app.use('/tpl', express.static(path.join(PARTIALS_DIR)));
+app.use('/tpl', express.static(path.join(PARTIALS_DIR, 'fields')));
 
 // Body parsers
 app.use(express.json({ limit: '1mb' }));
@@ -74,4 +74,3 @@ const port = process.env.PORT || 5173;
     process.exit(1);
   }
 })();
-

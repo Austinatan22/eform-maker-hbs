@@ -13,8 +13,7 @@ export const FormSubmission = sequelize.define('FormSubmission', {
   },
   formId: {
     type: DataTypes.STRING(64),
-    allowNull: false,
-    index: true
+    allowNull: false
   },
   payloadJson: {
     type: DataTypes.TEXT,
@@ -35,5 +34,8 @@ export const FormSubmission = sequelize.define('FormSubmission', {
   }
 }, {
   tableName: 'form_submissions',
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    { name: 'idx_form_submissions_formId', fields: ['formId'] }
+  ]
 });

@@ -44,7 +44,7 @@ async function run() {
   fs.mkdirSync(path.dirname(TEST_DB), { recursive: true });
 
   log('Starting server...');
-  const child = spawn(process.execPath, ['app.js'], {
+  const child = spawn(process.execPath, ['src/server/app.js'], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT, DB_FILE: TEST_DB }
   });

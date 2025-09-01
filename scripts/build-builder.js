@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.resolve(ROOT, 'src', 'client', 'builder');
 const OUT = path.resolve(ROOT, 'public', 'js', 'builder.js');
-const LEGACY = path.resolve(ROOT, 'public', 'js', 'builder.js');
 
 function banner() {
   return `/*
