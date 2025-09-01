@@ -19,9 +19,3 @@ export const sequelize = new Sequelize({
   storage,
   logging: false,
 });
-
-// Example (Postgres):
-// export const sequelize = new Sequelize(process.env.DATABASE_URL, {
-//   dialect: 'postgres',
-//   logging: false,
-// });
