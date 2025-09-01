@@ -33,6 +33,41 @@
 })();
 
 
+// ---- 05-ui.js ----
+// src/client/builder/05-ui.js
+(function(){
+  const NS = (window.BuilderApp = window.BuilderApp || {});
+
+  const UI = {};
+
+  // Flash an element by toggling a CSS class briefly
+  UI.flash = function flash(el, className = 'drop-flash', ms = 450){
+    if (!el) return;
+    try {
+      el.classList.add(className);
+      setTimeout(() => el.classList.remove(className), ms);
+    } catch (_) {}
+  };
+
+  // Bootstrap Tab helpers (safe if BS not loaded)
+  UI.getTab = function getTab(btn){
+    const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
+    return Tab ? Tab.getOrCreateInstance(btn) : null;
+  };
+  UI.showTab = function showTab(btn){
+    if (!btn) return;
+    const inst = UI.getTab(btn);
+    inst ? inst.show() : btn.click?.();
+  };
+
+  // Quick query helpers
+  UI.qs = function qs(sel, root){ return (root || document).querySelector(sel); };
+  UI.qsa = function qsa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); };
+
+  NS.UI = UI;
+})();
+
+
 // ---- 10-templates.js ----
 // src/client/builder/10-templates.js
 (function(){
@@ -425,7 +460,7 @@
       if (this.$.editOptionsRow) this.$.editOptionsRow.style.display = (NS.needsOptions && NS.needsOptions(f.type)) ? '' : 'none';
       if (this.$.editRequired) this.$.editRequired.checked = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
-      this.showTab(this.$.tabEditBtn);
+      NS.UI?.showTab?.(this.$.tabEditBtn);
     }
 
     highlight(id){
@@ -475,6 +510,8 @@
         this.renderPreview();
         if (this.dnd.draggingId) {
           this.select(this.dnd.draggingId);
+          const el = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
+          NS.UI?.flash?.(el);
         }
       }
       NS.removePlaceholder?.();
@@ -602,6 +639,11 @@
       // Preload templates; then bind and do a minimal render
       try { await NS.preloadTemplates?.(); } catch (e) { console.warn('preloadTemplates failed:', e); }
       this.bindDom();
+      // capture deep-link id (/builder/:id) if present
+      try {
+        const m = location.pathname.match(/\/builder\/([^/]+)/);
+        if (m && m[1]) this.formId = m[1];
+      } catch {}
       this.restore();
       this.renderPreview();
       this.bindEvents();
@@ -611,7 +653,7 @@
       if (this.fields.length) {
         this.select(this.fields[this.fields.length - 1].id);
       } else {
-        this.showTab(this.$.tabAddBtn);
+        NS.UI?.showTab?.(this.$.tabAddBtn);
       }
       this._bootstrapped = true;
       return this;

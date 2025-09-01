@@ -150,7 +150,7 @@
       if (this.$.editOptionsRow) this.$.editOptionsRow.style.display = (NS.needsOptions && NS.needsOptions(f.type)) ? '' : 'none';
       if (this.$.editRequired) this.$.editRequired.checked = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
-      this.showTab(this.$.tabEditBtn);
+      NS.UI?.showTab?.(this.$.tabEditBtn);
     }
 
     highlight(id){
@@ -200,6 +200,8 @@
         this.renderPreview();
         if (this.dnd.draggingId) {
           this.select(this.dnd.draggingId);
+          const el = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
+          NS.UI?.flash?.(el);
         }
       }
       NS.removePlaceholder?.();
@@ -341,7 +343,7 @@
       if (this.fields.length) {
         this.select(this.fields[this.fields.length - 1].id);
       } else {
-        this.showTab(this.$.tabAddBtn);
+        NS.UI?.showTab?.(this.$.tabAddBtn);
       }
       this._bootstrapped = true;
       return this;
