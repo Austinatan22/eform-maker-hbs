@@ -215,14 +215,25 @@
 
     addField(type){
       const def = NS.FIELDS_DEFAULTS || {};
+      const label = typeof def.label === 'function' ? def.label(type) : (type || '');
+      // Generate a unique internal name based on label/type
+      const baseRaw = label || type || 'field';
+      const base = NS.toSafeSnake ? NS.toSafeSnake(baseRaw) : baseRaw;
+      const existing = new Set(this.fields.map(f => f.name));
+      let name = base;
+      if (existing.has(name)) {
+        let i = 1;
+        while (existing.has(`${base}${i}`)) i++;
+        name = `${base}${i}`;
+      }
       const field = {
         id: (NS.uuid ? NS.uuid() : String(Date.now())),
         type,
-        label: typeof def.label === 'function' ? def.label(type) : '',
+        label,
         options: typeof def.options === 'function' ? def.options(type) : '',
         value: '',
         placeholder: typeof def.placeholder === 'function' ? def.placeholder(type) : '',
-        name: '',
+        name,
         required: false,
         doNotStore: false,
         autoName: true
@@ -661,11 +672,11 @@
           onStart: (evt) => {
             const el = evt.item;
             this.dnd.draggingId = el?.dataset?.fid || null;
-            this.dnd.fromIndex = evt.oldIndex ?? -1;
+            this.dnd.fromIndex = (evt.oldIndex != null ? evt.oldIndex : -1);
           },
           onEnd: (evt) => {
-            const from = (evt.oldIndex ?? -1);
-            const to   = (evt.newIndex ?? -1);
+            const from = (evt.oldIndex != null ? evt.oldIndex : -1);
+            const to   = (evt.newIndex != null ? evt.newIndex : -1);
             this.dnd.draggingId = null;
             this.dnd.fromIndex  = -1;
             if (from < 0 || to < 0 || from === to) return;

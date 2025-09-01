@@ -26,7 +26,17 @@
 
   // Defaults
   NS.FIELDS_DEFAULTS = {
-    label: (_t) => '',
+    label: (t) => ({
+      singleLine: 'Single Line Text',
+      paragraph: 'Paragraph Text',
+      dropdown: 'Dropdown',
+      multipleChoice: 'Multiple Choice',
+      checkboxes: 'Checkboxes',
+      number: 'Number',
+      name: 'Full Name',
+      email: 'Email',
+      phone: 'Phone Number'
+    }[t] || (t || '')),
     options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
       singleLine: 'Enter text…',
@@ -38,6 +48,6 @@
       name: '',
       email: 'email@example.com',
       phone: 'Phone number'
-    }[t] ?? '')
+    }[t] || '')
   };
 })();

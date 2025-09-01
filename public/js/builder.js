@@ -171,7 +171,17 @@
 
   // Defaults
   NS.FIELDS_DEFAULTS = {
-    label: (_t) => '',
+    label: (t) => ({
+      singleLine: 'Single Line Text',
+      paragraph: 'Paragraph Text',
+      dropdown: 'Dropdown',
+      multipleChoice: 'Multiple Choice',
+      checkboxes: 'Checkboxes',
+      number: 'Number',
+      name: 'Full Name',
+      email: 'Email',
+      phone: 'Phone Number'
+    }[t] || (t || '')),
     options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
       singleLine: 'Enter text…',
@@ -183,7 +193,7 @@
       name: '',
       email: 'email@example.com',
       phone: 'Phone number'
-    }[t] ?? '')
+    }[t] || '')
   };
 })();
 
@@ -408,7 +418,7 @@
       card.style.cursor = 'move';
       // Actions (duplicate / delete) in top-right
       const actions = document.createElement('div');
-      actions.className = 'field-actions position-absolute top-0 end-0 mt-3 me-3 d-flex gap-1';
+      actions.className = 'field-actions position-absolute top-0 end-0 mt-2 me-3 d-flex gap-1';
       const btnDup = document.createElement('button');
       btnDup.type = 'button';
       btnDup.className = 'action-btn action-dup';
@@ -561,14 +571,25 @@
 
     addField(type){
       const def = NS.FIELDS_DEFAULTS || {};
+      const label = typeof def.label === 'function' ? def.label(type) : (type || '');
+      // Generate a unique internal name based on label/type
+      const baseRaw = label || type || 'field';
+      const base = NS.toSafeSnake ? NS.toSafeSnake(baseRaw) : baseRaw;
+      const existing = new Set(this.fields.map(f => f.name));
+      let name = base;
+      if (existing.has(name)) {
+        let i = 1;
+        while (existing.has(`${base}${i}`)) i++;
+        name = `${base}${i}`;
+      }
       const field = {
         id: (NS.uuid ? NS.uuid() : String(Date.now())),
         type,
-        label: typeof def.label === 'function' ? def.label(type) : '',
+        label,
         options: typeof def.options === 'function' ? def.options(type) : '',
         value: '',
         placeholder: typeof def.placeholder === 'function' ? def.placeholder(type) : '',
-        name: '',
+        name,
         required: false,
         doNotStore: false,
         autoName: true
@@ -1007,11 +1028,11 @@
           onStart: (evt) => {
             const el = evt.item;
             this.dnd.draggingId = el?.dataset?.fid || null;
-            this.dnd.fromIndex = evt.oldIndex ?? -1;
+            this.dnd.fromIndex = (evt.oldIndex != null ? evt.oldIndex : -1);
           },
           onEnd: (evt) => {
-            const from = (evt.oldIndex ?? -1);
-            const to   = (evt.newIndex ?? -1);
+            const from = (evt.oldIndex != null ? evt.oldIndex : -1);
+            const to   = (evt.newIndex != null ? evt.newIndex : -1);
             this.dnd.draggingId = null;
             this.dnd.fromIndex  = -1;
             if (from < 0 || to < 0 || from === to) return;
