@@ -447,6 +447,7 @@
       this.dnd.draggingId = el.dataset.fid;
       this.dnd.fromIndex  = Number(el.dataset.index);
       el.classList.add('opacity-50');
+      if (this.$.btnSave) { this.$.btnSave.textContent = 'Saving...'; }
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dnd.draggingId);

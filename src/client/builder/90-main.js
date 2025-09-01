@@ -172,6 +172,7 @@
       this.dnd.draggingId = el.dataset.fid;
       this.dnd.fromIndex  = Number(el.dataset.index);
       el.classList.add('opacity-50');
+      if (this.$.btnSave) { this.$.btnSave.textContent = 'Saving...'; }
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dnd.draggingId);
@@ -326,6 +327,11 @@
       // Preload templates; then bind and do a minimal render
       try { await NS.preloadTemplates?.(); } catch (e) { console.warn('preloadTemplates failed:', e); }
       this.bindDom();
+      // capture deep-link id (/builder/:id) if present
+      try {
+        const m = location.pathname.match(/\/builder\/([^/]+)/);
+        if (m && m[1]) this.formId = m[1];
+      } catch {}
       this.restore();
       this.renderPreview();
       this.bindEvents();

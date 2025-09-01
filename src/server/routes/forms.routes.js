@@ -22,9 +22,10 @@ router.get('/api/health', health);
 // Forms API
 router.post('/api/forms', createOrUpdateForm);
 router.get('/api/forms', listForms);
+// Place specific route before dynamic :id to avoid conflicts
+router.get('/api/forms/check-title', checkTitleUnique);
 router.get('/api/forms/:id', readForm);
 router.put('/api/forms/:id', updateForm);
-router.get('/api/forms/check-title', checkTitleUnique);
 router.delete('/api/forms/:id', deleteForm);
 
 // Hosted form

@@ -109,6 +109,16 @@ async function run() {
     }
   } catch (e) { failures++; console.error('✗ title uniqueness check', e); }
 
+  // 3b) Check-title endpoint exists for a new title
+  try {
+    const u2 = new URL(`${BASE}/api/forms/check-title`);
+    u2.searchParams.set('title', 'Completely Unique Title 12345');
+    const { res, body } = await fetchJson(u2.toString());
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    if (typeof body.unique !== 'boolean') throw new Error('missing unique boolean');
+    log('✓ check-title endpoint reachable');
+  } catch (e) { failures++; console.error('✗ check-title endpoint', e); }
+
   // 4) Fetch form
   try {
     const { res, body } = await fetchJson(`${BASE}/api/forms/${formId}`);
@@ -145,7 +155,17 @@ async function run() {
     log('✓ update form');
   } catch (e) { failures++; console.error('✗ update form', e); }
 
-  // 7) Hosted form render
+  // 7) Builder page render (smoke)
+  try {
+    const res = await fetch(`${BASE}/builder/${formId}`);
+    const text = await res.text();
+    if (res.status !== 200) throw new Error(`status ${res.status}`);
+    const mustHave = ['id="preview"', 'id="quickAddButtons"', 'id="formTitle"', 'id="saveBtn"'];
+    if (!mustHave.every(t => text.includes(t))) throw new Error('missing expected elements');
+    log('✓ builder page render');
+  } catch (e) { failures++; console.error('✗ builder page render', e); }
+
+  // 8) Hosted form render
   try {
     const res = await fetch(`${BASE}/f/${formId}`);
     const text = await res.text();
@@ -154,6 +174,57 @@ async function run() {
     }
     log('✓ hosted form render');
   } catch (e) { failures++; console.error('✗ hosted form render', e); }
+
+  // 9) check-title with excludeId should be true when unchanged
+  try {
+    const u = new URL(`${BASE}/api/forms/check-title`);
+    u.searchParams.set('title', 'Test Form Updated');
+    u.searchParams.set('excludeId', formId);
+    const { res, body } = await fetchJson(u.toString());
+    if (!res.ok || body?.unique !== true) throw new Error('expected unique=true with excludeId');
+    log('✓ title uniqueness respects excludeId');
+  } catch (e) { failures++; console.error('✗ title excludeId check', e); }
+
+  // 10) List forms contains our form
+  try {
+    const { res, body } = await fetchJson(`${BASE}/api/forms`);
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const hit = (body.forms || []).find(f => f.id === formId);
+    if (!hit) throw new Error('form not in list');
+    log('✓ list includes form');
+  } catch (e) { failures++; console.error('✗ list forms', e); }
+
+  // 11) Public submission stores consented copy
+  try {
+    const payload = {
+      data: { yourName: 'Alex', color: 'Red' },
+      storeConsent: true
+    };
+    const { res } = await fetchJson(`${BASE}/public/forms/${formId}/submissions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    // verify via models against the same DB file
+    try {
+      process.env.DB_FILE = TEST_DB; // ensure models use test DB
+      const { FormSubmission } = await import('../models/FormSubmission.js');
+      const rows = await FormSubmission.findAll({ where: { formId } });
+      if (!(rows && rows.length > 0)) throw new Error('no submission rows');
+      log('✓ public submission stored');
+    } catch (e) {
+      throw e;
+    }
+  } catch (e) { failures++; console.error('✗ public submission', e); }
+
+  // 12) Delete form; list no longer contains it
+  try {
+    const { res } = await fetchJson(`${BASE}/api/forms/${formId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`delete status ${res.status}`);
+    const { res: resList, body: bodyList } = await fetchJson(`${BASE}/api/forms`);
+    const hit = (bodyList.forms || []).find(f => f.id === formId);
+    if (hit) throw new Error('form still present after delete');
+    log('✓ delete form');
+  } catch (e) { failures++; console.error('✗ delete form', e); }
 
   // Cleanup
   await sleep(100);

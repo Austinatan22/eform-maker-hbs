@@ -267,7 +267,7 @@ export async function builderPage(req, res) {
         options: f.options, countryIso2: f.countryIso2
       }));
 
-    const preload = JSON.stringify({ title: formPlain.title || '', fields });
+    const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', fields });
 
     res.render('builder', {
       title: `Editing: ${formPlain.title || '(Untitled)'}`,
