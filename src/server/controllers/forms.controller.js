@@ -49,7 +49,12 @@ export async function health(_req, res) {
 }
 
 export async function createOrUpdateForm(req, res) {
-  const { id, title = '', fields = [] } = req.body || {};
+  const { id, title = '', fields = [], category: rawCategory } = req.body || {};
+
+  const CATEGORIES = new Set(['survey','quiz','feedback']);
+  const category = CATEGORIES.has(String(rawCategory || '').toLowerCase())
+    ? String(rawCategory).toLowerCase()
+    : 'survey';
 
   if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
   if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
@@ -78,10 +83,10 @@ export async function createOrUpdateForm(req, res) {
       }
     }
     if (!id) {
-      const { form, rows } = await createFormWithFields(title, clean);
+      const { form, rows } = await createFormWithFields(title, clean, category);
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
     } else {
-      const out = await updateFormWithFields(id, title, clean);
+      const out = await updateFormWithFields(id, title, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
       const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
@@ -90,7 +95,7 @@ export async function createOrUpdateForm(req, res) {
         required: f.required, doNotStore: f.doNotStore,
         options: f.options
       }));
-      return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, fields: fieldsOut } });
+      return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, category: withFields.category, fields: fieldsOut } });
     }
   } catch (err) {
     if (err?.name === 'SequelizeUniqueConstraintError') {
@@ -107,6 +112,7 @@ export async function listForms(_req, res) {
     const forms = rows.map(r => ({
       id: r.id,
       title: r.title,
+      category: r.category,
       fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
@@ -141,7 +147,11 @@ export async function readForm(req, res) {
 }
 
 export async function updateForm(req, res) {
-  const { title, fields } = req.body || {};
+  const { title, fields, category: rawCategory } = req.body || {};
+  const CATEGORIES = new Set(['survey','quiz','feedback']);
+  const category = rawCategory !== undefined
+    ? (CATEGORIES.has(String(rawCategory || '').toLowerCase()) ? String(rawCategory).toLowerCase() : 'survey')
+    : undefined;
   try {
     const form = await Form.findByPk(req.params.id);
     if (!form) return res.status(404).json({ error: 'Not found' });
@@ -155,6 +165,10 @@ export async function updateForm(req, res) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
       form.title = title;
+    }
+
+    if (category !== undefined) {
+      form.category = category;
     }
 
     if (fields !== undefined) {
@@ -186,7 +200,7 @@ export async function updateForm(req, res) {
       required: f.required, doNotStore: f.doNotStore,
       options: f.options
     }));
-    res.json({ ok: true, form: { id: form.id, title: form.title, fields: fieldsOut } });
+    res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields: fieldsOut } });
   } catch (err) {
     console.error('Update form error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -307,7 +321,7 @@ export async function builderPage(req, res) {
 export async function listFormsPage(_req, res) {
   try {
     const rows = await Form.findAll({ order: [['updatedAt', 'DESC']] });
-    const forms = rows.map(r => ({ id: r.id, title: r.title || '(Untitled)', createdAt: formatDate(r.createdAt), updatedAt: formatDate(r.updatedAt) }));
+    const forms = rows.map(r => ({ id: r.id, title: r.title || '(Untitled)', category: r.category || 'survey', createdAt: formatDate(r.createdAt), updatedAt: formatDate(r.updatedAt) }));
     res.render('forms', { title: 'Forms', currentPath: '/forms', forms });
   } catch (err) {
     console.error('List page error:', err);

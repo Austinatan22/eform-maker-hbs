@@ -12,10 +12,11 @@
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th style="width:38%">Title</th>
-            <th style="width:22%">Updated</th>
-            <th style="width:22%">Created</th>
-            <th class="text-end" style="width:18%">Actions</th>
+            <th style="width:20%">Title</th>
+            <th style="width:15%">Category</th>
+            <th style="width:20%">Updated</th>
+            <th style="width:20%">Created</th>
+            <th class="text-end" style="width:25%">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -23,6 +24,20 @@
             {{#each forms}}
               <tr data-id="{{this.id}}">
                 <td class="fw-medium">{{this.title}}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge rounded-pill js-cat" data-cat="{{this.category}}">
+                      {{#if (isActive this.category 'survey')}}Survey{{/if}}
+                      {{#if (isActive this.category 'quiz')}}Quiz{{/if}}
+                      {{#if (isActive this.category 'feedback')}}Feedback{{/if}}
+                    </span>
+                    <select class="form-select form-select-sm d-none js-cat-select" aria-label="Category">
+                      <option value="survey">Survey</option>
+                      <option value="quiz">Quiz</option>
+                      <option value="feedback">Feedback</option>
+                    </select>
+                  </div>
+                </td>
                 <td><span class="text-muted">{{this.updatedAt}}</span></td>
                 <td><span class="text-muted">{{this.createdAt}}</span></td>
                 <td class="text-end">
@@ -52,10 +67,18 @@
         <h5 class="modal-title">Create a form</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
-        <label class="form-label">Form Name</label>
-        <input id="newFormName" type="text" class="form-control" placeholder="e.g. Contact Us" required>
-      </div>
+  <div class="modal-body">
+    <label class="form-label">Form Name</label>
+    <input id="newFormName" type="text" class="form-control" placeholder="e.g. Contact Us" required>
+    <div class="mt-3">
+      <label class="form-label" for="newFormCategory">Category</label>
+      <select id="newFormCategory" class="form-select">
+        <option value="survey" selected>Survey</option>
+        <option value="quiz">Quiz</option>
+        <option value="feedback">Feedback</option>
+      </select>
+    </div>
+  </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-primary" type="submit">Create</button>
@@ -67,6 +90,25 @@
 {{#section 'scripts'}}
 <script>
 (function() {
+  function catClass(cat) {
+    switch ((cat || '').toLowerCase()) {
+      case 'quiz': return 'bg-label-info';
+      case 'feedback': return 'bg-label-warning';
+      default: return 'bg-label-primary';
+    }
+  }
+
+  // Initialize chip classes and select values
+  document.querySelectorAll('tr[data-id]').forEach(row => {
+    const chip = row.querySelector('.js-cat');
+    const sel = row.querySelector('.js-cat-select');
+    if (chip) {
+      const cat = chip.getAttribute('data-cat') || 'survey';
+      chip.classList.add(catClass(cat));
+    }
+    if (sel && chip) sel.value = (chip.getAttribute('data-cat') || 'survey');
+  });
+
   // Create new form -> redirect to builder
   document.getElementById('addForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -77,7 +119,7 @@
       const res = await fetch('/api/forms', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ title, fields: [] })
+        body: JSON.stringify({ title, fields: [], category: document.getElementById('newFormCategory')?.value || 'survey' })
       });
       const out = await res.json();
       if (!res.ok || !out?.form?.id) throw new Error('Create failed');
@@ -94,20 +136,60 @@
 
   // Delete form (delegation)
   document.querySelector('table')?.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.js-delete');
-    if (!btn) return;
-    const row = btn.closest('tr');
-    const id = row?.dataset.id;
-    if (!id) return;
+    // Toggle category edit
+    const chip = e.target.closest('.js-cat');
+    if (chip) {
+      const row = chip.closest('tr');
+      const sel = row.querySelector('.js-cat-select');
+      chip.classList.add('d-none');
+      sel.classList.remove('d-none');
+      sel.focus();
+      return;
+    }
 
-    if (!confirm('Delete this form?')) return;
+    const btn = e.target.closest('.js-delete');
+    if (btn) {
+      const row = btn.closest('tr');
+      const id = row?.dataset.id;
+      if (!id) return;
+      if (!confirm('Delete this form?')) return;
+      try {
+        const res = await fetch('/api/forms/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        row.remove();
+      } catch (err) {
+        console.error(err);
+        alert('Could not delete form.');
+      }
+    }
+  });
+
+  // Handle category change / blur
+  document.querySelector('table')?.addEventListener('change', async (e) => {
+    const sel = e.target.closest('.js-cat-select');
+    if (!sel) return;
+    const row = sel.closest('tr');
+    const id = row?.dataset.id;
+    const val = sel.value || 'survey';
     try {
-      const res = await fetch('/api/forms/' + id, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
-      row.remove();
+      const res = await fetch('/api/forms/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: val })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      const chip = row.querySelector('.js-cat');
+      chip.setAttribute('data-cat', val);
+      chip.textContent = val === 'quiz' ? 'Quiz' : (val === 'feedback' ? 'Feedback' : 'Survey');
+      chip.classList.remove('bg-label-primary','bg-label-info','bg-label-warning');
+      chip.classList.add(catClass(val));
     } catch (err) {
       console.error(err);
-      alert('Could not delete form.');
+      alert('Could not update category');
+    } finally {
+      sel.classList.add('d-none');
+      const chip = row.querySelector('.js-cat');
+      chip.classList.remove('d-none');
     }
   });
 })();
