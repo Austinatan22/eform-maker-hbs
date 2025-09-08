@@ -24,7 +24,7 @@ const shortRand = (n = 8) => Array.from(crypto.randomBytes(n)).map(b => B62[b % 
 export const makeReadableId = () => `form-${shortRand(8)}`;
 
 // Create a form and its fields inside a transaction
-export async function createFormWithFields(title, cleanFields) {
+export async function createFormWithFields(title, cleanFields, category = 'survey') {
   return sequelize.transaction(async (t) => {
     // Generate unique id: form-XXXXXXXX (retry on collision)
     let newId;
@@ -35,7 +35,7 @@ export async function createFormWithFields(title, cleanFields) {
     }
     if (!newId) throw new Error('Could not generate unique form id');
 
-    const form = await Form.create({ id: newId, title }, { transaction: t });
+    const form = await Form.create({ id: newId, title, category }, { transaction: t });
 
     const rows = cleanFields.map((f, idx) => ({
       id: f.id && String(f.id).trim() ? f.id : crypto.randomBytes(9).toString('base64url'),
@@ -56,13 +56,18 @@ export async function createFormWithFields(title, cleanFields) {
 }
 
 // Update a form title and replace its fields
-export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull) {
+export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull, categoryOrNull) {
   return sequelize.transaction(async (t) => {
     const form = await Form.findByPk(id, { transaction: t });
     if (!form) return { notFound: true };
 
     if (titleOrNull !== undefined) {
       form.title = titleOrNull;
+      await form.save({ transaction: t });
+    }
+
+    if (categoryOrNull !== undefined) {
+      form.category = categoryOrNull;
       await form.save({ transaction: t });
     }
 

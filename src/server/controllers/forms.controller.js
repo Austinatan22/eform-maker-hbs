@@ -5,7 +5,7 @@ import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
 import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
-import { isTitleTaken, createFormWithFields, updateFormWithFields } from '../services/forms.service.js';
+import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
@@ -57,6 +57,7 @@ export async function createOrUpdateForm(req, res) {
     : 'survey';
 
   if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
+  const normalizedTitle = normalizeTitle(title);
   if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
 
   const clean = sanitizeFields(fields);
@@ -78,15 +79,19 @@ export async function createOrUpdateForm(req, res) {
   try {
     // Enforce case-insensitive title uniqueness on create
     if (!id) {
-      if (await isTitleTaken(title)) {
+      if (await isTitleTaken(normalizedTitle)) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
     }
     if (!id) {
-      const { form, rows } = await createFormWithFields(title, clean, category);
+      const { form, rows } = await createFormWithFields(normalizedTitle, clean, category);
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
     } else {
-      const out = await updateFormWithFields(id, title, clean, category);
+      // Enforce uniqueness on update (when using POST /api/forms with id)
+      if (await isTitleTaken(normalizedTitle, String(id))) {
+        return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+      }
+      const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
       const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
@@ -160,11 +165,12 @@ export async function updateForm(req, res) {
       if (!String(title).trim()) {
         return res.status(400).json({ error: 'Form title is required.' });
       }
+      const normalizedTitle = normalizeTitle(title);
       // Strict unique-before-update (case-insensitive)
-      if (await isTitleTaken(title, String(req.params.id))) {
+      if (await isTitleTaken(normalizedTitle, String(req.params.id))) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
-      form.title = title;
+      form.title = normalizedTitle;
     }
 
     if (category !== undefined) {
@@ -202,6 +208,9 @@ export async function updateForm(req, res) {
     }));
     res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields: fieldsOut } });
   } catch (err) {
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+    }
     console.error('Update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }

@@ -557,11 +557,16 @@
       const title = (this.$.formTitle?.value || '').trim();
       if (!title) { alert('Form must have a title before saving.'); this.$.formTitle?.focus(); return; }
 
-      // On create, do a soft uniqueness check
-      if (!this.formId && NS.API?.checkTitleUnique) {
+      // Soft uniqueness check (both create and update)
+      if (NS.API?.checkTitleUnique) {
         try {
-          const { body } = await NS.API.checkTitleUnique(title);
-          if (!body?.unique) { this.$.formTitle?.reportValidity?.(); this.$.formTitle?.focus(); return; }
+          const { body } = await NS.API.checkTitleUnique(title, this.formId || undefined);
+          if (!body?.unique) {
+            // Mark invalid and stop
+            this.$.formTitle?.reportValidity?.();
+            this.$.formTitle?.focus();
+            return;
+          }
         } catch {}
       }
 

@@ -48,3 +48,19 @@
 /* Hover colors */
 .field-actions .action-dup:hover { color: var(--bs-primary, #7367f0); }
 .field-actions .action-del:hover { color: var(--bs-danger, #ea5455); }
+
+/* Ensure icons inside buttons inherit the button's text color (including hover) */
+.btn .ti, .btn .icon-base { color: currentColor; }
+
+/* Override Vuexy table rule that forces gray icons inside tables */
+.table .btn-icon.btn-outline-primary { color: var(--bs-primary) !important; }
+.table .btn-icon.btn-outline-danger { color: var(--bs-danger) !important; }
+.table .btn-icon.btn-outline-secondary { color: var(--bs-secondary) !important; }
+
+/* Optional: ensure filled primary also looks correct if used */
+.table .btn-icon.btn-primary { color: #fff !important; }
+.table .btn-icon.btn-danger { color: #fff !important; }
+
+/* Ensure icons inside dropdown items match text color */
+.dropdown-menu .dropdown-item .ti,
+.dropdown-menu .dropdown-item .icon-base { color: currentColor; }
