@@ -1,0 +1,35 @@
+<div class="authentication-wrapper authentication-cover">
+  <div class="authentication-inner row m-0">
+    <div class="d-none d-lg-flex col-lg-6 col-xl-7 align-items-center p-5">
+      <div class="w-100 d-flex justify-content-center">
+        <img src="/assets/img/illustrations/man-with-laptop.png" class="img-fluid" alt="Login illustration" style="max-width: 360px;">
+      </div>
+    </div>
+
+    <div class="d-flex col-12 col-lg-6 col-xl-5 align-items-center authentication-bg p-sm-5 p-4">
+      <div class="w-px-400 mx-auto">
+        <h4 class="mb-1">Welcome back 👋</h4>
+        <p class="mb-4 text-body-secondary">Sign in to continue to Eform Maker</p>
+
+        {{#if error}}
+          <div class="alert alert-danger" role="alert">{{error}}</div>
+        {{/if}}
+
+        <form method="post" action="/login" class="mb-3">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          <button class="btn btn-primary d-grid w-100" type="submit">Sign in</button>
+        </form>
+
+        <small class="text-body-secondary">Tip: first run creates admin <code>admin@example.com</code> / <code>admin123</code> (dev)</small>
+      </div>
+    </div>
+  </div>
+</div>
+

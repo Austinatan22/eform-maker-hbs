@@ -42,16 +42,25 @@
                     </div>
                   </div>
                   <div class="flex-grow-1">
-                    <h6 class="mb-0">John Doe</h6>
-                    <small class="text-body-secondary">Admin</small>
+                    <h6 class="mb-0">{{#if user}}{{user.email}}{{else}}Guest{{/if}}</h6>
+                    <small class="text-body-secondary">{{#if user}}{{user.role}}{{else}}Not signed in{{/if}}</small>
                   </div>
                 </div>
               </a>
             </li>
             <li><div class="dropdown-divider my-1 mx-n2"></div></li>
-            <li><a class="dropdown-item" href="#"><i class="icon-base ti tabler-user me-3 icon-md"></i>My Profile</a></li>
-            <li><a class="dropdown-item" href="#"><i class="icon-base ti tabler-settings me-3 icon-md"></i>Settings</a></li>
-            <li><div class="d-grid px-2 pt-2 pb-1"><a class="btn btn-sm btn-danger d-flex" href="#"><small>Logout</small><i class="icon-base ti tabler-logout ms-2 icon-14px"></i></a></div></li>
+            {{#if user}}
+              <li>
+                <form class="px-2 pt-2 pb-1" method="post" action="/logout">
+                  <button class="btn btn-sm btn-danger d-flex w-100" type="submit">
+                    <small>Logout</small>
+                    <i class="icon-base ti tabler-logout ms-2 icon-14px"></i>
+                  </button>
+                </form>
+              </li>
+            {{else}}
+              <li><div class="d-grid px-2 pt-2 pb-1"><a class="btn btn-sm btn-primary d-flex" href="/login"><small>Login</small><i class="icon-base ti tabler-login ms-2 icon-14px"></i></a></div></li>
+            {{/if}}
           </ul>
         </li>
       </ul>

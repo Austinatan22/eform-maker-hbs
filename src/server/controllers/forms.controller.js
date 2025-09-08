@@ -84,12 +84,23 @@ export async function createOrUpdateForm(req, res) {
       }
     }
     if (!id) {
-      const { form, rows } = await createFormWithFields(normalizedTitle, clean, category);
+      const reqUser = req.session?.user || req.user || null;
+      const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
+      const { form, rows } = await createFormWithFields(normalizedTitle, clean, category, createdBy);
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
     } else {
       // Enforce uniqueness on update (when using POST /api/forms with id)
       if (await isTitleTaken(normalizedTitle, String(id))) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
+      }
+      // Owner-or-admin enforcement when auth enabled
+      if (process.env.AUTH_ENABLED === '1') {
+        const f = await Form.findByPk(id);
+        const reqUser = req.session?.user || req.user || null;
+        const role = reqUser?.role || 'viewer';
+        const isOwner = f && reqUser && f.createdBy && f.createdBy === reqUser.id;
+        const isAdmin = role === 'admin';
+        if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
       }
       const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
@@ -160,6 +171,14 @@ export async function updateForm(req, res) {
   try {
     const form = await Form.findByPk(req.params.id);
     if (!form) return res.status(404).json({ error: 'Not found' });
+    // Owner-or-admin enforcement when auth enabled
+    if (process.env.AUTH_ENABLED === '1') {
+      const reqUser = req.session?.user || req.user || null;
+      const role = reqUser?.role || 'viewer';
+      const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
+      const isAdmin = role === 'admin';
+      if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    }
 
     if (title !== undefined) {
       if (!String(title).trim()) {
@@ -265,6 +284,14 @@ export async function deleteForm(req, res) {
     await sequelize.transaction(async (t) => {
       const form = await Form.findByPk(req.params.id, { transaction: t });
       if (!form) return res.status(404).json({ error: 'Not found' });
+      // Owner-or-admin enforcement when auth enabled
+      if (process.env.AUTH_ENABLED === '1') {
+        const reqUser = req.session?.user || req.user || null;
+        const role = reqUser?.role || 'viewer';
+        const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
+        const isAdmin = role === 'admin';
+        if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+      }
 
       await FormField.destroy({ where: { formId: form.id }, transaction: t });
       await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });

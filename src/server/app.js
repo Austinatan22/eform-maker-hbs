@@ -1,5 +1,6 @@
 // src/server/app.js (ESM)
 import express from 'express';
+import session from 'express-session';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -7,6 +8,10 @@ import { engine } from 'express-handlebars';
 import { sequelize } from './db.js';
 import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
+import authRouter from './routes/auth.routes.js';
+import cors from 'cors';
+import { RefreshToken } from './models/RefreshToken.js';
+import { User } from './models/User.js';
 
 // Paths / __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -36,7 +41,33 @@ app.use('/tpl', express.static(PARTIALS_DIR));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Sessions (dev-friendly; for production use a persistent store)
+app.use(session({
+  name: 'sid',
+  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false // set true behind HTTPS/proxy
+  }
+}));
+
+// Expose session user to templates
+app.use((req, res, next) => {
+  res.locals.user = req.session?.user || null;
+  next();
+});
+
+// CORS for APIs when JWT auth is enabled
+if (process.env.AUTH_ENABLED === '1') {
+  const origin = process.env.CORS_ORIGIN || undefined; // undefined => reflect request origin if needed
+  app.use(cors({ origin: origin || true, credentials: true }));
+}
+
 // Routes
+app.use(authRouter);
 app.use(formsRouter);
 app.get('/', (_req, res) => res.redirect('/forms'));
 
@@ -74,6 +105,15 @@ async function ensureSchema() {
         defaultValue: 'survey'
       });
       console.log('Added missing column forms.category');
+    }
+
+    const hasCreatedBy = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'createdby');
+    if (!hasCreatedBy) {
+      await sequelize.getQueryInterface().addColumn('forms', 'createdBy', {
+        type: DataTypes.STRING(64),
+        allowNull: true
+      });
+      console.log('Added missing column forms.createdBy');
     }
 
     // Ensure unique index on forms.title (case-insensitive)
@@ -132,6 +172,28 @@ async function ensureSchema() {
       }
     } catch (e) {
       console.warn('Index ensure failed (form_submissions):', e.message || e);
+    }
+
+    // Ensure users table & seed admin (dev)
+    try {
+      await User.sync();
+      const [rows] = await sequelize.query("SELECT COUNT(*) as c FROM users");
+      const count = Array.isArray(rows) ? (rows[0]?.c ?? rows[0]?.C ?? 0) : 0;
+      if (!count) {
+        const bcrypt = await import('bcryptjs');
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+        const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+        const hash = bcrypt.hashSync(adminPass, 10);
+        await User.create({ id: 'u-admin', email: adminEmail, passwordHash: hash, role: 'admin' });
+        console.log(`Seeded admin user: ${adminEmail} / ${adminPass}`);
+      }
+    } catch (e) {
+      console.warn('User schema/seed issue:', e.message || e);
+    }
+
+    // Ensure refresh_tokens table exists
+    try { await RefreshToken.sync(); } catch (e) {
+      console.warn('RefreshToken schema issue:', e.message || e);
     }
   } catch (e) {
     console.warn('Schema ensure failed (category):', e.message || e);

@@ -12,6 +12,10 @@ export const Form = sequelize.define('Form', {
     allowNull: false,
     defaultValue: ''
   },
+  createdBy: {
+    type: DataTypes.STRING(64),
+    allowNull: true
+  },
   category: {
     // survey | quiz | feedback (free text with controlled values at controller)
     type: DataTypes.STRING(32),
