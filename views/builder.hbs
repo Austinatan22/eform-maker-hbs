@@ -29,17 +29,20 @@
         <!-- Add Fields -->
         <div class="tab-pane fade show active" id="lp-pill-add" role="tabpanel" aria-labelledby="tabAdd">
           <div class="mb-3">
-            <label class="form-label">Quick Add</label>
-            <div id="quickAddButtons" class="row g-2">
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="singleLine">Single Line Text</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="paragraph">Paragraph Text</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="dropdown">Dropdown</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="multipleChoice">Multiple Choice</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="checkboxes">Checkboxes</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="number">Number</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="name">Name</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="email">Email</button></div>
-              <div class="col-6"><button type="button" class="btn btn-outline-primary w-100" data-type="phone">Phone Number</button></div>
+            <label class="form-label">Add Fields</label>
+            <div id="quickAddButtons" class="row g-2 align-items-stretch">
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="singleLine"><i class="icon-base ti tabler-forms icon-sm me-2"></i><span class="text-start">Single Line Text</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="paragraph"><i class="icon-base ti tabler-article icon-sm me-2"></i><span class="text-start">Paragraph Text</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="dropdown"><i class="icon-base ti tabler-list icon-sm me-2"></i><span class="text-start">Dropdown</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span class="text-start">Multiple Choice</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="checkboxes"><i class="icon-base ti tabler-square-rounded-check icon-sm me-2"></i><span class="text-start">Checkboxes</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="number"><i class="icon-base ti tabler-list-numbers icon-sm me-2"></i><span class="text-start">Number</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="name"><i class="icon-base ti tabler-user icon-sm me-2"></i><span class="text-start">Name</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="email"><i class="icon-base ti tabler-mail icon-sm me-2"></i><span class="text-start">Email</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="phone"><i class="icon-base ti tabler-phone icon-sm me-2"></i><span class="text-start">Phone Number</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice" data-label="Yes / No" data-options="Yes,No"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span class="text-start">Yes / No</span></button></div>
+              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice" data-label="NPS (1-10)" data-options="1,2,3,4,5,6,7,8,9,10"><i class="icon-base ti tabler-chart-pie icon-sm me-2"></i><span class="text-start">NPS (1-10)</span></button></div>
+            </div>
             </div>
           </div>
         </div>
@@ -102,7 +105,7 @@
     <div class="card">
       <div class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-sm-between align-items-sm-center flex-column flex-sm-row z-2 border-bottom">
         <h5 class="card-title mb-sm-0 me-sm-2">Preview</h5>
-        <div class="action-btns d-flex align-items-center w-100 w-sm-auto gap-2">
+        <div class="action-btns d-flex align-items-start w-100 w-sm-auto gap-2">
           <input id="formTitle" type="text" class="form-control form-control" value="{{form.title}}" placeholder="Form Title" />
           <button id="saveBtn" class="btn btn-success">Save</button>
         </div>
@@ -136,3 +139,5 @@
 
   <script src="/js/builder.js"></script>
 {{/section}}
+
+

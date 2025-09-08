@@ -98,13 +98,23 @@
       <div class="modal-body">
         <div class="js-step" data-step="choose">
           <p class="text-muted mb-3">How would you like to start?</p>
-          <div class="d-grid gap-2">
-            <button type="button" class="btn btn-outline-primary js-choose-blank">
-              Create a blank form
-            </button>
-            <button type="button" class="btn btn-outline-secondary js-choose-template">
-              Start from a template
-            </button>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <button type="button" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-blank">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-file-plus icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Create a blank form</div>
+                </button>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-template">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-template icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Start from a template</div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -269,7 +279,9 @@
       stepBlank.classList.toggle('d-none', step !== 'blank');
       stepTpl.classList.toggle('d-none', step !== 'templates');
       btnBack.classList.toggle('d-none', step === 'choose');
-      btnNext.textContent = (step === 'choose') ? 'Next' : 'Create';
+      // Hide Next on first step; users pick a tile instead
+      btnNext.classList.toggle('d-none', step === 'choose');
+      btnNext.textContent = 'Create';
       titleEl.textContent = 'Create a Form';
     }
 
