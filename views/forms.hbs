@@ -152,6 +152,22 @@
               <input class="form-check-input me-2" type="radio" name="templateChoice" value="rsvp">
               <span class="fw-medium">Event RSVP</span>
             </label>
+            <label class="list-group-item d-flex align-items-center">
+              <input class="form-check-input me-2" type="radio" name="templateChoice" value="contact">
+              <span class="fw-medium">Contact Us</span>
+            </label>
+            <label class="list-group-item d-flex align-items-center">
+              <input class="form-check-input me-2" type="radio" name="templateChoice" value="support">
+              <span class="fw-medium">Support Ticket</span>
+            </label>
+            <label class="list-group-item d-flex align-items-center">
+              <input class="form-check-input me-2" type="radio" name="templateChoice" value="job">
+              <span class="fw-medium">Job Application</span>
+            </label>
+            <label class="list-group-item d-flex align-items-center">
+              <input class="form-check-input me-2" type="radio" name="templateChoice" value="nps">
+              <span class="fw-medium">NPS Survey</span>
+            </label>
           </div>
         </div>
       </div>
@@ -270,6 +286,48 @@
           { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
           { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
         ]
+      },
+      contact: {
+        name: 'Contact Us',
+        category: 'feedback',
+        fields: [
+          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+          { type: 'phone', label: 'Phone Number', name: 'phone' },
+          { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
+          { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
+        ]
+      },
+      support: {
+        name: 'Support Ticket',
+        category: 'feedback',
+        fields: [
+          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+          { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
+          { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
+          { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
+        ]
+      },
+      job: {
+        name: 'Job Application',
+        category: 'survey',
+        fields: [
+          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+          { type: 'phone', label: 'Phone Number', name: 'phone' },
+          { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
+          { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
+          { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
+        ]
+      },
+      nps: {
+        name: 'NPS Survey',
+        category: 'survey',
+        fields: [
+          { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
+          { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
+        ]
       }
     };
 
@@ -312,15 +370,10 @@
           if (!selected) return;
           const key = selected.value;
           const tpl = TEMPLATES[key];
-          const payload = { title: tpl.name, category: tpl.category, fields: tpl.fields };
-          const res = await fetch('/api/forms', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const out = await res.json();
-          if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
+          // Seed builder with template fields but blank title; user must name it before saving
+          try { localStorage.setItem('eform-maker-hbs', JSON.stringify({ id: null, title: '', fields: tpl.fields || [] })); } catch {}
           bootstrap.Modal.getInstance(modalEl)?.hide();
-          window.location.assign('/builder/' + out.form.id);
+          window.location.assign('/builder/new');
           return;
         }
 

@@ -195,7 +195,42 @@
       const data = NS.readLocal?.();
       if (!data) return;
       if (data.id) this.formId = data.id;
-      if (Array.isArray(data.fields)) this.fields = data.fields;
+      if (Array.isArray(data.fields)) {
+        const existingNames = new Set();
+        const uniqueName = (raw) => {
+          let base = String(raw || 'field').trim();
+          base = NS.toSafeSnake ? NS.toSafeSnake(base) : base;
+          let name = base || 'field';
+          if (!existingNames.has(name)) { existingNames.add(name); return name; }
+          let i = 1; let candidate = `${base}${i}`;
+          while (existingNames.has(candidate)) { i++; candidate = `${base}${i}`; }
+          existingNames.add(candidate);
+          return candidate;
+        };
+        const defaults = NS.FIELDS_DEFAULTS || {};
+        this.fields = data.fields.map((f, idx) => {
+          const type = f?.type;
+          const id = (f && f.id && String(f.id).trim()) ? String(f.id) : (NS.uuid ? NS.uuid() : `field_${Date.now()}_${idx}`);
+          const label = String(f?.label || '');
+          const nameIn = String(f?.name || '').trim();
+          const name = nameIn ? (existingNames.has(nameIn) ? uniqueName(nameIn) : (existingNames.add(nameIn), nameIn))
+                              : uniqueName(label || type || 'field');
+          const placeholder = (f?.placeholder != null)
+            ? String(f.placeholder)
+            : (typeof defaults.placeholder === 'function' ? defaults.placeholder(type) : '');
+          const options = (f?.options != null) ? String(f.options) : (typeof defaults.options === 'function' ? defaults.options(type) : '');
+          return {
+            id,
+            type,
+            label,
+            name,
+            placeholder,
+            required: !!f?.required,
+            doNotStore: !!f?.doNotStore,
+            options
+          };
+        });
+      }
       if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
     }
 
@@ -242,6 +277,33 @@
       this.persist();
       this.setDirty();
       // Full render ensures SortableJS picks up the new node and indexes are normalized
+      this.renderPreview();
+      this.select(field.id);
+    }
+
+    addPresetField(type, preset = {}){
+      const def = NS.FIELDS_DEFAULTS || {};
+      const label = (preset.label && String(preset.label).trim()) || (typeof def.label === 'function' ? def.label(type) : (type || ''));
+      const baseRaw = label || type || 'field';
+      const base = NS.toSafeSnake ? NS.toSafeSnake(baseRaw) : baseRaw;
+      const existing = new Set(this.fields.map(f => f.name));
+      let name = base; if (existing.has(name)) { let i=1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
+      const options = preset.options != null ? String(preset.options) : (typeof def.options === 'function' ? def.options(type) : '');
+      const field = {
+        id: (NS.uuid ? NS.uuid() : String(Date.now())),
+        type,
+        label,
+        options,
+        value: '',
+        placeholder: preset.placeholder != null ? String(preset.placeholder) : (typeof def.placeholder === 'function' ? def.placeholder(type) : ''),
+        name,
+        required: !!preset.required,
+        doNotStore: false,
+        autoName: true
+      };
+      this.fields.push(field);
+      this.persist();
+      this.setDirty();
       this.renderPreview();
       this.select(field.id);
     }
@@ -390,7 +452,16 @@
         const btn = e.target.closest('button[data-type]');
         if (!btn) return;
         const type = btn.getAttribute('data-type');
-        if (type) this.addField(type);
+        if (!type) return;
+        const label = btn.getAttribute('data-label');
+        const options = btn.getAttribute('data-options');
+        const placeholder = btn.getAttribute('data-placeholder');
+        const required = btn.getAttribute('data-required');
+        if (label || options || placeholder || required) {
+          this.addPresetField(type, { label, options, placeholder, required: required === 'true' });
+        } else {
+          this.addField(type);
+        }
       });
 
       // Select by clicking in preview (outside inputs)

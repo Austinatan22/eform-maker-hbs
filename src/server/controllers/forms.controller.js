@@ -326,6 +326,19 @@ export async function builderPage(req, res) {
   }
 }
 
+export async function builderNewPage(_req, res) {
+  try {
+    // Render builder without preload; client will read localStorage if present
+    res.render('builder', {
+      title: 'New Form',
+      currentPath: '/builder'
+    });
+  } catch (err) {
+    console.error('Open new builder error:', err);
+    res.status(500).send('Server error');
+  }
+}
+
 // Optional UI endpoints (not required by tests, but handy)
 export async function listFormsPage(_req, res) {
   try {

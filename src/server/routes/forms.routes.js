@@ -8,6 +8,7 @@ import {
   updateForm,
   hostedForm,
   builderPage,
+  builderNewPage,
   listFormsPage,
   checkTitleUnique,
   publicSubmit,
@@ -33,6 +34,8 @@ router.get('/f/:id', hostedForm);
 router.post('/public/forms/:id/submissions', publicSubmit);
 
 // Builder deep-link
+// Place specific route before dynamic to avoid catching '/builder/new' as :id
+router.get('/builder/new', builderNewPage);
 router.get('/builder/:id', builderPage);
 
 // UI pages (optional)
