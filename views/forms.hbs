@@ -247,7 +247,9 @@
     const inputTitle = wiz.querySelector('#blankTitle');
     const selCat = wiz.querySelector('#blankCategory');
 
-    let mode = 'choose'; // 'choose' | 'blank' | 'templates'
+    let mode = 'choose'; // 'choose' | 'blank' (details) | 'templates'
+    let fromTemplates = false;
+    let selectedFields = [];
 
     const TEMPLATES = {
       newsletter: {
@@ -346,7 +348,13 @@
     wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => show('blank'));
     wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
 
-    btnBack?.addEventListener('click', () => show('choose'));
+    btnBack?.addEventListener('click', () => {
+      if (mode === 'blank' && fromTemplates) {
+        show('templates');
+      } else {
+        show('choose');
+      }
+    });
 
     btnNext?.addEventListener('click', async () => {
       try {
@@ -356,7 +364,7 @@
           const category = selCat?.value || 'survey';
           const res = await fetch('/api/forms', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, category, fields: [] })
+            body: JSON.stringify({ title, category, fields: (Array.isArray(selectedFields)?selectedFields:[]) })
           });
           const out = await res.json();
           if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
@@ -370,10 +378,12 @@
           if (!selected) return;
           const key = selected.value;
           const tpl = TEMPLATES[key];
-          // Seed builder with template fields but blank title; user must name it before saving
-          try { localStorage.setItem('eform-maker-hbs', JSON.stringify({ id: null, title: '', fields: tpl.fields || [] })); } catch {}
-          bootstrap.Modal.getInstance(modalEl)?.hide();
-          window.location.assign('/builder/new');
+          // Move to details step with prefilled fields
+          selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
+          fromTemplates = true;
+          if (inputTitle) inputTitle.value = tpl.name || '';
+          if (selCat) selCat.value = tpl.category || 'survey';
+          show('blank');
           return;
         }
 
@@ -392,6 +402,8 @@
       if (checked) checked.checked = false;
       inputTitle && (inputTitle.value = '');
       selCat && (selCat.value = 'survey');
+      selectedFields = [];
+      fromTemplates = false;
       show('choose');
     });
   })();
