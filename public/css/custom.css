@@ -31,7 +31,9 @@
 }
 
 /* Field card actions (duplicate/delete) */
-.field-actions { z-index: 2; }
+.field-actions {
+  z-index: 2;
+}
 .field-actions .action-btn {
   background: transparent;
   border: 0;
@@ -43,25 +45,63 @@
   justify-content: center;
   border-radius: 0.25rem;
 }
-.field-actions .action-btn:hover { background: transparent; }
-.field-actions .action-btn .ti { font-size: 1rem; vertical-align: middle; }
+.field-actions .action-btn:hover {
+  background: transparent;
+}
+.field-actions .action-btn .ti {
+  font-size: 1rem;
+  vertical-align: middle;
+}
 /* Hover colors */
-.field-actions .action-dup:hover { color: var(--bs-primary, #7367f0); }
-.field-actions .action-del:hover { color: var(--bs-danger, #ea5455); }
+.field-actions .action-dup:hover {
+  color: var(--bs-primary, #7367f0);
+}
+.field-actions .action-del:hover {
+  color: var(--bs-danger, #ea5455);
+}
 
 /* Ensure icons inside buttons inherit the button's text color (including hover) */
-.btn .ti, .btn .icon-base { color: currentColor; }
+.btn .ti,
+.btn .icon-base {
+  color: currentColor;
+}
 
 /* Override Vuexy table rule that forces gray icons inside tables */
-.table .btn-icon.btn-outline-primary { color: var(--bs-primary) !important; }
-.table .btn-icon.btn-outline-danger { color: var(--bs-danger) !important; }
-.table .btn-icon.btn-outline-secondary { color: var(--bs-secondary) !important; }
+.table .btn-icon.btn-outline-primary {
+  color: var(--bs-primary) !important;
+}
+.table .btn-icon.btn-outline-danger {
+  color: var(--bs-danger) !important;
+}
+.table .btn-icon.btn-outline-secondary {
+  color: var(--bs-secondary) !important;
+}
 
 /* Optional: ensure filled primary also looks correct if used */
-.table .btn-icon.btn-primary { color: #fff !important; }
-.table .btn-icon.btn-danger { color: #fff !important; }
+.table .btn-icon.btn-primary {
+  color: #fff !important;
+}
+.table .btn-icon.btn-danger {
+  color: #fff !important;
+}
 
 /* Ensure icons inside dropdown items match text color */
 .dropdown-menu .dropdown-item .ti,
-.dropdown-menu .dropdown-item .icon-base { color: currentColor; }
+.dropdown-menu .dropdown-item .icon-base {
+  color: currentColor;
+}
 
+/* Fullscreen modal with gentle outer gap to show backdrop */
+.modal-dialog-gapped {
+  padding: 1rem;
+}
+@media (min-width: 576px) {
+  .modal-dialog-gapped {
+    padding: 1.5rem;
+  }
+}
+@media (min-width: 992px) {
+  .modal-dialog-gapped {
+    padding: 2rem;
+  }
+}

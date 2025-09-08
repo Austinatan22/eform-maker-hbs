@@ -89,8 +89,8 @@
 
 {{!-- Create Form wizard modal --}}
 <div class="modal fade" id="createFormModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" id="createFormWizard">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen modal-dialog-gapped">
+    <div class="modal-content rounded-3" id="createFormWizard">
       <div class="modal-header">
         <h5 class="modal-title js-wiz-title">Create a Form</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -135,39 +135,79 @@
 
         <div class="js-step d-none" data-step="templates">
           <p class="text-muted">Pick a template</p>
-          <div class="list-group">
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="newsletter">
-              <span class="fw-medium">Newsletter Signup</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="complaints">
-              <span class="fw-medium">Complaints</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="profile">
-              <span class="fw-medium">Profile</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="rsvp">
-              <span class="fw-medium">Event RSVP</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="contact">
-              <span class="fw-medium">Contact Us</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="support">
-              <span class="fw-medium">Support Ticket</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="job">
-              <span class="fw-medium">Job Application</span>
-            </label>
-            <label class="list-group-item d-flex align-items-center">
-              <input class="form-check-input me-2" type="radio" name="templateChoice" value="nps">
-              <span class="fw-medium">NPS Survey</span>
-            </label>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="newsletter">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-mail icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Newsletter Signup</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="complaints">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-alert-triangle icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Complaints</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="profile">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-user icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Profile</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="rsvp">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-calendar icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Event RSVP</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="contact">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-phone icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Contact Us</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="support">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-lifebuoy icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Support Ticket</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="job">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-briefcase icon-42px"></i></h2>
+                  <div class="fw-medium text-center">Job Application</div>
+                </label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="ratio ratio-1x1">
+                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center template-tile">
+                  <input class="d-none" type="radio" name="templateChoice" value="nps">
+                  <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-chart-pie icon-42px"></i></h2>
+                  <div class="fw-medium text-center">NPS Survey</div>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -347,6 +387,16 @@
 
     wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => show('blank'));
     wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
+    // Template tile click -> select radio and set active style
+    wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
+      const tile = e.target.closest('.template-tile');
+      if (!tile) return;
+      // Clear previous active
+      wiz.querySelectorAll('.template-tile.active').forEach(el => el.classList.remove('active'));
+      tile.classList.add('active');
+      const input = tile.querySelector('input[type=radio][name=templateChoice]');
+      if (input) { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
 
     btnBack?.addEventListener('click', () => {
       if (mode === 'blank' && fromTemplates) {
