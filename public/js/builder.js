@@ -1037,6 +1037,7 @@
           this.formId = newId;
           this.persist();
         }
+        this.clearDirty();
         if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
       } catch (err) {
         console.error('Failed saving form:', err);
@@ -1158,5 +1159,4 @@
   else
     boot();
 })();
-
 

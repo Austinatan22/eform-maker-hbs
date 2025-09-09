@@ -681,6 +681,8 @@
           this.formId = newId;
           this.persist();
         }
+        // Mark the builder as clean after a successful save so navigation doesn't warn
+        this.clearDirty();
         if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
       } catch (err) {
         console.error('Failed saving form:', err);
