@@ -5,6 +5,7 @@ import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
 import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
+import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
@@ -87,6 +88,7 @@ export async function createOrUpdateForm(req, res) {
       const reqUser = req.session?.user || req.user || null;
       const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
       const { form, rows } = await createFormWithFields(normalizedTitle, clean, category, createdBy);
+      await logAudit(req, { entity: 'form', action: 'create', entityId: form.id, meta: { title: form.title, category } });
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
     } else {
       // Enforce uniqueness on update (when using POST /api/forms with id)
@@ -111,6 +113,7 @@ export async function createOrUpdateForm(req, res) {
         required: f.required, doNotStore: f.doNotStore,
         options: f.options
       }));
+      await logAudit(req, { entity: 'form', action: 'update', entityId: withFields.id, meta: { title: withFields.title, category: withFields.category } });
       return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, category: withFields.category, fields: fieldsOut } });
     }
   } catch (err) {
@@ -296,7 +299,8 @@ export async function deleteForm(req, res) {
       await FormField.destroy({ where: { formId: form.id }, transaction: t });
       await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });
       await form.destroy({ transaction: t });
-
+      // Log after successful delete inside transaction
+      await logAudit(req, { entity: 'form', action: 'delete', entityId: req.params.id, meta: { title: form.title } });
       res.json({ ok: true });
     });
   } catch (err) {

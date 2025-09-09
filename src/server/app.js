@@ -9,10 +9,12 @@ import { sequelize } from './db.js';
 import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
+import usersRouter from './routes/users.routes.js';
 import cors from 'cors';
 import helmet from 'helmet';
 import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
+import { AuditLog } from './models/AuditLog.js';
 import { User } from './models/User.js';
 
 // Paths / __dirname
@@ -145,6 +147,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use(authRouter);
+app.use(usersRouter);
 app.use(formsRouter);
 app.get('/', (_req, res) => res.redirect('/forms'));
 
@@ -271,6 +274,10 @@ async function ensureSchema() {
     // Ensure refresh_tokens table exists
     try { await RefreshToken.sync(); } catch (e) {
       console.warn('RefreshToken schema issue:', e.message || e);
+    }
+    // Ensure audit_logs table exists
+    try { await AuditLog.sync(); } catch (e) {
+      console.warn('AuditLog schema issue:', e.message || e);
     }
   } catch (e) {
     console.warn('Schema ensure failed (category):', e.message || e);

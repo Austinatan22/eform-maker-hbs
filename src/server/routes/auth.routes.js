@@ -5,6 +5,7 @@ import { RefreshToken } from '../models/RefreshToken.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import { logAudit } from '../services/audit.service.js';
 
 const router = express.Router();
 
@@ -30,10 +31,17 @@ router.post('/login', loginLimiter, async (req, res) => {
     const e = String(email).trim().toLowerCase();
     const bcrypt = await import('bcryptjs');
     const user = await User.findOne({ where: { email: e } });
-    if (!user) return renderLogin(req, res, { error: 'Invalid credentials' });
+    if (!user) {
+      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: null, meta: { email: e } });
+      return renderLogin(req, res, { error: 'Invalid credentials' });
+    }
     const ok = bcrypt.compareSync(String(password), user.passwordHash);
-    if (!ok) return renderLogin(req, res, { error: 'Invalid credentials' });
+    if (!ok) {
+      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: user.id, meta: { email: e } });
+      return renderLogin(req, res, { error: 'Invalid credentials' });
+    }
     req.session.user = { id: user.id, email: user.email, role: user.role };
+    await logAudit(req, { entity: 'auth', action: 'login', entityId: user.id, meta: { email: user.email } });
     res.redirect('/forms');
   } catch (err) {
     console.error('login error:', err);
@@ -43,8 +51,10 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 router.post('/logout', (req, res) => {
   try {
-    req.session?.destroy(() => {
+    const userId = req.session?.user?.id || null;
+    req.session?.destroy(async () => {
       res.clearCookie('sid');
+      try { await logAudit(req, { entity: 'auth', action: 'logout', entityId: userId, meta: {} }); } catch {}
       res.redirect('/login');
     });
   } catch {
