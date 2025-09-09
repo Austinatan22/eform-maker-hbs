@@ -13,7 +13,8 @@ function renderLogin(req, res, opts = {}) {
   res.render('login', {
     title: 'Sign In',
     currentPath: '/login',
-    error: opts.error || null
+    error: opts.error || null,
+    hideNavbar: true
   });
 }
 

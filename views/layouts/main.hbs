@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css"/>
     <link rel="stylesheet" href="/assets/vendor/css/core.css"/>
     <link rel="stylesheet" href="/assets/css/demo.css"/>
+    <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css"/>
 
     <!-- Your overrides -->
     <link rel="stylesheet" href="/css/custom.css">
@@ -49,19 +50,22 @@
   </head>
 
   <body>
-    <div class="layout-wrapper">
-      <div class="layout-container">
-        {{> navbar menu=menu currentPath=currentPath brand=brand }}
-
-        <div class="layout-page">
-          <div class="content-wrapper">
-            <div class="container-xxl flex-grow-1 container-p-y">
-              {{{body}}}
+    {{#if hideNavbar}}
+      {{{body}}}
+    {{else}}
+      <div class="layout-wrapper">
+        <div class="layout-container">
+          {{> navbar menu=menu currentPath=currentPath brand=brand }}
+          <div class="layout-page">
+            <div class="content-wrapper">
+              <div class="container-xxl flex-grow-1 container-p-y">
+                {{{body}}}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    {{/if}}
 
     <!-- Core JS (order matters: jQuery -> Bootstrap -> Vuexy libs) -->
     <script src="/assets/vendor/libs/jquery/jquery.js"></script>
