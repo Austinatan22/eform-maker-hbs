@@ -40,22 +40,8 @@
             {{#each forms}}
               <tr data-id="{{this.id}}">
                 <td class="fw-medium js-title">{{this.title}}</td>
-                <td><div class="btn-group w-100">
-                    <button
-                      type="button"
-                      class="btn btn-sm dropdown-toggle js-cat-btn w-100 d-flex justify-content-between align-items-center"
-                      data-bs-toggle="dropdown"
-                      data-bs-container="body"
-                      data-cat="{{this.category}}"
-                      aria-expanded="false">
-                      <!-- text filled by script -->
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                      <li><a class="dropdown-item js-cat-opt" data-val="survey" href="javascript:void(0);">Survey</a></li>
-                      <li><a class="dropdown-item js-cat-opt" data-val="quiz" href="javascript:void(0);">Quiz</a></li>
-                      <li><a class="dropdown-item js-cat-opt" data-val="feedback" href="javascript:void(0);">Feedback</a></li>
-                    </ul>
-                  </div>
+                <td>
+                  <span class="badge rounded-pill js-cat-badge" data-cat="{{this.category}}"></span>
                 </td>
                 <td><span class="text-muted">{{this.updatedAt}}</span></td>
                 <td><span class="text-muted">{{this.createdAt}}</span></td>
@@ -67,23 +53,22 @@
                     <div class="btn-group">
                       <button
                         type="button"
-                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary waves-effect waves-light js-actions"
+                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
                         data-bs-toggle="dropdown"
                         data-bs-container="body"
-                        aria-expanded="false"
-                        aria-label="Actions">
+                        aria-expanded="false">
                         <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
                       </button>
-                      <ul class="dropdown-menu dropdown-menu-end" style="--bs-dropdown-min-width:auto;">
+                      <ul class="dropdown-menu dropdown-menu-end">
                         <li>
-                          <a class="dropdown-item py-1 px-2 medium waves-effect js-act-rename" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-letter-case icon-14px me-2"></i>
-                            Rename
+                          <a class="dropdown-item js-act-rename" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
+                            Info
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item py-1 px-2 medium waves-effect text-danger js-delete" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-trash icon-14px me-2"></i>
+                          <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-trash icon-sm me-2"></i>
                             Delete
                           </a>
                         </li>
@@ -222,11 +207,11 @@
 <script>
 (function() {
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
-  function catBtnClass(cat) {
+  function catBadgeClass(cat) {
     switch ((cat || '').toLowerCase()) {
-      case 'quiz': return 'btn-label-info';
-      case 'feedback': return 'btn-label-warning';
-      default: return 'btn-label-primary';
+      case 'quiz': return 'bg-label-info';
+      case 'feedback': return 'bg-label-warning';
+      default: return 'bg-label-primary';
     }
   }
 
@@ -237,26 +222,13 @@
     return 'Survey';
   }
 
-  // Initialize category label buttons
+  // Initialize category status badges
   document.querySelectorAll('tr[data-id]').forEach(row => {
-    const btn = row.querySelector('.js-cat-btn');
-    if (!btn) return;
-    const cat = btn.getAttribute('data-cat') || 'survey';
-    // Button content: label on left, caret handled by dropdown-toggle
-    btn.textContent = catLabel(cat);
-    btn.classList.add(catBtnClass(cat));
-    // Ensure dropdown doesn't cause parent overflow by using fixed strategy
-    try {
-      // Recreate/attach a dropdown with Popper fixed strategy and viewport boundary
-      const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
-        boundary: 'viewport',
-        popperConfig(config) {
-          return Object.assign({}, config || {}, { strategy: 'fixed' });
-        }
-      });
-      // no-op reference to keep linter happy
-      void dd;
-    } catch (_) { /* ignore */ }
+    const badge = row.querySelector('.js-cat-badge');
+    if (!badge) return;
+    const cat = badge.getAttribute('data-cat') || 'survey';
+    badge.textContent = catLabel(cat);
+    badge.classList.add(catBadgeClass(cat));
   });
 
   // Initialize kebab action dropdowns with fixed strategy
@@ -474,7 +446,7 @@
     });
   })();
 
-  // Row actions (delete, category change via dropdown)
+  // Row actions (delete, edit, rename)
   document.querySelector('table')?.addEventListener('click', async (e) => {
     const btn = e.target.closest('.js-delete');
     if (btn) {
@@ -489,33 +461,7 @@
       m.show();
       return;
     }
-    // Category option click
-    const opt = e.target.closest('.js-cat-opt');
-    if (opt) {
-      const row = opt.closest('tr');
-      const id = row?.dataset.id;
-      const val = opt.getAttribute('data-val') || 'survey';
-      const btnCat = row.querySelector('.js-cat-btn');
-      try {
-        const res = await fetch('/api/forms/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-          body: JSON.stringify({ category: val })
-        });
-        if (!res.ok) throw new Error('Update failed');
-        // Update button text and class
-        btnCat?.setAttribute('data-cat', val);
-        if (btnCat) {
-          btnCat.textContent = catLabel(val);
-          btnCat.classList.remove('btn-label-primary','btn-label-info','btn-label-warning');
-          btnCat.classList.add(catBtnClass(val));
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Could not update category');
-      }
-      return;
-    }
+    // Category changes are done in Rename modal
 
     // Edit action
     const actEdit = e.target.closest('.js-act-edit');
@@ -539,6 +485,10 @@
       modalEl.dataset.id = id;
       const input = modalEl.querySelector('#renameFormInput');
       input.value = current;
+      // Prefill category from the badge in the row
+      const currentCat = (row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || 'survey').toLowerCase();
+      const sel = modalEl.querySelector('#renameFormCategory');
+      if (sel) sel.value = ['survey','quiz','feedback'].includes(currentCat) ? currentCat : 'survey';
       const m = bootstrap.Modal.getOrCreateInstance(modalEl);
       m.show();
       return;
@@ -571,13 +521,15 @@
     const input = document.getElementById('renameFormInput');
     const newTitle = String(input.value || '').trim();
     if (!newTitle) return;
+    const catSelect = document.getElementById('renameFormCategory');
+    const newCat = (catSelect?.value || 'survey').toLowerCase();
     const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
     const titleCell = row?.querySelector('.js-title');
     try {
       const res = await fetch('/api/forms/' + id, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-        body: JSON.stringify({ title: newTitle })
+        body: JSON.stringify({ title: newTitle, category: newCat })
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -585,6 +537,14 @@
         throw new Error(out?.error || 'Update failed');
       }
       if (titleCell) titleCell.textContent = newTitle;
+      // Update badge in the row
+      const badge = row?.querySelector('.js-cat-badge');
+      if (badge) {
+        badge.setAttribute('data-cat', newCat);
+        badge.textContent = catLabel(newCat);
+        badge.classList.remove('bg-label-primary','bg-label-info','bg-label-warning');
+        badge.classList.add(catBadgeClass(newCat));
+      }
       bootstrap.Modal.getInstance(modalEl)?.hide();
     } catch (err) {
       console.error(err);
@@ -600,12 +560,22 @@
   <div class="modal-dialog modal-dialog-centered">
     <form class="modal-content" id="renameFormForm">
       <div class="modal-header">
-        <h5 class="modal-title">Rename form</h5>
+        <h5 class="modal-title">Form info</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <label class="form-label" for="renameFormInput">New name</label>
-        <input id="renameFormInput" type="text" class="form-control" placeholder="Enter new form name" required>
+        <div class="mb-3">
+          <label class="form-label" for="renameFormInput">New name</label>
+          <input id="renameFormInput" type="text" class="form-control" placeholder="Enter new form name" required>
+        </div>
+        <div>
+          <label class="form-label" for="renameFormCategory">Category</label>
+          <select id="renameFormCategory" class="form-select">
+            <option value="survey">Survey</option>
+            <option value="quiz">Quiz</option>
+            <option value="feedback">Feedback</option>
+          </select>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
@@ -633,6 +603,7 @@
     </div>
   </div>
   </div>
+
 
 
 
