@@ -110,3 +110,11 @@
     padding: 2rem;
   }
 }
+
+
+/* Tables: make Actions column fit contents (no wrap) */
+.table .col-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
