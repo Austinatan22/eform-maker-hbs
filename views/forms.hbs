@@ -46,19 +46,19 @@
                 <td><span class="text-muted">{{this.createdAt}}</span></td>
                 <td class="text-end">
                   <div class="d-inline-flex align-items-center gap-1">
-                    <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
-                      <i class="icon-base ti tabler-edit icon-sm me-1"></i>
+                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 js-act-edit">
+                      <i class="icon-base ti tabler-edit icon-14px me-1"></i>
                       Edit
                     </button>
                     <div class="btn-group">
                       <button
                         type="button"
-                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                        class="btn btn-xs btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
                         data-bs-toggle="dropdown"
                         data-bs-container="body"
                         aria-expanded="false"
                         aria-label="Actions">
-                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                        <i class="icon-base ti tabler-dots-vertical icon-14px"></i>
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end">
                         <li>
@@ -207,6 +207,7 @@
 {{#section 'scripts'}}
 <script>
 (function() {
+  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
   function catBtnClass(cat) {
     switch ((cat || '').toLowerCase()) {
       case 'quiz': return 'btn-label-info';
@@ -409,7 +410,7 @@
           if (!title) { inputTitle?.focus(); return; }
           const category = selCat?.value || 'survey';
           const res = await fetch('/api/forms', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
             body: JSON.stringify({ title, category, fields: (Array.isArray(selectedFields)?selectedFields:[]) })
           });
           const out = await res.json();
@@ -484,7 +485,7 @@
       try {
         const res = await fetch('/api/forms/' + id, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
           body: JSON.stringify({ category: val })
         });
         if (!res.ok) throw new Error('Update failed');
@@ -536,11 +537,11 @@
     const id = modalEl?.dataset.id;
     if (!id) return;
     const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-    try {
-      const res = await fetch('/api/forms/' + id, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
-      row?.remove();
-      bootstrap.Modal.getInstance(modalEl)?.hide();
+      try {
+        const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+        if (!res.ok) throw new Error('Delete failed');
+        row?.remove();
+        bootstrap.Modal.getInstance(modalEl)?.hide();
     } catch (err) {
       console.error(err);
       alert('Could not delete form.');
@@ -561,7 +562,7 @@
     try {
       const res = await fetch('/api/forms/' + id, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
         body: JSON.stringify({ title: newTitle })
       });
       const out = await res.json().catch(() => ({}));
