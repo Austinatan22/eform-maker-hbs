@@ -52,6 +52,7 @@
             {{#if user}}
               <li>
                 <form class="px-2 pt-2 pb-1" method="post" action="/logout">
+                  <input type="hidden" name="_csrf" value="{{csrfToken}}"/>
                   <button class="btn btn-sm btn-danger d-flex w-100" type="submit">
                     <small>Logout</small>
                     <i class="icon-base ti tabler-logout ms-2 icon-14px"></i>

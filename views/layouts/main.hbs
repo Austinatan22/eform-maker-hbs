@@ -12,6 +12,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <title>{{title}} | Vuexy</title>
+    <meta name="csrf-token" content="{{csrfToken}}"/>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/assets/img/favicon/favicon.ico" />
@@ -36,6 +37,9 @@
     <!-- Vuexy helpers/config (must be in <head>) -->
     <script src="/assets/vendor/js/helpers.js"></script>
     <script src="/assets/js/config.js"></script>
+    <script>
+      window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    </script>
 
     <!-- Handlebars (runtime used by builder to compile field partials in browser) -->
     <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script>

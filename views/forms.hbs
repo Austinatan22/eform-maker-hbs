@@ -46,30 +46,30 @@
                 <td><span class="text-muted">{{this.createdAt}}</span></td>
                 <td class="text-end">
                   <div class="d-inline-flex align-items-center gap-1">
-                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 js-act-edit">
-                      <i class="icon-base ti tabler-edit icon-14px me-1"></i>
+                    <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
+                      <i class="icon-base ti tabler-edit icon-sm me-1"></i>
                       Edit
                     </button>
                     <div class="btn-group">
                       <button
                         type="button"
-                        class="btn btn-xs btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary waves-effect waves-light js-actions"
                         data-bs-toggle="dropdown"
                         data-bs-container="body"
                         aria-expanded="false"
                         aria-label="Actions">
-                        <i class="icon-base ti tabler-dots-vertical icon-14px"></i>
+                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
                       </button>
-                      <ul class="dropdown-menu dropdown-menu-end">
+                      <ul class="dropdown-menu dropdown-menu-end" style="--bs-dropdown-min-width:auto;">
                         <li>
-                          <a class="dropdown-item js-act-rename" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-letter-case icon-sm me-2"></i>
+                          <a class="dropdown-item py-1 px-2 medium waves-effect js-act-rename" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-letter-case icon-14px me-2"></i>
                             Rename
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                          <a class="dropdown-item py-1 px-2 medium waves-effect text-danger js-delete" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-trash icon-14px me-2"></i>
                             Delete
                           </a>
                         </li>

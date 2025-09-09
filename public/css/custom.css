@@ -91,6 +91,11 @@
   color: currentColor;
 }
 
+/* Hide the Vuexy menu top fade/gradient which can appear after CSP/boot issues */
+.menu-inner-shadow { display: none !important; }
+
+
+
 /* Fullscreen modal with gentle outer gap to show backdrop */
 .modal-dialog-gapped {
   padding: 1rem;

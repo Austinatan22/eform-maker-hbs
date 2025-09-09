@@ -10,6 +10,8 @@ import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
 import cors from 'cors';
+import helmet from 'helmet';
+import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
 import { User } from './models/User.js';
 
@@ -29,6 +31,47 @@ const DATA_DIR = path.join(ROOT, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const app = express();
+
+// ---- Security headers (Helmet) ----
+// Configure a conservative CSP that allows our local assets and required CDNs
+// NOTE: Inline scripts/styles are used in server-rendered views; keep 'unsafe-inline'.
+if (process.env.CSP_ENABLED === '1') {
+  const extraConnect = String(process.env.CSP_CONNECT_SRC || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  app.use(helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          // CDN for SortableJS / intl-tel-input / Handlebars / Bootstrap on hosted form
+          'https://cdn.jsdelivr.net'
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+          'https://cdn.jsdelivr.net'
+        ],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        connectSrc: ["'self'", ...extraConnect],
+        frameAncestors: ["'self'"],
+        upgradeInsecureRequests: null
+      }
+    },
+    referrerPolicy: { policy: 'no-referrer' },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  }));
+} else {
+  // Use helmet defaults without CSP in dev to avoid breaking UI
+  app.use(helmet({ contentSecurityPolicy: false }));
+}
 
 // Static assets (/assets, /css, /js, etc. under /public)
 app.use(express.static(PUBLIC_DIR));
@@ -60,10 +103,44 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS for APIs when JWT auth is enabled
-if (process.env.AUTH_ENABLED === '1') {
-  const origin = process.env.CORS_ORIGIN || undefined; // undefined => reflect request origin if needed
-  app.use(cors({ origin: origin || true, credentials: true }));
+// ---- CSRF protection (session-based) ----
+// Protect state-changing routes; skip public submission endpoint
+{
+  const csrfProtection = csurf({ cookie: false });
+  // Apply CSRF to all session HTML routes so GETs get a token and mutating methods are validated.
+  app.use((req, res, next) => {
+    // Allow public submissions without CSRF (from hosted forms or external clients)
+    if (req.path.startsWith('/public/forms/')) return next();
+    // Skip JSON API routes; CSRF is intended for session-based HTML posts
+    if (req.path.startsWith('/api/')) return next();
+    return csrfProtection(req, res, next);
+  });
+  // Make token available to views on all HTML routes
+  app.use((req, res, next) => {
+    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch {}
+    next();
+  });
+}
+
+// ---- CORS (strict allowlist) ----
+// Specify one or more allowed origins via CORS_ORIGIN (comma-separated)
+{
+  const list = String(process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const allowAllLocal = process.env.NODE_ENV !== 'production' && list.length === 0;
+  const corsOptions = {
+    credentials: true,
+    origin: (origin, cb) => {
+      // No origin (same-origin or curl) -> allow
+      if (!origin) return cb(null, true);
+      if (allowAllLocal) return cb(null, true);
+      if (list.includes(origin)) return cb(null, true);
+      return cb(new Error('CORS: Not allowed'), false);
+    }
+  };
+  app.use(cors(corsOptions));
 }
 
 // Routes

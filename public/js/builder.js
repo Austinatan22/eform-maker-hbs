@@ -324,7 +324,10 @@
   }
 
   async function fetchJson(url, opts){
-    const res = await fetch(url, opts);
+    const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
+    const headers = Object.assign({}, (opts && opts.headers) || {});
+    if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
+    const res = await fetch(url, Object.assign({}, opts, { headers }));
     const ct = res.headers.get('content-type') || '';
     const isJson = ct.includes('application/json');
     const body = isJson ? await res.json() : await res.text();
@@ -1159,4 +1162,3 @@
   else
     boot();
 })();
-

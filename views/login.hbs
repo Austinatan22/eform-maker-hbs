@@ -16,6 +16,7 @@
         {{/if}}
 
         <form method="post" action="/login" class="mb-3">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}"/>
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
