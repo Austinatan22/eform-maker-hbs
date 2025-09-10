@@ -68,9 +68,6 @@ if (process.env.CSP_ENABLED === '1') {
         upgradeInsecureRequests: null
       }
     },
-    eq(a, b) {
-      return String(a) === String(b);
-    },
     referrerPolicy: { policy: 'no-referrer' },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' }
@@ -188,6 +185,7 @@ app.engine('hbs', engine({
   layoutsDir: LAYOUTS_DIR,
   partialsDir: PARTIALS_DIR,
   helpers: {
+    eq(a, b) { return String(a) === String(b); },
     section(name, options) {
       const root = options.data.root;
       root._sections ??= {};
