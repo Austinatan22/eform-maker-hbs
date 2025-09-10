@@ -5,6 +5,7 @@
   const SELECTORS = {
     preview: '#preview',
     quickAddButtons: '#quickAddButtons',
+    presetButtons: '#presetButtons',
     tabAddBtn: '#tabAdd',
     tabEditBtn: '#tabEdit',
     // minimal edit panel (subset; more later)
@@ -38,6 +39,7 @@
       const q = (sel) => document.querySelector(sel);
       this.$.preview = q(SELECTORS.preview);
       this.$.quickAddButtons = q(SELECTORS.quickAddButtons);
+      this.$.presetButtons = q(SELECTORS.presetButtons);
       this.$.tabAddBtn = q(SELECTORS.tabAddBtn);
       this.$.tabEditBtn = q(SELECTORS.tabEditBtn);
       this.$.editLabel = q(SELECTORS.editLabel);
@@ -462,6 +464,19 @@
         } else {
           this.addField(type);
         }
+      });
+
+      // Presets
+      this.$.presetButtons?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-type]');
+        if (!btn) return;
+        const type = btn.getAttribute('data-type');
+        if (!type) return;
+        const label = btn.getAttribute('data-label');
+        const options = btn.getAttribute('data-options');
+        const placeholder = btn.getAttribute('data-placeholder');
+        const required = btn.getAttribute('data-required');
+        this.addPresetField(type, { label, options, placeholder, required: required === 'true' });
       });
 
       // Select by clicking in preview (outside inputs)

@@ -21,7 +21,15 @@
     number:         'number',
     name:           'name',
     email:          'email',
-    phone:          'phone'
+    phone:          'phone',
+    date:           'date',
+    time:           'time',
+    datetime:       'datetime',
+    month:          'month',
+    week:           'week',
+    color:          'color',
+    url:            'url',
+    file:           'file'
   };
 
   // Defaults
@@ -35,7 +43,15 @@
       number: 'Number',
       name: 'Full Name',
       email: 'Email',
-      phone: 'Phone Number'
+      phone: 'Phone Number',
+      datetime: 'Datetime',
+      month: 'Month',
+      week: 'Week',
+      color: 'Color',
+      date: 'Date',
+      time: 'Time',
+      url: 'URL',
+      file: 'File Upload'
     }[t] || (t || '')),
     options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
@@ -47,7 +63,15 @@
       number: '0',
       name: '',
       email: 'email@example.com',
-      phone: 'Phone number'
+      phone: 'Phone number',
+      datetime: '',
+      month: '',
+      week: '',
+      color: '#000000',
+      date: '',
+      time: '',
+      url: 'https://example.com',
+      file: ''
     }[t] || '')
   };
 })();

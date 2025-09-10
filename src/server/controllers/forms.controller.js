@@ -30,7 +30,15 @@ const PARTIAL_FOR = {
   number: 'fields/number',
   name: 'fields/name',
   email: 'fields/email',
-  phone: 'fields/phone'
+  phone: 'fields/phone',
+  date: 'fields/date',
+  time: 'fields/time',
+  datetime: 'fields/datetime',
+  month: 'fields/month',
+  week: 'fields/week',
+  color: 'fields/color',
+  url: 'fields/url',
+  file: 'fields/file'
 };
 
 const toVM = (f, idx) => ({
