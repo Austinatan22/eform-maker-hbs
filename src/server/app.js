@@ -8,6 +8,7 @@ import { engine } from 'express-handlebars';
 import { sequelize } from './db.js';
 import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
+import adminRouter from './routes/admin.routes.js';
 import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
 import cors from 'cors';
@@ -67,6 +68,9 @@ if (process.env.CSP_ENABLED === '1') {
         upgradeInsecureRequests: null
       }
     },
+    eq(a, b) {
+      return String(a) === String(b);
+    },
     referrerPolicy: { policy: 'no-referrer' },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' }
@@ -121,7 +125,8 @@ app.use((req, res, next) => {
       href: 'javascript:void(0)',
       icon: 'ti tabler-settings',
       children: [
-        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' }
+        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
+        { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
       ]
     });
   }
@@ -173,6 +178,7 @@ app.use((req, res, next) => {
 app.use(authRouter);
 app.use(usersRouter);
 app.use(formsRouter);
+app.use(adminRouter);
 app.get('/', (_req, res) => res.redirect('/forms'));
 
 // Handlebars

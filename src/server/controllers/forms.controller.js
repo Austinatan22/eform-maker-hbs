@@ -35,8 +35,6 @@ const PARTIAL_FOR = {
   time: 'fields/time',
   datetime: 'fields/datetime',
   month: 'fields/month',
-  week: 'fields/week',
-  color: 'fields/color',
   url: 'fields/url',
   file: 'fields/file'
 };

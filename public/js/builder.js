@@ -171,8 +171,6 @@
     time:           'time',
     datetime:       'datetime',
     month:          'month',
-    week:           'week',
-    color:          'color',
     url:            'url',
     file:           'file'
   };
@@ -191,8 +189,6 @@
       phone: 'Phone Number',
       datetime: 'Datetime',
       month: 'Month',
-      week: 'Week',
-      color: 'Color',
       date: 'Date',
       time: 'Time',
       url: 'URL',
@@ -211,8 +207,6 @@
       phone: 'Phone number',
       datetime: '',
       month: '',
-      week: '',
-      color: '#000000',
       date: '',
       time: '',
       url: 'https://example.com',
@@ -1116,7 +1110,13 @@
 
       if (this.$.btnSave) { this.$.btnSave.disabled = true; this.$.btnSave.textContent = 'Saving…'; }
       try {
-        const { res, body } = await (NS.API?.saveForm?.(payload) || {});
+        let { res, body } = await (NS.API?.saveForm?.(payload) || {});
+        // If updating a stale/non-existent form, fall back to create
+        if (res && res.status === 404) {
+          const payloadNew = { ...payload };
+          delete payloadNew.id;
+          ({ res, body } = await (NS.API?.saveForm?.(payloadNew) || {}));
+        }
         if (!res?.ok) {
           const msg = (body && body.error) ? body.error : 'Failed to save form.';
           alert(msg);

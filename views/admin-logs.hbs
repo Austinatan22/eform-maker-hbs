@@ -1,0 +1,83 @@
+{{!-- views/admin-logs.hbs --}}
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h5 class="mb-0">Audit Logs</h5>
+    <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
+      <div>
+        <label class="form-label d-block mb-1">Entity</label>
+        <select name="entity" class="form-select">
+          <option value="">All</option>
+          {{#each entityOptions}}
+            <option value="{{this}}" {{#if (eq ../filters.entity this)}}selected{{/if}}>{{this}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div>
+        <label class="form-label d-block mb-1">Action</label>
+        <select name="action" class="form-select">
+          <option value="">All</option>
+          {{#each actionOptions}}
+            <option value="{{this}}" {{#if (eq ../filters.action this)}}selected{{/if}}>{{this}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div>
+        <label class="form-label d-block mb-1">User ID</label>
+        <input type="text" name="userId" value="{{filters.userId}}" class="form-control" placeholder="user id" />
+      </div>
+      <div class="flex-grow-1" style="min-width:200px">
+        <label class="form-label d-block mb-1">Search</label>
+        <input type="text" name="q" value="{{filters.q}}" class="form-control" placeholder="entity, action, id, ip, ua" />
+      </div>
+      <div>
+        <label class="form-label d-block mb-1">&nbsp;</label>
+        <button type="submit" class="btn btn-primary">Filter</button>
+      </div>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Entity</th>
+          <th>Action</th>
+          <th>Entity ID</th>
+          <th>User</th>
+          <th>IP</th>
+          <th>Meta</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#if logs.length}}
+          {{#each logs}}
+            <tr>
+              <td>{{formatDateTime createdAt}}</td>
+              <td><span class="badge bg-label-secondary">{{entity}}</span></td>
+              <td><span class="badge bg-label-primary">{{action}}</span></td>
+              <td><code>{{entityId}}</code></td>
+              <td><code>{{userId}}</code></td>
+              <td><code>{{ip}}</code></td>
+              <td style="max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                <code>{{metaJson}}</code>
+              </td>
+            </tr>
+          {{/each}}
+        {{else}}
+          <tr><td colspan="7" class="text-center text-muted">No logs found</td></tr>
+        {{/if}}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div>
+      <span class="text-muted">Showing page {{page}} of {{totalPages}} ({{total}} logs)</span>
+    </div>
+    <div class="btn-group">
+      <a class="btn btn-outline-secondary {{#unless hasPrev}}disabled{{/unless}}" href="?page={{prevPage}}&entity={{filters.entity}}&action={{filters.action}}&userId={{filters.userId}}&q={{filters.q}}">Prev</a>
+      <a class="btn btn-outline-secondary {{#unless hasNext}}disabled{{/unless}}" href="?page={{nextPage}}&entity={{filters.entity}}&action={{filters.action}}&userId={{filters.userId}}&q={{filters.q}}">Next</a>
+    </div>
+  </div>
+</div>
+
