@@ -506,45 +506,18 @@
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch {}
     }
 
-    // Set sample values on date/time inputs in the preview so segment-click editing works
+    // Keep date/time inputs empty in preview so format hints are visible
     _applyPreviewDefaults(root){
       if (!root) return;
-      const pad = (n) => String(n).padStart(2, '0');
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = pad(now.getMonth() + 1);
-      const dd = pad(now.getDate());
-      const HH = pad(now.getHours());
-      const MI = pad(now.getMinutes());
-      const SS = pad(now.getSeconds());
-
-      const dateStr = `${yyyy}-${mm}-${dd}`;
-      const timeStr = `${HH}:${MI}:${SS}`; // Vuexy demo shows seconds
-      const dtStr   = `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
-      const monthStr = `${yyyy}-${mm}`;
-
-      // Compute ISO week number for current date
-      function isoWeekString(d){
-        const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        const dayNum = t.getUTCDay() || 7; // Mon=1..Sun=7
-        t.setUTCDate(t.getUTCDate() + 4 - dayNum);
-        const year = t.getUTCFullYear();
-        const yearStart = new Date(Date.UTC(year, 0, 1));
-        const week = Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
-        return `${year}-W${pad(week)}`;
-      }
-
-      const setIfEmpty = (sel, val) => {
+      const clearIfAny = (sel) => {
         const el = root.querySelector(sel);
-        if (el && !el.value) el.value = val;
+        if (el) el.value = '';
       };
-
-      setIfEmpty('input[type="date"]', dateStr);
-      setIfEmpty('input[type="time"]', timeStr);
-      setIfEmpty('input[type="datetime-local"]', dtStr);
-      setIfEmpty('input[type="month"]', monthStr);
-      const weekEl = root.querySelector('input[type="week"]');
-      if (weekEl && !weekEl.value) weekEl.value = isoWeekString(now);
+      clearIfAny('input[type="date"]');
+      clearIfAny('input[type="time"]');
+      clearIfAny('input[type="datetime-local"]');
+      clearIfAny('input[type="month"]');
+      clearIfAny('input[type="week"]');
     }
 
     deleteSelected(){
@@ -761,6 +734,11 @@
       if (this.$.editValue) {
         this.$.editValue.disabled = !!hideDefault;
         this.$.editValue.value = f.value || '';
+      }
+      // Hide placeholder editor for time-related fields too
+      if (this.$.editPlaceholder) {
+        const phRow = this.$.editPlaceholder.closest('.mb-3') || this.$.editPlaceholder.closest('.row') || this.$.editPlaceholder.parentElement;
+        if (phRow) phRow.style.display = hideDefault ? 'none' : '';
       }
       if (this.$.editRequired) this.$.editRequired.checked = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
