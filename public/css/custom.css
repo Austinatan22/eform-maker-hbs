@@ -92,7 +92,12 @@
 }
 
 /* Hide the Vuexy menu top fade/gradient which can appear after CSP/boot issues */
-.menu-inner-shadow { display: none !important; }
+.menu-inner-shadow { display: none !important; pointer-events: none !important; block-size: 0 !important; }
+/* Prevent horizontal menu scroll arrows and overlays from intercepting clicks */
+.menu-horizontal-prev,
+.menu-horizontal-next { display: none !important; pointer-events: none !important; }
+/* Ensure menu sits above any stray overlays */
+.layout-navbar { z-index: 2; }
 
 
 
@@ -117,4 +122,5 @@
   width: 1%;
   white-space: nowrap;
 }
+
 

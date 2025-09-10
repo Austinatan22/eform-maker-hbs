@@ -344,12 +344,13 @@ export async function builderPage(req, res) {
       }));
 
     const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', fields });
+    const preloadB64 = Buffer.from(preload, 'utf8').toString('base64');
 
     res.render('builder', {
       title: `Editing: ${formPlain.title || '(Untitled)'}`,
       currentPath: '/builder',
       form: formPlain,
-      preloadJson: preload
+      preloadB64
     });
   } catch (err) {
     console.error('Open builder error:', err);

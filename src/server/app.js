@@ -11,6 +11,7 @@ import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
@@ -78,13 +79,13 @@ if (process.env.CSP_ENABLED === '1') {
 // Static assets (/assets, /css, /js, etc. under /public)
 app.use(express.static(PUBLIC_DIR));
 
-// Expose field partials for the builder to fetch (e.g. /tpl/fields/phone.hbs)
-// Serve partials so the builder can fetch field templates at /tpl/fields/*.hbs
-app.use('/tpl', express.static(PARTIALS_DIR));
+// Expose ONLY field partials for the builder to fetch (e.g. /tpl/fields/phone.hbs)
+app.use('/tpl/fields', express.static(path.join(PARTIALS_DIR, 'fields')));
 
 // Body parsers
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Sessions (dev-friendly; for production use a persistent store)
 app.use(session({
@@ -102,6 +103,29 @@ app.use(session({
 // Expose session user to templates
 app.use((req, res, next) => {
   res.locals.user = req.session?.user || null;
+  // Build top navigation menu per request
+  const baseMenu = [
+    {
+      label: 'Forms',
+      href: 'javascript:void(0)',
+      icon: 'ti tabler-file-text',
+      children: [
+        { label: 'Forms', href: '/forms', icon: 'ti tabler-file-text' }
+      ]
+    }
+  ];
+  const isAdmin = !!res.locals.user && String(res.locals.user.role || '').toLowerCase() === 'admin';
+  if (isAdmin) {
+    baseMenu.push({
+      label: 'Admin',
+      href: 'javascript:void(0)',
+      icon: 'ti tabler-settings',
+      children: [
+        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' }
+      ]
+    });
+  }
+  res.locals.menu = baseMenu;
   next();
 });
 
@@ -166,6 +190,56 @@ app.engine('hbs', engine({
     },
     isActive(pathname, current) {
       return pathname === current ? 'active' : '';
+    },
+    isMenuActive(item, current) {
+      function match(it) {
+        if (!it) return false;
+        if (it.href && it.href === current) return true;
+        if (Array.isArray(it.children)) return it.children.some(c => match(c));
+        return false;
+      }
+      return match(item) ? 'active open' : '';
+    },
+    // Labels & badge classes
+    roleLabel(role) {
+      const r = String(role || '').toLowerCase();
+      if (r === 'admin') return 'Admin';
+      if (r === 'viewer') return 'Viewer';
+      return 'Editor';
+    },
+    roleBadgeClass(role) {
+      const r = String(role || '').toLowerCase();
+      if (r === 'admin') return 'bg-label-danger';
+      if (r === 'viewer') return 'bg-label-secondary';
+      return 'bg-label-primary';
+    },
+    categoryLabel(cat) {
+      const c = String(cat || '').toLowerCase();
+      if (c === 'quiz') return 'Quiz';
+      if (c === 'feedback') return 'Feedback';
+      return 'Survey';
+    },
+    categoryBadgeClass(cat) {
+      const c = String(cat || '').toLowerCase();
+      if (c === 'quiz') return 'bg-label-info';
+      if (c === 'feedback') return 'bg-label-warning';
+      return 'bg-label-primary';
+    },
+    // Date formatting helper used in views
+    formatDateTime(val) {
+      try {
+        if (!val) return '';
+        const d = new Date(val);
+        if (isNaN(d)) return String(val);
+        const DD = String(d.getDate()).padStart(2,'0');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const MMM = months[d.getMonth()] || '';
+        const YYYY = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        const ss = String(d.getSeconds()).padStart(2,'0');
+        return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+      } catch { return String(val || ''); }
     }
   }
 }));
@@ -254,9 +328,24 @@ async function ensureSchema() {
       console.warn('Index ensure failed (form_submissions):', e.message || e);
     }
 
-    // Ensure users table & seed admin (dev)
+    // Ensure users table & seed admin (dev) and add username column if missing
     try {
       await User.sync();
+      // Add users.username if missing (SQLite)
+      try {
+        const [uCols] = await sequelize.query("PRAGMA table_info('users')");
+        const hasUsername = Array.isArray(uCols) && uCols.some(c => String(c.name).toLowerCase() === 'username');
+        if (!hasUsername) {
+          await sequelize.getQueryInterface().addColumn('users', 'username', {
+            type: DataTypes.STRING(64),
+            allowNull: true
+          });
+          console.log('Added missing column users.username');
+        }
+      } catch (e) {
+        console.warn('Users.username ensure failed:', e.message || e);
+      }
+
       const [rows] = await sequelize.query("SELECT COUNT(*) as c FROM users");
       const count = Array.isArray(rows) ? (rows[0]?.c ?? rows[0]?.C ?? 0) : 0;
       if (!count) {
@@ -264,7 +353,7 @@ async function ensureSchema() {
         const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
         const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
         const hash = bcrypt.hashSync(adminPass, 10);
-        await User.create({ id: 'u-admin', email: adminEmail, passwordHash: hash, role: 'admin' });
+        await User.create({ id: 'u-admin', email: adminEmail, username: 'admin', passwordHash: hash, role: 'admin' });
         console.log(`Seeded admin user: ${adminEmail} / ${adminPass}`);
       }
     } catch (e) {

@@ -11,8 +11,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle">
         <colgroup>
-          <col style="width: 35%">
-          <col style="width: 15%">
+          <col style="width: 40%">
           <col style="width: 20%">
           <col style="width: 20%">
           <col class="col-actions">
@@ -22,7 +21,6 @@
             <th>Title</th>
             <th>Category</th>
             <th>Updated</th>
-            <th>Created</th>
             <th class="col-actions">Actions</th>
           </tr>
         </thead>
@@ -31,7 +29,6 @@
             <th class="rounded-start-bottom">Title</th>
             <th>Category</th>
             <th>Updated</th>
-            <th>Created</th>
             <th class="col-actions">Actions</th>
           </tr>
         </tfoot>
@@ -41,10 +38,9 @@
               <tr data-id="{{this.id}}">
                 <td class="fw-medium js-title">{{this.title}}</td>
                 <td>
-                  <span class="badge rounded-pill js-cat-badge" data-cat="{{this.category}}"></span>
+                  <span class="badge rounded-pill {{categoryBadgeClass this.category}}">{{categoryLabel this.category}}</span>
                 </td>
                 <td><span class="text-muted">{{this.updatedAt}}</span></td>
-                <td><span class="text-muted">{{this.createdAt}}</span></td>
                 <td class="col-actions"><div class="d-inline-flex align-items-center gap-1 justify-content-start">
                     <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
                       <i class="icon-base ti tabler-edit icon-sm me-1"></i>

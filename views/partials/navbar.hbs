@@ -2,7 +2,7 @@
 <nav class="layout-navbar navbar navbar-expand-xl align-items-center" id="layout-navbar">
   <div class="container-xxl">
     <!-- Brand -->
-    <div class="navbar-brand app-brand d-none d-xl-flex py-0 me-4 ms-0">
+    <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-4 ms-0">
       <a href="/" class="app-brand-link">
         <span class="app-brand-logo demo">
           <img src="/assets/img/favicon/favicon.ico" alt="logo" width="32" height="32"/>
@@ -75,16 +75,16 @@
     <ul class="menu-inner">
       {{!-- LEVEL 1 --}}
       {{#each menu}}
-        <li class="menu-item {{#if (isActive href ../currentPath)}}active{{/if}}">
+        <li class="menu-item {{#if children}}{{isMenuActive this ../currentPath}}{{else}}{{#if (isActive href ../currentPath)}}active{{/if}}{{/if}}">
           {{#if children}}
-            <a href="javascript:void(0)" class="menu-link menu-toggle">
+            <a href="javascript:void(0)" class="menu-link menu-toggle {{isMenuActive this ../currentPath}}">
               {{#if icon}}<i class="menu-icon icon-base {{icon}}"></i>{{/if}}
               <div>{{label}}</div>
             </a>
             <ul class="menu-sub">
               {{!-- LEVEL 2 --}}
               {{#each children}}
-                <li class="menu-item {{#if (isActive href ../../../currentPath)}}active{{/if}}">
+                <li class="menu-item {{#if children}}{{isMenuActive this ../../currentPath}}{{else}}{{#if (isActive href ../../currentPath)}}active{{/if}}{{/if}}">
                   {{#if children}}
                     <a href="javascript:void(0)" class="menu-link menu-toggle">
                       {{#if icon}}<i class="menu-icon icon-base {{icon}}"></i>{{/if}}
@@ -93,7 +93,7 @@
                     <ul class="menu-sub">
                       {{!-- LEVEL 3 --}}
                       {{#each children}}
-                        <li class="menu-item {{#if (isActive href ../../../../currentPath)}}active{{/if}}">
+                        <li class="menu-item {{#if (isActive href ../../../currentPath)}}active{{/if}}">
                           <a href="{{href}}" class="menu-link">
                             {{#if icon}}<i class="menu-icon icon-base {{icon}}"></i>{{/if}}
                             <div>{{label}}</div>
@@ -102,7 +102,7 @@
                       {{/each}}
                     </ul>
                   {{else}}
-                    <a href="{{href}}" class="menu-link">
+                    <a href="{{href}}" class="menu-link {{#if (isActive href ../../../currentPath)}}active{{/if}}">
                       {{#if icon}}<i class="menu-icon icon-base {{icon}}"></i>{{/if}}
                       <div>{{label}}</div>
                     </a>
@@ -111,7 +111,7 @@
               {{/each}}
             </ul>
           {{else}}
-            <a href="{{href}}" class="menu-link">
+            <a href="{{href}}" class="menu-link {{#if (isActive href ../currentPath)}}active{{/if}}">
               {{#if icon}}<i class="menu-icon icon-base {{icon}}"></i>{{/if}}
               <div>{{label}}</div>
             </a>

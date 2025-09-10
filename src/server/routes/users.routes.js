@@ -6,6 +6,14 @@ import { User } from '../models/User.js';
 
 const router = express.Router();
 
+// Identify the main admin account (seeded or configured)
+function isMainAdmin(user) {
+  if (!user) return false;
+  const adminEmail = String(process.env.ADMIN_EMAIL || 'admin@example.com').toLowerCase();
+  const email = String(user.email || '').toLowerCase();
+  return user.id === 'u-admin' || email === adminEmail;
+}
+
 // --- Auth guards (copy of simple guards used elsewhere) ---
 function ensureAuth(req, res, next) {
   if (process.env.AUTH_ENABLED !== '1') return next();
@@ -32,22 +40,24 @@ function requireAdmin(req, res, next) {
 
 // --- HTML page: Admin Users ---
 router.get('/admin/users', ensureAuth, requireAdmin, async (_req, res) => {
-  const rows = await User.findAll({ order: [['createdAt','DESC']] });
-  const users = rows.map(u => ({ id: u.id, email: u.email, role: u.role, createdAt: u.createdAt }));
-  res.render('admin-users', { title: 'Users', currentPath: '/admin/users', users });
+  const rows = await User.findAll({ order: [['updatedAt','DESC']] });
+  const users = rows.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role, updatedAt: u.updatedAt }));
+  const main = rows.find(u => isMainAdmin(u));
+  const protectedAdminId = main ? main.id : 'u-admin';
+  res.render('admin-users', { title: 'Users', currentPath: '/admin/users', users, protectedAdminId });
 });
 
 // --- API: list users ---
 router.get('/api/users', ensureAuth, requireAdmin, async (_req, res) => {
-  const rows = await User.findAll({ order: [['createdAt','DESC']] });
-  const users = rows.map(u => ({ id: u.id, email: u.email, role: u.role, createdAt: u.createdAt }));
+  const rows = await User.findAll({ order: [['updatedAt','DESC']] });
+  const users = rows.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role, updatedAt: u.updatedAt }));
   res.json({ ok: true, users });
 });
 
 // --- API: create user ---
 router.post('/api/users', ensureAuth, requireAdmin, async (req, res) => {
   try {
-    const { email = '', password = '', role = 'editor' } = req.body || {};
+    const { email = '', password = '', role = 'editor', username = '' } = req.body || {};
     const e = String(email).trim().toLowerCase();
     if (!e || !e.includes('@')) return res.status(400).json({ error: 'Valid email required' });
     if (String(password).length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -57,8 +67,9 @@ router.post('/api/users', ensureAuth, requireAdmin, async (req, res) => {
     const bcrypt = await import('bcryptjs');
     const id = 'u-' + crypto.randomBytes(8).toString('hex');
     const hash = bcrypt.hashSync(String(password), 10);
-    const user = await User.create({ id, email: e, passwordHash: hash, role: r });
-    res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role } });
+    const uname = String(username || e.split('@')[0]).trim().slice(0,64) || null;
+    const user = await User.create({ id, email: e, username: uname, passwordHash: hash, role: r });
+    res.json({ ok: true, user: { id: user.id, email: user.email, username: user.username, role: user.role } });
   } catch (err) {
     console.error('Create user error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -76,14 +87,31 @@ router.put('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
       if (!['admin','editor','viewer'].includes(r)) return res.status(400).json({ error: 'Invalid role' });
       patch.role = r;
     }
-    if (req.body?.password != null) {
+    if (req.body?.username != null) {
+      const uname = String(req.body.username || '').trim();
+      if (!uname) return res.status(400).json({ error: 'Username required' });
+      // Optional: check uniqueness among non-null usernames
+      const dupe = await User.findOne({ where: { username: uname } });
+      if (dupe && dupe.id !== user.id) return res.status(409).json({ error: 'Username already in use' });
+      patch.username = uname;
+    }
+    const changingPassword = req.body?.password != null;
+    if (changingPassword) {
       const p = String(req.body.password);
       if (p.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
       const bcrypt = await import('bcryptjs');
       patch.passwordHash = bcrypt.hashSync(p, 10);
     }
     await user.update(patch);
-    res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role } });
+    // If the current user changed their own password, destroy the session and ask for reauth
+    const currentUserId = (req.session?.user && req.session.user.id) || (req.user && req.user.id) || null;
+    const changedOwnPassword = changingPassword && currentUserId && currentUserId === user.id;
+    if (changedOwnPassword && req.session) {
+      return req.session.destroy(() => {
+        res.json({ ok: true, user: { id: user.id, email: user.email, username: user.username, role: user.role }, reauth: true });
+      });
+    }
+    res.json({ ok: true, user: { id: user.id, email: user.email, username: user.username, role: user.role } });
   } catch (err) {
     console.error('Update user error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -95,6 +123,7 @@ router.delete('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ error: 'Not found' });
+    if (isMainAdmin(user)) return res.status(400).json({ error: 'Cannot delete main admin user' });
     await user.destroy();
     res.json({ ok: true });
   } catch (err) {

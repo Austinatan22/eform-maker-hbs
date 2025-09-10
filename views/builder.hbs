@@ -119,11 +119,11 @@
 </div>
 
 {{#section 'scripts'}}
-  {{#if preloadJson}}
+  {{#if preloadB64}}
   <script>
     try {
-      // Insert raw JSON into JS as an object literal, then stringify safely
-      localStorage.setItem('eform-maker-hbs', JSON.stringify({{{preloadJson}}}));
+      // Safer embedding: store Base64-decoded JSON directly
+      localStorage.setItem('eform-maker-hbs', atob('{{preloadB64}}'));
     } catch (e) {}
   </script>
   {{/if}}

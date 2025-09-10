@@ -5,51 +5,73 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
-        <thead class="table-light">
+      <table class="table table-hover mb-0 align-middle" data-protected-id="{{protectedAdminId}}">
+        <colgroup>
+          <col style="width: 32%">
+          <col style="width: 20%">
+          <col style="width: 18%">
+          <col style="width: 18%">
+          <col class="col-actions">
+        </colgroup>
+        <thead>
           <tr>
             <th>Email</th>
+            <th>Username</th>
             <th>Role</th>
-            <th>Created</th>
-            <th class="text-end">Actions</th>
+            <th>Updated</th>
+            <th class="col-actions">Actions</th>
           </tr>
         </thead>
-        <tbody id="usersTbody">
-          {{#each users}}
-            <tr data-id="{{this.id}}">
-              <td class="fw-medium">{{this.email}}</td>
-              <td>
-                <div class="btn-group w-100">
-                  <button type="button" class="btn btn-sm dropdown-toggle w-100 d-flex justify-content-between align-items-center js-role-btn" data-bs-toggle="dropdown" data-role="{{this.role}}"></button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item js-role-opt" data-val="admin" href="javascript:void(0);">Admin</a></li>
-                    <li><a class="dropdown-item js-role-opt" data-val="editor" href="javascript:void(0);">Editor</a></li>
-                    <li><a class="dropdown-item js-role-opt" data-val="viewer" href="javascript:void(0);">Viewer</a></li>
-                  </ul>
-                </div>
-              </td>
-              <td><span class="text-muted">{{this.createdAt}}</span></td>
-              <td class="text-end">
-                <div class="d-inline-flex align-items-center gap-1">
-                  <button class="btn btn-sm btn-outline-secondary js-reset-pass" type="button">
-                    <i class="icon-base ti tabler-key icon-sm me-1"></i> Reset Password
-                  </button>
-                  <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-more" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+        <tfoot class="table-border-bottom-0">
+          <tr>
+            <th class="rounded-start-bottom">Email</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Updated</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </tfoot>
+        <tbody id="usersTbody" class="table-border-bottom-0">
+          {{#if users.length}}
+            {{#each users}}
+              <tr data-id="{{this.id}}">
+                <td class="fw-medium">{{this.email}}</td>
+                <td class="js-username">{{this.username}}</td>
+                <td>
+                  <span class="badge rounded-pill {{roleBadgeClass this.role}}">{{roleLabel this.role}}</span>
+                </td>
+                <td><span class="text-muted">{{formatDateTime this.updatedAt}}</span></td>
+                <td class="col-actions"><div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                    <button class="btn btn-sm btn-outline-secondary js-reset-pass" type="button">
+                      <i class="icon-base ti tabler-key icon-sm me-1"></i>
+                      Reset
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                      <li>
-                        <a class="dropdown-item text-danger js-delete-user" href="javascript:void(0);">
-                          <i class="icon-base ti tabler-trash icon-sm me-2"></i> Delete
-                        </a>
-                      </li>
-                    </ul>
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                          <a class="dropdown-item js-act-info" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
+                            Info
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item text-danger js-delete-user" href="javascript:void(0);">
+                            <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                            Delete
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          {{/each}}
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr><td colspan="5" class="text-center text-muted py-4">No users yet.</td></tr>
+          {{/if}}
         </tbody>
       </table>
     </div>
@@ -58,7 +80,7 @@
 
 <div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" id="createUserForm">
+    <form class="modal-content" id="createUserForm" onsubmit="event.preventDefault();">
       <div class="modal-header">
         <h5 class="modal-title">Create user</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -67,6 +89,10 @@
         <div class="mb-3">
           <label class="form-label" for="newUserEmail">Email</label>
           <input id="newUserEmail" type="email" class="form-control" placeholder="you@example.com" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="newUserUsername">Username</label>
+          <input id="newUserUsername" type="text" class="form-control" placeholder="e.g. johndoe" required>
         </div>
         <div class="mb-3">
           <label class="form-label" for="newUserPassword">Password</label>
@@ -94,23 +120,63 @@
 (function(){
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
   function roleLabel(r){ return r==='admin'?'Admin':(r==='viewer'?'Viewer':'Editor'); }
-  document.querySelectorAll('.js-role-btn').forEach(btn => {
-    const r = btn.getAttribute('data-role') || 'editor';
-    btn.textContent = roleLabel(r);
+  function roleBadgeClass(r){
+    switch ((r||'').toLowerCase()) {
+      case 'admin': return 'bg-label-danger';
+      case 'viewer': return 'bg-label-secondary';
+      default: return 'bg-label-primary';
+    }
+  }
+
+  function formatDateVerbose(val){
+    try {
+      const d = new Date(val);
+      if (isNaN(d)) return String(val || '');
+      const DD = String(d.getDate()).padStart(2,'0');
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec'];
+      const MMM = months[d.getMonth()] || '';
+      const YYYY = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      const ss = String(d.getSeconds()).padStart(2,'0');
+      return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+    } catch(_) { return String(val || ''); }
+  }
+
+  // Hide delete for protected admin on UI
+  (function protectMainAdmin(){
+    const table = document.querySelector('table[data-protected-id]');
+    const pid = table?.getAttribute('data-protected-id') || '';
+    if (!pid) return;
+    const prow = document.querySelector(`tr[data-id="${CSS.escape(pid)}"]`);
+    prow?.querySelector('.js-delete-user')?.closest('li')?.remove();
+  })();
+
+  document.querySelectorAll('.js-actions').forEach(btn => {
+    try {
+      const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+        boundary: 'viewport',
+        popperConfig(config){ return Object.assign({}, config||{}, { strategy: 'fixed' }); }
+      });
+      void dd;
+    } catch(_) {}
   });
+
   document.getElementById('usersTbody')?.addEventListener('click', async (e) => {
     const row = e.target.closest('tr[data-id]');
     const id = row?.dataset.id;
     if (!id) return;
-    const roleOpt = e.target.closest('.js-role-opt');
-    if (roleOpt) {
-      const val = roleOpt.getAttribute('data-val');
-      try {
-        const res = await fetch('/api/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ role: val }) });
-        if (!res.ok) throw new Error('Update failed');
-        const btn = row.querySelector('.js-role-btn');
-        if (btn) { btn.textContent = roleLabel(val); btn.setAttribute('data-role', val); }
-      } catch(err){ alert(err?.message || 'Could not update role'); }
+    const info = e.target.closest('.js-act-info');
+    if (info) {
+      const modalEl = document.getElementById('userInfoModal');
+      modalEl.dataset.id = id;
+      const input = modalEl.querySelector('#userInfoUsername');
+      const roleSel = modalEl.querySelector('#userInfoRole');
+      input.value = (row.querySelector('.js-username')?.textContent || '').trim();
+      const curRole = (row.querySelector('.js-role-badge')?.getAttribute('data-role') || 'editor').toLowerCase();
+      if (roleSel) roleSel.value = ['admin','editor','viewer'].includes(curRole)?curRole:'editor';
+      const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+      m.show();
       return;
     }
     const reset = e.target.closest('.js-reset-pass');
@@ -120,13 +186,21 @@
       if (p.length < 6) return alert('Password too short');
       try {
         const res = await fetch('/api/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ password: p }) });
-        if (!res.ok) throw new Error('Reset failed');
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(out?.error || 'Reset failed');
+        if (out?.reauth) {
+          alert('Password updated. Please log in again.');
+          window.location.assign('/login');
+          return;
+        }
         alert('Password updated');
       } catch(err){ alert(err?.message || 'Could not reset password'); }
       return;
     }
     const del = e.target.closest('.js-delete-user');
     if (del) {
+      const pid = document.querySelector('table[data-protected-id]')?.getAttribute('data-protected-id') || '';
+      if (id && pid && id === pid) { alert('Cannot delete main admin user'); return; }
       if (!confirm('Delete this user?')) return;
       try {
         const res = await fetch('/api/users/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
@@ -140,16 +214,76 @@
   document.getElementById('createUserForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('newUserEmail').value.trim();
+    const username = document.getElementById('newUserUsername').value.trim();
     const password = document.getElementById('newUserPassword').value;
     const role = document.getElementById('newUserRole').value;
     try {
-      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ email, password, role }) });
+      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ email, username, password, role }) });
       const out = await res.json();
       if (!res.ok || !out?.user) throw new Error(out?.error || 'Create failed');
       location.reload();
     } catch(err){ alert(err?.message || 'Could not create user'); }
   });
+
+  // Handle Info modal submit (username + role)
+  document.getElementById('userInfoForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const modalEl = document.getElementById('userInfoModal');
+    const id = modalEl?.dataset.id;
+    if (!id) return;
+    const username = String(document.getElementById('userInfoUsername')?.value || '').trim();
+    const role = String(document.getElementById('userInfoRole')?.value || 'editor');
+    try {
+      const res = await fetch('/api/users/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+        body: JSON.stringify({ username, role })
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out?.error || 'Update failed');
+      const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+      row?.querySelector('.js-username') && (row.querySelector('.js-username').textContent = username);
+      const badge = row?.querySelector('.js-role-badge');
+      if (badge) {
+        badge.setAttribute('data-role', role);
+        badge.textContent = roleLabel(role);
+        badge.classList.remove('bg-label-danger','bg-label-secondary','bg-label-primary');
+        badge.classList.add(roleBadgeClass(role));
+      }
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+    } catch(err){ alert(err?.message || 'Could not update user'); }
+  });
 })();
 </script>
 {{/section}}
 
+
+{{!-- User Info modal --}}
+<div class="modal fade" id="userInfoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" id="userInfoForm" onsubmit="event.preventDefault();">
+      <div class="modal-header">
+        <h5 class="modal-title">User info</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="userInfoUsername">Username</label>
+          <input id="userInfoUsername" type="text" class="form-control" placeholder="Enter username" required>
+        </div>
+        <div>
+          <label class="form-label" for="userInfoRole">Role</label>
+          <select id="userInfoRole" class="form-select">
+            <option value="admin">Admin</option>
+            <option value="editor" selected>Editor</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
