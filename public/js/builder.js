@@ -166,7 +166,15 @@
     number:         'number',
     name:           'name',
     email:          'email',
-    phone:          'phone'
+    phone:          'phone',
+    date:           'date',
+    time:           'time',
+    datetime:       'datetime',
+    month:          'month',
+    week:           'week',
+    color:          'color',
+    url:            'url',
+    file:           'file'
   };
 
   // Defaults
@@ -180,7 +188,15 @@
       number: 'Number',
       name: 'Full Name',
       email: 'Email',
-      phone: 'Phone Number'
+      phone: 'Phone Number',
+      datetime: 'Datetime',
+      month: 'Month',
+      week: 'Week',
+      color: 'Color',
+      date: 'Date',
+      time: 'Time',
+      url: 'URL',
+      file: 'File Upload'
     }[t] || (t || '')),
     options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
@@ -192,7 +208,15 @@
       number: '0',
       name: '',
       email: 'email@example.com',
-      phone: 'Phone number'
+      phone: 'Phone number',
+      datetime: '',
+      month: '',
+      week: '',
+      color: '#000000',
+      date: '',
+      time: '',
+      url: 'https://example.com',
+      file: ''
     }[t] || '')
   };
 })();
@@ -355,7 +379,6 @@
   };
 })();
 
-
 // ---- 90-main.js ----
 // src/client/builder/90-main.js
 (function(){
@@ -364,6 +387,7 @@
   const SELECTORS = {
     preview: '#preview',
     quickAddButtons: '#quickAddButtons',
+    presetButtons: '#presetButtons',
     tabAddBtn: '#tabAdd',
     tabEditBtn: '#tabEdit',
     // minimal edit panel (subset; more later)
@@ -397,6 +421,7 @@
       const q = (sel) => document.querySelector(sel);
       this.$.preview = q(SELECTORS.preview);
       this.$.quickAddButtons = q(SELECTORS.quickAddButtons);
+      this.$.presetButtons = q(SELECTORS.presetButtons);
       this.$.tabAddBtn = q(SELECTORS.tabAddBtn);
       this.$.tabEditBtn = q(SELECTORS.tabEditBtn);
       this.$.editLabel = q(SELECTORS.editLabel);
@@ -414,31 +439,34 @@
 
     buildCard(field, idx){
       const card = document.createElement('div');
-      card.className = 'mb-4 p-3 border rounded position-relative';
+      // Use Vuexy card styling for preview items
+      card.className = 'card mb-4 position-relative';
       card.dataset.fid = field.id;
       card.dataset.index = String(idx);
-      card.draggable = true;
       card.style.cursor = 'move';
       // Actions (duplicate / delete) in top-right
       const actions = document.createElement('div');
       actions.className = 'field-actions position-absolute top-0 end-0 mt-2 me-3 d-flex gap-1';
       const btnDup = document.createElement('button');
       btnDup.type = 'button';
-      btnDup.className = 'action-btn action-dup';
+      btnDup.className = 'btn btn-icon btn-text-secondary rounded-pill action-btn action-dup';
       btnDup.title = 'Duplicate';
-      btnDup.innerHTML = '<i class="ti tabler-copy"></i>';
+      btnDup.innerHTML = '<i class="icon-base ti tabler-copy icon-20px"></i>';
       btnDup.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.duplicateField(field.id); });
       const btnDel = document.createElement('button');
       btnDel.type = 'button';
-      btnDel.className = 'action-btn action-del';
+      btnDel.className = 'btn btn-icon btn-text-danger rounded-pill action-btn action-del';
       btnDel.title = 'Delete';
-      btnDel.innerHTML = '<i class="ti tabler-trash"></i>';
+      btnDel.innerHTML = '<i class="icon-base ti tabler-trash icon-20px"></i>';
       btnDel.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.deleteField(field.id); });
       actions.appendChild(btnDup);
       actions.appendChild(btnDel);
       const body = document.createElement('div');
-      body.className = 'field-body';
+      body.className = 'card-body field-body';
       body.innerHTML = NS.renderFieldHTML ? NS.renderFieldHTML(field, idx) : '';
+      // Provide realistic defaults so native segmented editors (yyyy, mm, dd, hh, mm)
+      // behave like Vuexy examples when clicked in preview
+      try { this._applyPreviewDefaults(body); } catch {}
       card.appendChild(actions);
       card.appendChild(body);
       // DnD handled by SortableJS on the container
@@ -467,8 +495,52 @@
       const card = this.$.preview?.querySelector(`[data-fid="${fieldId}"]`);
       if (!card) return;
       const body = card.querySelector('.field-body');
-      if (body && NS.renderFieldHTML) body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
+      if (body && NS.renderFieldHTML) {
+        body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
+        try { this._applyPreviewDefaults(body); } catch {}
+      }
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch {}
+    }
+
+    // Set sample values on date/time inputs in the preview so segment-click editing works
+    _applyPreviewDefaults(root){
+      if (!root) return;
+      const pad = (n) => String(n).padStart(2, '0');
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = pad(now.getMonth() + 1);
+      const dd = pad(now.getDate());
+      const HH = pad(now.getHours());
+      const MI = pad(now.getMinutes());
+      const SS = pad(now.getSeconds());
+
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const timeStr = `${HH}:${MI}:${SS}`; // Vuexy demo shows seconds
+      const dtStr   = `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
+      const monthStr = `${yyyy}-${mm}`;
+
+      // Compute ISO week number for current date
+      function isoWeekString(d){
+        const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = t.getUTCDay() || 7; // Mon=1..Sun=7
+        t.setUTCDate(t.getUTCDate() + 4 - dayNum);
+        const year = t.getUTCFullYear();
+        const yearStart = new Date(Date.UTC(year, 0, 1));
+        const week = Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
+        return `${year}-W${pad(week)}`;
+      }
+
+      const setIfEmpty = (sel, val) => {
+        const el = root.querySelector(sel);
+        if (el && !el.value) el.value = val;
+      };
+
+      setIfEmpty('input[type="date"]', dateStr);
+      setIfEmpty('input[type="time"]', timeStr);
+      setIfEmpty('input[type="datetime-local"]', dtStr);
+      setIfEmpty('input[type="month"]', monthStr);
+      const weekEl = root.querySelector('input[type="week"]');
+      if (weekEl && !weekEl.value) weekEl.value = isoWeekString(now);
     }
 
     deleteSelected(){
@@ -823,6 +895,19 @@
         }
       });
 
+      // Presets
+      this.$.presetButtons?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-type]');
+        if (!btn) return;
+        const type = btn.getAttribute('data-type');
+        if (!type) return;
+        const label = btn.getAttribute('data-label');
+        const options = btn.getAttribute('data-options');
+        const placeholder = btn.getAttribute('data-placeholder');
+        const required = btn.getAttribute('data-required');
+        this.addPresetField(type, { label, options, placeholder, required: required === 'true' });
+      });
+
       // Select by clicking in preview (outside inputs)
       this.$.preview?.addEventListener('click', (e) => {
         const interactive = e.target.closest('input, select, textarea, button, label');
@@ -1040,6 +1125,7 @@
           this.formId = newId;
           this.persist();
         }
+        // Mark the builder as clean after a successful save so navigation doesn't warn
         this.clearDirty();
         if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
       } catch (err) {
@@ -1099,7 +1185,9 @@
         new window.Sortable(host, {
           animation: 150,
           draggable: '[data-fid]',
-          filter: 'input,textarea,select,button,label',
+          // Allow interacting with form controls inside cards without blocking focus/click
+          filter: 'input,textarea,select,button,label,a',
+          preventOnFilter: false,
           ghostClass: 'sortable-ghost',
           chosenClass: 'sortable-chosen',
           dragClass: 'dragging',
@@ -1162,3 +1250,5 @@
   else
     boot();
 })();
+
+
