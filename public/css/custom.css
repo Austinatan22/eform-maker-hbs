@@ -91,13 +91,24 @@
   color: currentColor;
 }
 
+/* Ensure dropdown menus appear above sticky sidecards (z-1020) */
+.dropdown-menu {
+  --bs-dropdown-zindex: 1031; /* above .sticky-*-top (1020) and fixed (1030) */
+}
+
 /* Hide the Vuexy menu top fade/gradient which can appear after CSP/boot issues */
 .menu-inner-shadow { display: none !important; pointer-events: none !important; block-size: 0 !important; }
 /* Prevent horizontal menu scroll arrows and overlays from intercepting clicks */
 .menu-horizontal-prev,
 .menu-horizontal-next { display: none !important; pointer-events: none !important; }
-/* Ensure menu sits above any stray overlays */
-.layout-navbar { z-index: 2; }
+/* Ensure the top navbar and its dropdowns sit above sticky cards */
+.layout-navbar { z-index: 1100; }
+/* Extra safety: navbar dropdown menus above sticky side panels */
+.layout-navbar .dropdown-menu { z-index: 1101; }
+
+/* Horizontal menu should also overlay sticky builder sidecards */
+.layout-menu-horizontal { z-index: 1100; }
+.layout-menu-horizontal .menu-sub { z-index: 1101; }
 
 
 
