@@ -1,35 +1,32 @@
 // src/client/builder/20-constants.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Field types that actually have options
-  NS.OPTION_TYPES = new Set(['dropdown','multipleChoice','checkboxes']);
+  NS.OPTION_TYPES = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
 
   // Only keep these keys when saving
   NS.CLEAN_KEYS = new Set([
-    'id','type','label','options','value','placeholder','name',
-    'required','doNotStore'
+    'id', 'type', 'label', 'options', 'value', 'placeholder', 'name',
+    'required', 'doNotStore'
   ]);
 
   // Map builder types -> partial filenames
   NS.PARTIAL_FOR = {
-    singleLine:     'text',
-    paragraph:      'textarea',
-    dropdown:       'select',
+    singleLine: 'text',
+    paragraph: 'textarea',
+    dropdown: 'select',
     multipleChoice: 'radios',
-    checkboxes:     'checkboxes',
-    number:         'number',
-    name:           'name',
-    email:          'email',
-    phone:          'phone',
-    date:           'date',
-    time:           'time',
-    datetime:       'datetime',
-    month:          'month',
-    week:           'week',
-    color:          'color',
-    url:            'url',
-    file:           'file'
+    checkboxes: 'checkboxes',
+    number: 'number',
+    name: 'name',
+    email: 'email',
+    phone: 'phone',
+    date: 'date',
+    time: 'time',
+    datetime: 'datetime',
+    url: 'url',
+    file: 'file'
   };
 
   // Defaults
@@ -45,9 +42,6 @@
       email: 'Email',
       phone: 'Phone Number',
       datetime: 'Datetime',
-      month: 'Month',
-      week: 'Week',
-      color: 'Color',
       date: 'Date',
       time: 'Time',
       url: 'URL',
@@ -65,9 +59,6 @@
       email: 'email@example.com',
       phone: 'Phone number',
       datetime: '',
-      month: '',
-      week: '',
-      color: '#000000',
       date: '',
       time: '',
       url: 'https://example.com',

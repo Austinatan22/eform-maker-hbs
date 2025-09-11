@@ -6,10 +6,10 @@
 
 // ---- 00-utils.js ----
 // src/client/builder/00-utils.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.uuid = function uuid(){
+  NS.uuid = function uuid() {
     const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
     const n = 8; // random part length
     const buf = new Uint8Array(n);
@@ -23,11 +23,11 @@
     return 'field_' + rand;
   };
 
-  NS.debounce = function debounce(fn, ms=160){
-    let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), ms); };
+  NS.debounce = function debounce(fn, ms = 160) {
+    let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); };
   };
 
-  NS.toSafeSnake = function toSafeSnake(s){
+  NS.toSafeSnake = function toSafeSnake(s) {
     return String(s || '')
       .trim()
       .replace(/[\s\-]+/g, '_')
@@ -37,41 +37,41 @@
       .toLowerCase();
   };
 
-  NS.toSafeUpperSnake = function toSafeUpperSnake(s){
+  NS.toSafeUpperSnake = function toSafeUpperSnake(s) {
     return NS.toSafeSnake(s).toUpperCase();
   };
 })();
 
 // ---- 05-ui.js ----
 // src/client/builder/05-ui.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const UI = {};
 
   // Flash an element by toggling a CSS class briefly
-  UI.flash = function flash(el, className = 'drop-flash', ms = 450){
+  UI.flash = function flash(el, className = 'drop-flash', ms = 450) {
     if (!el) return;
     try {
       el.classList.add(className);
       setTimeout(() => el.classList.remove(className), ms);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Bootstrap Tab helpers (safe if BS not loaded)
-  UI.getTab = function getTab(btn){
+  UI.getTab = function getTab(btn) {
     const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
     return Tab ? Tab.getOrCreateInstance(btn) : null;
   };
-  UI.showTab = function showTab(btn){
+  UI.showTab = function showTab(btn) {
     if (!btn) return;
     const inst = UI.getTab(btn);
     inst ? inst.show() : btn.click?.();
   };
 
   // Quick query helpers
-  UI.qs = function qs(sel, root){ return (root || document).querySelector(sel); };
-  UI.qsa = function qsa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); };
+  UI.qs = function qs(sel, root) { return (root || document).querySelector(sel); };
+  UI.qsa = function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
 
   NS.UI = UI;
 })();
@@ -79,27 +79,27 @@
 
 // ---- 10-templates.js ----
 // src/client/builder/10-templates.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Compiled Handlebars partials keyed by partial name
   NS.TEMPLATES = Object.create(null);
 
   // Preload and compile field partial templates once
-  NS.preloadTemplates = async function preloadTemplates(){
+  NS.preloadTemplates = async function preloadTemplates() {
     const map = NS.PARTIAL_FOR || {};
     const names = [...new Set(Object.values(map))];
     const fetches = names.map(async (n) => {
       const res = await fetch(`/tpl/fields/${n}.hbs`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`Load template failed: ${n}`);
-      const src  = await res.text();
+      const src = await res.text();
       NS.TEMPLATES[n] = Handlebars.compile(src);
     });
     await Promise.all(fetches);
   };
 
   // Render one field to HTML using a precompiled partial
-  NS.renderFieldHTML = function renderFieldHTML(field, idx){
+  NS.renderFieldHTML = function renderFieldHTML(field, idx) {
     const partialName = (NS.PARTIAL_FOR && NS.PARTIAL_FOR[field.type]) || 'text';
     const tmpl = NS.TEMPLATES[partialName];
     if (!tmpl) return '';
@@ -108,9 +108,9 @@
       .map(s => s.trim())
       .filter(Boolean);
     return tmpl({
-      name:        field.name || field.id || `f_${idx}`,
-      label:       field.label || '',
-      required:    !!field.required,
+      name: field.name || field.id || `f_${idx}`,
+      label: field.label || '',
+      required: !!field.required,
       placeholder: field.placeholder || '',
       options
     });
@@ -120,21 +120,21 @@
 
 // ---- 15-helpers.js ----
 // src/client/builder/15-helpers.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.parseOptions = function parseOptions(str = ''){
+  NS.parseOptions = function parseOptions(str = '') {
     return String(str)
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
   };
 
-  NS.needsOptions = function needsOptions(type){
+  NS.needsOptions = function needsOptions(type) {
     return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
   };
 
-  NS.whenIntlReady = function whenIntlReady(cb, tries = 40){
+  NS.whenIntlReady = function whenIntlReady(cb, tries = 40) {
     if (window.intlTelInput) return cb();
     if (tries <= 0) return;
     setTimeout(() => NS.whenIntlReady(cb, tries - 1), 50);
@@ -144,37 +144,34 @@
 
 // ---- 20-constants.js ----
 // src/client/builder/20-constants.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Field types that actually have options
-  NS.OPTION_TYPES = new Set(['dropdown','multipleChoice','checkboxes']);
+  NS.OPTION_TYPES = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
 
   // Only keep these keys when saving
   NS.CLEAN_KEYS = new Set([
-    'id','type','label','options','value','placeholder','name',
-    'required','doNotStore'
+    'id', 'type', 'label', 'options', 'value', 'placeholder', 'name',
+    'required', 'doNotStore'
   ]);
 
   // Map builder types -> partial filenames
   NS.PARTIAL_FOR = {
-    singleLine:     'text',
-    paragraph:      'textarea',
-    dropdown:       'select',
+    singleLine: 'text',
+    paragraph: 'textarea',
+    dropdown: 'select',
     multipleChoice: 'radios',
-    checkboxes:     'checkboxes',
-    number:         'number',
-    name:           'name',
-    email:          'email',
-    phone:          'phone',
-    date:           'date',
-    time:           'time',
-    datetime:       'datetime',
-    month:          'month',
-    week:           'week',
-    color:          'color',
-    url:            'url',
-    file:           'file'
+    checkboxes: 'checkboxes',
+    number: 'number',
+    name: 'name',
+    email: 'email',
+    phone: 'phone',
+    date: 'date',
+    time: 'time',
+    datetime: 'datetime',
+    url: 'url',
+    file: 'file'
   };
 
   // Defaults
@@ -190,9 +187,6 @@
       email: 'Email',
       phone: 'Phone Number',
       datetime: 'Datetime',
-      month: 'Month',
-      week: 'Week',
-      color: 'Color',
       date: 'Date',
       time: 'Time',
       url: 'URL',
@@ -210,9 +204,6 @@
       email: 'email@example.com',
       phone: 'Phone number',
       datetime: '',
-      month: '',
-      week: '',
-      color: '#000000',
       date: '',
       time: '',
       url: 'https://example.com',
@@ -223,16 +214,16 @@
 
 // ---- 25-state.js ----
 // src/client/builder/25-state.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.LS_KEY = 'eform-maker-hbs';
 
-  function safeParse(json, fallback){
+  function safeParse(json, fallback) {
     try { return JSON.parse(json); } catch { return fallback; }
   }
 
-  NS.readLocal = function readLocal(){
+  NS.readLocal = function readLocal() {
     try {
       const raw = localStorage.getItem(NS.LS_KEY);
       if (!raw) return null;
@@ -240,26 +231,26 @@
     } catch { return null; }
   };
 
-  NS.writeLocal = function writeLocal(data){
+  NS.writeLocal = function writeLocal(data) {
     try {
       localStorage.setItem(NS.LS_KEY, JSON.stringify(data || {}));
       return true;
     } catch { return false; }
   };
 
-  NS.clearLocal = function clearLocal(){
-    try { localStorage.removeItem(NS.LS_KEY); } catch {}
+  NS.clearLocal = function clearLocal() {
+    try { localStorage.removeItem(NS.LS_KEY); } catch { }
   };
 })();
 
 
 // ---- 30-dnd.js ----
 // src/client/builder/30-dnd.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Singleton placeholder element used during drag and drop
-  NS.getPlaceholder = function getPlaceholder(){
+  NS.getPlaceholder = function getPlaceholder() {
     if (!NS._placeholderEl) {
       const el = document.createElement('div');
       el.className = 'dnd-insert';
@@ -268,15 +259,15 @@
     return NS._placeholderEl;
   };
 
-  NS.placePlaceholder = function placePlaceholder(targetEl, before = true){
+  NS.placePlaceholder = function placePlaceholder(targetEl, before = true) {
     const ph = NS.getPlaceholder();
     if (!targetEl || !targetEl.parentNode) return;
     before ? targetEl.parentNode.insertBefore(ph, targetEl)
-           : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
+      : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
   };
 
   // Compute insertion index based on pointer Y relative to children midlines
-  NS.computeIndexByY = function computeIndexByY(previewEl, clientY){
+  NS.computeIndexByY = function computeIndexByY(previewEl, clientY) {
     if (!previewEl) return 0;
     const kids = Array.from(previewEl.children).filter(el => el !== NS.getPlaceholder());
     for (let i = 0; i < kids.length; i++) {
@@ -288,7 +279,7 @@
   };
 
   // Place placeholder at a given child index within preview
-  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index){
+  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index) {
     const ph = NS.getPlaceholder();
     if (!previewEl) return;
     const kids = Array.from(previewEl.children).filter(el => el !== ph);
@@ -304,14 +295,14 @@
     previewEl.insertBefore(ph, kids[index]);
   };
 
-  NS.removePlaceholder = function removePlaceholder(){
+  NS.removePlaceholder = function removePlaceholder() {
     const ph = NS.getPlaceholder();
     if (ph.parentNode) ph.parentNode.removeChild(ph);
   };
 
   // Given the preview container and the index the item was dragged from,
   // compute the logical target index, accounting for the placeholder position
-  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex){
+  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex) {
     const kids = Array.from(previewEl.children);
     let rawTo = kids.indexOf(NS.getPlaceholder());
     if (rawTo < 0) rawTo = kids.length;
@@ -324,7 +315,7 @@
   };
 
   // Immutable move within an array
-  NS.move = function move(arr, from, to){
+  NS.move = function move(arr, from, to) {
     if (from === to || from < 0 || to < 0 || from >= arr.length || to > arr.length) return arr;
     const copy = arr.slice();
     const [item] = copy.splice(from, 1);
@@ -335,19 +326,19 @@
 
 // ---- 40-api.js ----
 // src/client/builder/40-api.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function toQuery(params){
+  function toQuery(params) {
     const u = new URLSearchParams();
-    Object.entries(params || {}).forEach(([k,v]) => {
+    Object.entries(params || {}).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
       u.append(k, String(v));
     });
     return u.toString();
   }
 
-  async function fetchJson(url, opts){
+  async function fetchJson(url, opts) {
     const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
     const headers = Object.assign({}, (opts && opts.headers) || {});
     if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
@@ -359,21 +350,21 @@
   }
 
   NS.API = {
-    async checkTitleUnique(title, excludeId){
+    async checkTitleUnique(title, excludeId) {
       const qs = toQuery({ title, excludeId });
       return fetchJson(`/api/forms/check-title?${qs}`, { cache: 'no-store' });
     },
-    async saveForm(payload){
+    async saveForm(payload) {
       return fetchJson('/api/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
     },
-    async getForm(id){
+    async getForm(id) {
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { cache: 'no-store' });
     },
-    async deleteForm(id){
+    async deleteForm(id) {
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { method: 'DELETE' });
     }
   };
@@ -381,7 +372,7 @@
 
 // ---- 90-main.js ----
 // src/client/builder/90-main.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const SELECTORS = {
@@ -408,7 +399,7 @@
   };
 
   class Builder {
-    constructor(){
+    constructor() {
       this.formId = null;
       this.fields = [];
       this.selectedId = null;
@@ -419,7 +410,7 @@
       this.dnd = { draggingId: null, fromIndex: -1 };
     }
 
-    bindDom(){
+    bindDom() {
       const q = (sel) => document.querySelector(sel);
       this.$.preview = q(SELECTORS.preview);
       this.$.quickAddButtons = q(SELECTORS.quickAddButtons);
@@ -441,7 +432,7 @@
       this.$.btnSave = q(SELECTORS.btnSave);
     }
 
-    buildCard(field, idx){
+    buildCard(field, idx) {
       const card = document.createElement('div');
       // Use Vuexy card styling for preview items
       card.className = 'card mb-4 position-relative';
@@ -470,30 +461,30 @@
       body.innerHTML = NS.renderFieldHTML ? NS.renderFieldHTML(field, idx) : '';
       // Provide realistic defaults so native segmented editors (yyyy, mm, dd, hh, mm)
       // behave like Vuexy examples when clicked in preview
-      try { this._applyPreviewDefaults(body); } catch {}
+      try { this._applyPreviewDefaults(body); } catch { }
       card.appendChild(actions);
       card.appendChild(body);
       // DnD handled by SortableJS on the container
       return card;
     }
 
-    renderPreview(){
+    renderPreview() {
       const host = this.$.preview;
       if (!host) return;
       host.innerHTML = '';
       const frag = document.createDocumentFragment();
       this.fields.forEach((f, i) => frag.appendChild(this.buildCard(f, i)));
       host.appendChild(frag);
-      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch { }
     }
 
-    appendOne(field, idx){
+    appendOne(field, idx) {
       if (!this.$.preview) return;
       const card = this.buildCard(field, idx);
       this.$.preview.appendChild(card);
     }
 
-    renderOne(fieldId){
+    renderOne(fieldId) {
       const idx = this.fields.findIndex(f => f.id === fieldId);
       if (idx < 0) return;
       const card = this.$.preview?.querySelector(`[data-fid="${fieldId}"]`);
@@ -501,13 +492,13 @@
       const body = card.querySelector('.field-body');
       if (body && NS.renderFieldHTML) {
         body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
-        try { this._applyPreviewDefaults(body); } catch {}
+        try { this._applyPreviewDefaults(body); } catch { }
       }
-      try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch { }
     }
 
     // Keep date/time inputs empty in preview so format hints are visible
-    _applyPreviewDefaults(root){
+    _applyPreviewDefaults(root) {
       if (!root) return;
       const clearIfAny = (sel) => {
         const el = root.querySelector(sel);
@@ -516,11 +507,9 @@
       clearIfAny('input[type="date"]');
       clearIfAny('input[type="time"]');
       clearIfAny('input[type="datetime-local"]');
-      clearIfAny('input[type="month"]');
-      clearIfAny('input[type="week"]');
     }
 
-    deleteSelected(){
+    deleteSelected() {
       const id = this.selectedId;
       if (!id) return;
       const idx = this.fields.findIndex(f => f.id === id);
@@ -544,7 +533,7 @@
       }
     }
 
-    deleteField(id){
+    deleteField(id) {
       const idx = this.fields.findIndex(f => f.id === id);
       if (idx < 0) return;
       const isSelected = this.selectedId === id;
@@ -569,7 +558,7 @@
       }
     }
 
-    duplicateField(id){
+    duplicateField(id) {
       const idx = this.fields.findIndex(f => f.id === id);
       if (idx < 0) return;
       const orig = this.fields[idx];
@@ -599,7 +588,7 @@
       this.select(copy.id);
     }
 
-    restore(){
+    restore() {
       const data = NS.readLocal?.();
       if (!data) return;
       if (data.id) this.formId = data.id;
@@ -622,7 +611,7 @@
           const label = String(f?.label || '');
           const nameIn = String(f?.name || '').trim();
           const name = nameIn ? (existingNames.has(nameIn) ? uniqueName(nameIn) : (existingNames.add(nameIn), nameIn))
-                              : uniqueName(label || type || 'field');
+            : uniqueName(label || type || 'field');
           const placeholder = (f?.placeholder != null)
             ? String(f.placeholder)
             : (typeof defaults.placeholder === 'function' ? defaults.placeholder(type) : '');
@@ -642,21 +631,21 @@
       if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
     }
 
-    persist(){
+    persist() {
       const title = this.$.formTitle?.value || '';
       NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields });
     }
 
-    setDirty(){ if (this._bootstrapped) this.isDirty = true; }
-    clearDirty(){ this.isDirty = false; }
-    installUnloadGuard(){
+    setDirty() { if (this._bootstrapped) this.isDirty = true; }
+    clearDirty() { this.isDirty = false; }
+    installUnloadGuard() {
       window.addEventListener('beforeunload', (e) => {
         if (!this.isDirty) return;
         e.preventDefault(); e.returnValue = '';
       });
     }
 
-    addField(type){
+    addField(type) {
       const def = NS.FIELDS_DEFAULTS || {};
       const label = typeof def.label === 'function' ? def.label(type) : (type || '');
       // Generate a unique internal name based on label/type
@@ -689,13 +678,13 @@
       this.select(field.id);
     }
 
-    addPresetField(type, preset = {}){
+    addPresetField(type, preset = {}) {
       const def = NS.FIELDS_DEFAULTS || {};
       const label = (preset.label && String(preset.label).trim()) || (typeof def.label === 'function' ? def.label(type) : (type || ''));
       const baseRaw = label || type || 'field';
       const base = NS.toSafeSnake ? NS.toSafeSnake(baseRaw) : baseRaw;
       const existing = new Set(this.fields.map(f => f.name));
-      let name = base; if (existing.has(name)) { let i=1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
+      let name = base; if (existing.has(name)) { let i = 1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
       const options = preset.options != null ? String(preset.options) : (typeof def.options === 'function' ? def.options(type) : '');
       const field = {
         id: (NS.uuid ? NS.uuid() : String(Date.now())),
@@ -716,7 +705,7 @@
       this.select(field.id);
     }
 
-    select(id){
+    select(id) {
       this.selectedId = id;
       this.highlight(id);
       // minimal edit panel sync
@@ -728,7 +717,7 @@
       if (this.$.editOptions) this.$.editOptions.value = NS.needsOptions && NS.needsOptions(f.type) ? (f.options || '') : '';
       if (this.$.editOptionsRow) this.$.editOptionsRow.style.display = (NS.needsOptions && NS.needsOptions(f.type)) ? '' : 'none';
       // Hide/disable Default Value for time-related fields
-      const timeRelated = new Set(['time','date','datetime','month','week']);
+      const timeRelated = new Set(['time', 'date', 'datetime']);
       const hideDefault = timeRelated.has(f.type);
       if (this.$.editValueRow) this.$.editValueRow.style.display = hideDefault ? 'none' : '';
       if (this.$.editValue) {
@@ -745,41 +734,41 @@
       NS.UI?.showTab?.(this.$.tabEditBtn);
     }
 
-    highlight(id){
+    highlight(id) {
       this.$.preview?.querySelectorAll('[data-fid]')?.forEach(el => {
-        if (el.dataset.fid === id) el.classList.add('border-primary','shadow-sm'), el.classList.remove('border-light');
-        else el.classList.add('border-light'), el.classList.remove('border-primary','shadow-sm');
+        if (el.dataset.fid === id) el.classList.add('border-primary', 'shadow-sm'), el.classList.remove('border-light');
+        else el.classList.add('border-light'), el.classList.remove('border-primary', 'shadow-sm');
       });
     }
 
-    attachCardDnD(card){
+    attachCardDnD(card) {
       card.addEventListener('dragstart', (e) => this.onDragStart(e, card));
-      card.addEventListener('dragover',  (e) => this.onDragOver(e, card));
+      card.addEventListener('dragover', (e) => this.onDragOver(e, card));
       card.addEventListener('dragleave', (e) => this.onDragLeave(e, card));
-      card.addEventListener('drop',      (e) => this.onDrop(e, card));
-      card.addEventListener('dragend',   ()  => this.onDragEnd());
+      card.addEventListener('drop', (e) => this.onDrop(e, card));
+      card.addEventListener('dragend', () => this.onDragEnd());
     }
 
-    onDragStart(e, el){
+    onDragStart(e, el) {
       this.dnd.draggingId = el.dataset.fid;
-      this.dnd.fromIndex  = Number(el.dataset.index);
+      this.dnd.fromIndex = Number(el.dataset.index);
       el.classList.add('opacity-50');
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dnd.draggingId);
-      } catch (_) {}
+      } catch (_) { }
     }
 
-    onDragOver(e, el){
+    onDragOver(e, el) {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
       NS.placePlaceholder?.(el, before);
     }
 
-    onDragLeave(_e, _el){ /* no-op */ }
+    onDragLeave(_e, _el) { /* no-op */ }
 
-    onDrop(e, el){
+    onDrop(e, el) {
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
@@ -821,14 +810,14 @@
       NS.removePlaceholder?.();
     }
 
-    onDragEnd(){
+    onDragEnd() {
       this.$.preview?.querySelectorAll('[data-index]')?.forEach(el => el.classList.remove('opacity-50'));
       NS.removePlaceholder?.();
       this.dnd.draggingId = null;
-      this.dnd.fromIndex  = -1;
+      this.dnd.fromIndex = -1;
     }
 
-    onContainerDragOver(e){
+    onContainerDragOver(e) {
       e.preventDefault();
       if (!this.$.preview) return;
       const idx = NS.computeIndexByY ? NS.computeIndexByY(this.$.preview, e.clientY) : null;
@@ -837,7 +826,7 @@
       }
     }
 
-    onContainerDrop(e){
+    onContainerDrop(e) {
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
@@ -867,7 +856,7 @@
       NS.removePlaceholder?.();
     }
 
-    bindEvents(){
+    bindEvents() {
       // Quick Add
       this.$.quickAddButtons?.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-type]');
@@ -956,7 +945,7 @@
         const f = this.fields.find(x => x.id === this.selectedId);
         if (!f) return;
         // Only store value when not time-related; otherwise ignore
-        const timeRelated = new Set(['time','date','datetime','month','week']);
+        const timeRelated = new Set(['time', 'date', 'datetime']);
         if (!timeRelated.has(f.type)) {
           f.value = this.$.editValue.value || '';
           this.persist();
@@ -967,7 +956,7 @@
       [this.$.editRequired, this.$.editDoNotStore].forEach(el => el?.addEventListener('input', () => {
         const f = this.fields.find(x => x.id === this.selectedId);
         if (!f) return;
-        if (el === this.$.editRequired)   f.required = !!this.$.editRequired.checked;
+        if (el === this.$.editRequired) f.required = !!this.$.editRequired.checked;
         if (el === this.$.editDoNotStore) f.doNotStore = !!this.$.editDoNotStore.checked;
         this.persist();
         this.setDirty();
@@ -984,7 +973,7 @@
       this.$.btnEditCancel?.addEventListener('click', (e) => { e.preventDefault?.(); this.deleteSelected(); });
     }
 
-    async init(){
+    async init() {
       // Preload templates; then bind and do a minimal render
       try { await NS.preloadTemplates?.(); } catch (e) { console.warn('preloadTemplates failed:', e); }
       this.bindDom();
@@ -992,13 +981,13 @@
       try {
         const m = location.pathname.match(/\/builder\/([^/]+)/);
         if (m && m[1]) this.formId = m[1];
-      } catch {}
+      } catch { }
       this.restore();
       this.renderPreview();
       this.bindEvents();
       this.initSortable?.();
       // init phone inputs after initial render
-      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch { }
       this.installUnloadGuard();
       if (this.fields.length) {
         this.select(this.fields[this.fields.length - 1].id);
@@ -1009,26 +998,26 @@
       return this;
     }
 
-    getTab(btn){
+    getTab(btn) {
       const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
       return Tab ? Tab.getOrCreateInstance(btn) : null;
     }
 
-    showTab(btn){
+    showTab(btn) {
       if (!btn) return;
       const inst = this.getTab(btn);
       inst ? inst.show() : btn.click?.();
     }
 
     // ---- Save & validation ----
-    hasValidOptions(field){
+    hasValidOptions(field) {
       if (!NS.needsOptions) return true;
       if (!NS.needsOptions(field.type)) return true;
       const opts = NS.parseOptions ? NS.parseOptions(field.options) : [];
       return opts.length > 0;
     }
 
-    cleanField(f){
+    cleanField(f) {
       const out = {};
       const KEYS = NS.CLEAN_KEYS || new Set();
       for (const k of KEYS) if (f[k] !== undefined) out[k] = f[k];
@@ -1041,7 +1030,7 @@
       return out;
     }
 
-    setTitleValidity(ok, speak = false){
+    setTitleValidity(ok, speak = false) {
       const el = this.$.formTitle;
       if (!el) return;
       if (ok) {
@@ -1069,7 +1058,7 @@
       let t; return () => { clearTimeout(t); t = setTimeout(fn, 200); };
     })();
 
-    async handleSaveToDB(e){
+    async handleSaveToDB(e) {
       e?.preventDefault?.();
       const title = (this.$.formTitle?.value || '').trim();
       if (!title) { alert('Form must have a title before saving.'); this.$.formTitle?.focus(); return; }
@@ -1084,13 +1073,13 @@
             this.$.formTitle?.focus();
             return;
           }
-        } catch {}
+        } catch { }
       }
 
       // Field validation
       for (const f of this.fields) {
         if (!String(f.label || '').trim()) { alert('Each field must have a Display Label.'); this.select(f.id); return; }
-        if (!String(f.name || '').trim())  { alert('Each field must have an Internal Field Name.'); this.select(f.id); return; }
+        if (!String(f.name || '').trim()) { alert('Each field must have an Internal Field Name.'); this.select(f.id); return; }
         if (!this.hasValidOptions(f)) { alert('This field needs options (comma-separated).'); this.select(f.id); return; }
       }
 
@@ -1139,19 +1128,19 @@
     }
 
     // ---- Phone inputs (intl-tel-input) ----
-    initPhoneInputsIn(rootEl){
+    initPhoneInputsIn(rootEl) {
       if (!window.intlTelInput || !rootEl) return;
       const nodes = rootEl.querySelectorAll?.('.js-intl-tel, input[type="tel"]') || [];
       nodes.forEach(input => this._initOnePhone(input));
     }
 
-    initPhoneInputs(){
+    initPhoneInputs() {
       if (!window.intlTelInput) return;
       const nodes = this.$.preview?.querySelectorAll('.js-intl-tel, input[type="tel"]') || [];
       nodes.forEach(input => this._initOnePhone(input));
     }
 
-    _initOnePhone(input){
+    _initOnePhone(input) {
       const existing = window.intlTelInputGlobals?.getInstance?.(input);
       if (existing) existing.destroy();
 
@@ -1160,7 +1149,7 @@
 
       const iti = window.intlTelInput(input, {
         initialCountry: field?.countryIso2 || 'id',
-        preferredCountries: ['id','us'],
+        preferredCountries: ['id', 'us'],
         utilsScript: window.INTL_UTILS_URL || "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
       });
 
@@ -1174,11 +1163,11 @@
         try {
           const iso2 = iti.getSelectedCountryData()?.iso2;
           if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
-        } catch {}
+        } catch { }
       });
     }
 
-    initSortable(){
+    initSortable() {
       if (this._sortableReady) return;
       const host = this.$.preview;
       if (!host || typeof window.Sortable === 'undefined') return;
@@ -1202,9 +1191,9 @@
           },
           onEnd: (evt) => {
             const from = (evt.oldIndex != null ? evt.oldIndex : -1);
-            const to   = (evt.newIndex != null ? evt.newIndex : -1);
+            const to = (evt.newIndex != null ? evt.newIndex : -1);
             this.dnd.draggingId = null;
-            this.dnd.fromIndex  = -1;
+            this.dnd.fromIndex = -1;
             if (from < 0 || to < 0 || from === to) return;
             if (from >= this.fields.length || to >= this.fields.length) return;
             const id = this.fields[from]?.id;
@@ -1229,7 +1218,7 @@
   }
 
   NS.Builder = Builder;
-  NS.startBuilder = async function startBuilder(){
+  NS.startBuilder = async function startBuilder() {
     const b = new Builder();
     await b.init();
     return b;
@@ -1238,10 +1227,10 @@
 
 // ---- 99-boot.js ----
 // src/client/builder/99-boot.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function boot(){
+  function boot() {
     // Only boot modular Builder if explicitly requested
     if (!window.BUILDER_USE_MODULAR) return;
     try { NS.startBuilder?.(); } catch (e) { console.error('Modular Builder failed to start:', e); }

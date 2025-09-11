@@ -8,16 +8,14 @@
         <div class="nav-align-top">
           <ul class="nav nav-pills nav-fill" role="tablist">
             <li class="nav-item">
-              <button id="tabAdd" type="button" class="nav-link active"
-                      role="tab" data-bs-toggle="tab" data-bs-target="#lp-pill-add"
-                      aria-controls="lp-pill-add" aria-selected="true">
+              <button id="tabAdd" type="button" class="nav-link active" role="tab" data-bs-toggle="tab"
+                data-bs-target="#lp-pill-add" aria-controls="lp-pill-add" aria-selected="true">
                 Add Field
               </button>
             </li>
             <li class="nav-item">
-              <button id="tabEdit" type="button" class="nav-link"
-                      role="tab" data-bs-toggle="tab" data-bs-target="#lp-pill-edit"
-                      aria-controls="lp-pill-edit" aria-selected="false">
+              <button id="tabEdit" type="button" class="nav-link" role="tab" data-bs-toggle="tab"
+                data-bs-target="#lp-pill-edit" aria-controls="lp-pill-edit" aria-selected="false">
                 Edit Field
               </button>
             </li>
@@ -31,41 +29,95 @@
           <div class="mb-3">
             <label class="form-label d-block fw-semibold">Quick Add</label>
             <div id="quickAddButtons" class="row g-2 align-items-stretch">
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="singleLine"><i class="icon-base ti tabler-forms icon-sm me-2"></i><span class="text-start">Single Line</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="paragraph"><i class="icon-base ti tabler-article icon-sm me-2"></i><span class="text-start">Paragraph</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="dropdown"><i class="icon-base ti tabler-list icon-sm me-2"></i><span class="text-start">Dropdown</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span class="text-start">Multi-choice</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="checkboxes"><i class="icon-base ti tabler-square-rounded-check icon-sm me-2"></i><span class="text-start">Checkboxes</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="number"><i class="icon-base ti tabler-list-numbers icon-sm me-2"></i><span class="text-start">Number</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="name"><i class="icon-base ti tabler-user icon-sm me-2"></i><span class="text-start">Name</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="email"><i class="icon-base ti tabler-mail icon-sm me-2"></i><span class="text-start">Email</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="phone"><i class="icon-base ti tabler-phone icon-sm me-2"></i><span class="text-start">Phone</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="singleLine"><i class="icon-base ti tabler-forms icon-sm me-2"></i><span
+                    class="text-start">Single Line</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="paragraph"><i class="icon-base ti tabler-article icon-sm me-2"></i><span
+                    class="text-start">Paragraph</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="dropdown"><i class="icon-base ti tabler-list icon-sm me-2"></i><span
+                    class="text-start">Dropdown</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="multipleChoice"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span
+                    class="text-start">Multi-choice</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="checkboxes"><i class="icon-base ti tabler-square-rounded-check icon-sm me-2"></i><span
+                    class="text-start">Checkboxes</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="number"><i class="icon-base ti tabler-list-numbers icon-sm me-2"></i><span
+                    class="text-start">Number</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="name"><i class="icon-base ti tabler-user icon-sm me-2"></i><span
+                    class="text-start">Name</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="email"><i class="icon-base ti tabler-mail icon-sm me-2"></i><span
+                    class="text-start">Email</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="phone"><i class="icon-base ti tabler-phone icon-sm me-2"></i><span
+                    class="text-start">Phone</span></button></div>
 
               <!-- Additional field types -->
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="date"><i class="icon-base ti tabler-calendar icon-sm me-2"></i><span class="text-start">Date</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="time"><i class="icon-base ti tabler-clock icon-sm me-2"></i><span class="text-start">Time</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="datetime"><i class="icon-base ti tabler-calendar-time icon-sm me-2"></i><span class="text-start">Datetime</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="month"><i class="icon-base ti tabler-calendar-stats icon-sm me-2"></i><span class="text-start">Month</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="week"><i class="icon-base ti tabler-calendar-week icon-sm me-2"></i><span class="text-start">Week</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="color"><i class="icon-base ti tabler-color-swatch icon-sm me-2"></i><span class="text-start">Color</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="url"><i class="icon-base ti tabler-link icon-sm me-2"></i><span class="text-start">URL</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="file"><i class="icon-base ti tabler-file-upload icon-sm me-2"></i><span class="text-start">File Upload</span></button></div>
-              <div class="col-12 d-flex"><button type="button" class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="range"><i class="icon-base ti tabler-adjustments-horizontal icon-sm me-2"></i><span class="text-start">Range</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="date"><i class="icon-base ti tabler-calendar icon-sm me-2"></i><span
+                    class="text-start">Date</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="time"><i class="icon-base ti tabler-clock icon-sm me-2"></i><span
+                    class="text-start">Time</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="datetime"><i class="icon-base ti tabler-calendar-time icon-sm me-2"></i><span
+                    class="text-start">Datetime</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="url"><i class="icon-base ti tabler-link icon-sm me-2"></i><span
+                    class="text-start">URL</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="file"><i class="icon-base ti tabler-file-upload icon-sm me-2"></i><span
+                    class="text-start">File Upload</span></button></div>
             </div>
           </div>
 
           <div class="mb-3">
             <label class="form-label d-block fw-semibold">Presets</label>
             <div id="presetButtons" class="row g-2 align-items-stretch">
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice" data-label="Yes / No" data-options="Yes,No"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span class="text-start">Yes/No</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="multipleChoice" data-label="NPS (1-10)" data-options="1,2,3,4,5,6,7,8,9,10"><i class="icon-base ti tabler-chart-pie icon-sm me-2"></i><span class="text-start">NPS (1-10)</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="dropdown" data-label="Issue Type" data-options="Billing,Bug,Feature Request,Other"><i class="icon-base ti tabler-list-details icon-sm me-2"></i><span class="text-start">Issue Type</span></button></div>
-              <div class="col-6 d-flex"><button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start" data-type="checkboxes" data-label="Consent" data-options="I agree to the terms"><i class="icon-base ti tabler-square-rounded-check icon-sm me-2"></i><span class="text-start">Consent</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="multipleChoice" data-label="Yes / No" data-options="Yes,No"><i
+                    class="icon-base ti tabler-list-check icon-sm me-2"></i><span
+                    class="text-start">Yes/No</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="multipleChoice" data-label="NPS (1-10)" data-options="1,2,3,4,5,6,7,8,9,10"><i
+                    class="icon-base ti tabler-chart-pie icon-sm me-2"></i><span class="text-start">NPS
+                    (1-10)</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="dropdown" data-label="Issue Type" data-options="Billing,Bug,Feature Request,Other"><i
+                    class="icon-base ti tabler-list-details icon-sm me-2"></i><span class="text-start">Issue
+                    Type</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-secondary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="checkboxes" data-label="Consent" data-options="I agree to the terms"><i
+                    class="icon-base ti tabler-square-rounded-check icon-sm me-2"></i><span
+                    class="text-start">Consent</span></button></div>
             </div>
           </div>
         </div>
 
-          
+
 
         <!-- Edit Field -->
         <div class="tab-pane fade" id="lp-pill-edit" role="tabpanel" aria-labelledby="tabEdit">
@@ -123,10 +175,12 @@
   <!-- Right column (Preview) -->
   <div class="col-12 col-lg-8">
     <div class="card">
-      <div class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-sm-between align-items-sm-center flex-column flex-sm-row z-2 border-bottom">
+      <div
+        class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-sm-between align-items-sm-center flex-column flex-sm-row z-2 border-bottom">
         <h5 class="card-title mb-sm-0 me-sm-2">Preview</h5>
         <div class="action-btns d-flex align-items-start w-100 w-sm-auto gap-2">
-          <input id="formTitle" type="text" class="form-control form-control" value="{{form.title}}" placeholder="Form Title" />
+          <input id="formTitle" type="text" class="form-control form-control" value="{{form.title}}"
+            placeholder="Form Title" />
           <button id="saveBtn" class="btn btn-success">Save</button>
         </div>
       </div>
@@ -138,25 +192,24 @@
 </div>
 
 {{#section 'scripts'}}
-  {{#if preloadB64}}
-  <script>
-    try {
-      // Safer embedding: store Base64-decoded JSON directly
-      localStorage.setItem('eform-maker-hbs', atob('{{preloadB64}}'));
-    } catch (e) {}
-  </script>
-  {{/if}}
+{{#if preloadB64}}
+<script>
+  try {
+    // Safer embedding: store Base64-decoded JSON directly
+    localStorage.setItem('eform-maker-hbs', atob('{{preloadB64}}'));
+  } catch (e) { }
+</script>
+{{/if}}
 
-  <!-- Provide utils URL like the client page -->
-  <script>
-    window.INTL_UTILS_URL = "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js";
-    // Enable modular Builder boot
-    window.BUILDER_USE_MODULAR = true;
-  </script>
+<!-- Provide utils URL like the client page -->
+<script>
+  window.INTL_UTILS_URL = "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js";
+  // Enable modular Builder boot
+  window.BUILDER_USE_MODULAR = true;
+</script>
 
-  <!-- SortableJS for robust drag-and-drop reordering -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<!-- SortableJS for robust drag-and-drop reordering -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-  <script src="/js/builder.js"></script>
+<script src="/js/builder.js"></script>
 {{/section}}
-

@@ -1,4 +1,4 @@
-// src/server/app.js (ESM)
+d// src/server/app.js (ESM)
 import express from 'express';
 import session from 'express-session';
 import path from 'path';
@@ -143,7 +143,7 @@ app.use((req, res, next) => {
   });
   // Make token available to views on all HTML routes
   app.use((req, res, next) => {
-    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch {}
+    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch { }
     next();
   });
 }
@@ -231,13 +231,13 @@ app.engine('hbs', engine({
         if (!val) return '';
         const d = new Date(val);
         if (isNaN(d)) return String(val);
-        const DD = String(d.getDate()).padStart(2,'0');
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const DD = String(d.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const MMM = months[d.getMonth()] || '';
         const YYYY = d.getFullYear();
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mm = String(d.getMinutes()).padStart(2,'0');
-        const ss = String(d.getSeconds()).padStart(2,'0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
         return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
       } catch { return String(val || ''); }
     }

@@ -1,5 +1,5 @@
 // src/client/builder/90-main.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const SELECTORS = {
@@ -24,7 +24,7 @@
   };
 
   class Builder {
-    constructor(){
+    constructor() {
       this.formId = null;
       this.fields = [];
       this.selectedId = null;
@@ -35,7 +35,7 @@
       this.dnd = { draggingId: null, fromIndex: -1 };
     }
 
-    bindDom(){
+    bindDom() {
       const q = (sel) => document.querySelector(sel);
       this.$.preview = q(SELECTORS.preview);
       this.$.quickAddButtons = q(SELECTORS.quickAddButtons);
@@ -55,7 +55,7 @@
       this.$.btnSave = q(SELECTORS.btnSave);
     }
 
-    buildCard(field, idx){
+    buildCard(field, idx) {
       const card = document.createElement('div');
       // Use Vuexy card styling for preview items
       card.className = 'card mb-4 position-relative';
@@ -84,30 +84,30 @@
       body.innerHTML = NS.renderFieldHTML ? NS.renderFieldHTML(field, idx) : '';
       // Provide realistic defaults so native segmented editors (yyyy, mm, dd, hh, mm)
       // behave like Vuexy examples when clicked in preview
-      try { this._applyPreviewDefaults(body); } catch {}
+      try { this._applyPreviewDefaults(body); } catch { }
       card.appendChild(actions);
       card.appendChild(body);
       // DnD handled by SortableJS on the container
       return card;
     }
 
-    renderPreview(){
+    renderPreview() {
       const host = this.$.preview;
       if (!host) return;
       host.innerHTML = '';
       const frag = document.createDocumentFragment();
       this.fields.forEach((f, i) => frag.appendChild(this.buildCard(f, i)));
       host.appendChild(frag);
-      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch { }
     }
 
-    appendOne(field, idx){
+    appendOne(field, idx) {
       if (!this.$.preview) return;
       const card = this.buildCard(field, idx);
       this.$.preview.appendChild(card);
     }
 
-    renderOne(fieldId){
+    renderOne(fieldId) {
       const idx = this.fields.findIndex(f => f.id === fieldId);
       if (idx < 0) return;
       const card = this.$.preview?.querySelector(`[data-fid="${fieldId}"]`);
@@ -115,13 +115,13 @@
       const body = card.querySelector('.field-body');
       if (body && NS.renderFieldHTML) {
         body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
-        try { this._applyPreviewDefaults(body); } catch {}
+        try { this._applyPreviewDefaults(body); } catch { }
       }
-      try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch { }
     }
 
     // Set sample values on date/time inputs in the preview so segment-click editing works
-    _applyPreviewDefaults(root){
+    _applyPreviewDefaults(root) {
       if (!root) return;
       const pad = (n) => String(n).padStart(2, '0');
       const now = new Date();
@@ -134,19 +134,7 @@
 
       const dateStr = `${yyyy}-${mm}-${dd}`;
       const timeStr = `${HH}:${MI}:${SS}`; // Vuexy demo shows seconds
-      const dtStr   = `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
-      const monthStr = `${yyyy}-${mm}`;
-
-      // Compute ISO week number for current date
-      function isoWeekString(d){
-        const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        const dayNum = t.getUTCDay() || 7; // Mon=1..Sun=7
-        t.setUTCDate(t.getUTCDate() + 4 - dayNum);
-        const year = t.getUTCFullYear();
-        const yearStart = new Date(Date.UTC(year, 0, 1));
-        const week = Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
-        return `${year}-W${pad(week)}`;
-      }
+      const dtStr = `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
 
       const setIfEmpty = (sel, val) => {
         const el = root.querySelector(sel);
@@ -156,12 +144,9 @@
       setIfEmpty('input[type="date"]', dateStr);
       setIfEmpty('input[type="time"]', timeStr);
       setIfEmpty('input[type="datetime-local"]', dtStr);
-      setIfEmpty('input[type="month"]', monthStr);
-      const weekEl = root.querySelector('input[type="week"]');
-      if (weekEl && !weekEl.value) weekEl.value = isoWeekString(now);
     }
 
-    deleteSelected(){
+    deleteSelected() {
       const id = this.selectedId;
       if (!id) return;
       const idx = this.fields.findIndex(f => f.id === id);
@@ -185,7 +170,7 @@
       }
     }
 
-    deleteField(id){
+    deleteField(id) {
       const idx = this.fields.findIndex(f => f.id === id);
       if (idx < 0) return;
       const isSelected = this.selectedId === id;
@@ -210,7 +195,7 @@
       }
     }
 
-    duplicateField(id){
+    duplicateField(id) {
       const idx = this.fields.findIndex(f => f.id === id);
       if (idx < 0) return;
       const orig = this.fields[idx];
@@ -240,7 +225,7 @@
       this.select(copy.id);
     }
 
-    restore(){
+    restore() {
       const data = NS.readLocal?.();
       if (!data) return;
       if (data.id) this.formId = data.id;
@@ -263,7 +248,7 @@
           const label = String(f?.label || '');
           const nameIn = String(f?.name || '').trim();
           const name = nameIn ? (existingNames.has(nameIn) ? uniqueName(nameIn) : (existingNames.add(nameIn), nameIn))
-                              : uniqueName(label || type || 'field');
+            : uniqueName(label || type || 'field');
           const placeholder = (f?.placeholder != null)
             ? String(f.placeholder)
             : (typeof defaults.placeholder === 'function' ? defaults.placeholder(type) : '');
@@ -283,21 +268,21 @@
       if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
     }
 
-    persist(){
+    persist() {
       const title = this.$.formTitle?.value || '';
       NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields });
     }
 
-    setDirty(){ if (this._bootstrapped) this.isDirty = true; }
-    clearDirty(){ this.isDirty = false; }
-    installUnloadGuard(){
+    setDirty() { if (this._bootstrapped) this.isDirty = true; }
+    clearDirty() { this.isDirty = false; }
+    installUnloadGuard() {
       window.addEventListener('beforeunload', (e) => {
         if (!this.isDirty) return;
         e.preventDefault(); e.returnValue = '';
       });
     }
 
-    addField(type){
+    addField(type) {
       const def = NS.FIELDS_DEFAULTS || {};
       const label = typeof def.label === 'function' ? def.label(type) : (type || '');
       // Generate a unique internal name based on label/type
@@ -330,13 +315,13 @@
       this.select(field.id);
     }
 
-    addPresetField(type, preset = {}){
+    addPresetField(type, preset = {}) {
       const def = NS.FIELDS_DEFAULTS || {};
       const label = (preset.label && String(preset.label).trim()) || (typeof def.label === 'function' ? def.label(type) : (type || ''));
       const baseRaw = label || type || 'field';
       const base = NS.toSafeSnake ? NS.toSafeSnake(baseRaw) : baseRaw;
       const existing = new Set(this.fields.map(f => f.name));
-      let name = base; if (existing.has(name)) { let i=1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
+      let name = base; if (existing.has(name)) { let i = 1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
       const options = preset.options != null ? String(preset.options) : (typeof def.options === 'function' ? def.options(type) : '');
       const field = {
         id: (NS.uuid ? NS.uuid() : String(Date.now())),
@@ -357,7 +342,7 @@
       this.select(field.id);
     }
 
-    select(id){
+    select(id) {
       this.selectedId = id;
       this.highlight(id);
       // minimal edit panel sync
@@ -373,41 +358,41 @@
       NS.UI?.showTab?.(this.$.tabEditBtn);
     }
 
-    highlight(id){
+    highlight(id) {
       this.$.preview?.querySelectorAll('[data-fid]')?.forEach(el => {
-        if (el.dataset.fid === id) el.classList.add('border-primary','shadow-sm'), el.classList.remove('border-light');
-        else el.classList.add('border-light'), el.classList.remove('border-primary','shadow-sm');
+        if (el.dataset.fid === id) el.classList.add('border-primary', 'shadow-sm'), el.classList.remove('border-light');
+        else el.classList.add('border-light'), el.classList.remove('border-primary', 'shadow-sm');
       });
     }
 
-    attachCardDnD(card){
+    attachCardDnD(card) {
       card.addEventListener('dragstart', (e) => this.onDragStart(e, card));
-      card.addEventListener('dragover',  (e) => this.onDragOver(e, card));
+      card.addEventListener('dragover', (e) => this.onDragOver(e, card));
       card.addEventListener('dragleave', (e) => this.onDragLeave(e, card));
-      card.addEventListener('drop',      (e) => this.onDrop(e, card));
-      card.addEventListener('dragend',   ()  => this.onDragEnd());
+      card.addEventListener('drop', (e) => this.onDrop(e, card));
+      card.addEventListener('dragend', () => this.onDragEnd());
     }
 
-    onDragStart(e, el){
+    onDragStart(e, el) {
       this.dnd.draggingId = el.dataset.fid;
-      this.dnd.fromIndex  = Number(el.dataset.index);
+      this.dnd.fromIndex = Number(el.dataset.index);
       el.classList.add('opacity-50');
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dnd.draggingId);
-      } catch (_) {}
+      } catch (_) { }
     }
 
-    onDragOver(e, el){
+    onDragOver(e, el) {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
       NS.placePlaceholder?.(el, before);
     }
 
-    onDragLeave(_e, _el){ /* no-op */ }
+    onDragLeave(_e, _el) { /* no-op */ }
 
-    onDrop(e, el){
+    onDrop(e, el) {
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
@@ -449,14 +434,14 @@
       NS.removePlaceholder?.();
     }
 
-    onDragEnd(){
+    onDragEnd() {
       this.$.preview?.querySelectorAll('[data-index]')?.forEach(el => el.classList.remove('opacity-50'));
       NS.removePlaceholder?.();
       this.dnd.draggingId = null;
-      this.dnd.fromIndex  = -1;
+      this.dnd.fromIndex = -1;
     }
 
-    onContainerDragOver(e){
+    onContainerDragOver(e) {
       e.preventDefault();
       if (!this.$.preview) return;
       const idx = NS.computeIndexByY ? NS.computeIndexByY(this.$.preview, e.clientY) : null;
@@ -465,7 +450,7 @@
       }
     }
 
-    onContainerDrop(e){
+    onContainerDrop(e) {
       e.preventDefault();
       const from = this.dnd.fromIndex;
       if (from < 0) { NS.removePlaceholder?.(); return; }
@@ -495,7 +480,7 @@
       NS.removePlaceholder?.();
     }
 
-    bindEvents(){
+    bindEvents() {
       // Quick Add
       this.$.quickAddButtons?.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-type]');
@@ -583,7 +568,7 @@
       [this.$.editRequired, this.$.editDoNotStore].forEach(el => el?.addEventListener('input', () => {
         const f = this.fields.find(x => x.id === this.selectedId);
         if (!f) return;
-        if (el === this.$.editRequired)   f.required = !!this.$.editRequired.checked;
+        if (el === this.$.editRequired) f.required = !!this.$.editRequired.checked;
         if (el === this.$.editDoNotStore) f.doNotStore = !!this.$.editDoNotStore.checked;
         this.persist();
         this.setDirty();
@@ -600,7 +585,7 @@
       this.$.btnEditCancel?.addEventListener('click', (e) => { e.preventDefault?.(); this.deleteSelected(); });
     }
 
-    async init(){
+    async init() {
       // Preload templates; then bind and do a minimal render
       try { await NS.preloadTemplates?.(); } catch (e) { console.warn('preloadTemplates failed:', e); }
       this.bindDom();
@@ -608,13 +593,13 @@
       try {
         const m = location.pathname.match(/\/builder\/([^/]+)/);
         if (m && m[1]) this.formId = m[1];
-      } catch {}
+      } catch { }
       this.restore();
       this.renderPreview();
       this.bindEvents();
       this.initSortable?.();
       // init phone inputs after initial render
-      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch {}
+      try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch { }
       this.installUnloadGuard();
       if (this.fields.length) {
         this.select(this.fields[this.fields.length - 1].id);
@@ -625,26 +610,26 @@
       return this;
     }
 
-    getTab(btn){
+    getTab(btn) {
       const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
       return Tab ? Tab.getOrCreateInstance(btn) : null;
     }
 
-    showTab(btn){
+    showTab(btn) {
       if (!btn) return;
       const inst = this.getTab(btn);
       inst ? inst.show() : btn.click?.();
     }
 
     // ---- Save & validation ----
-    hasValidOptions(field){
+    hasValidOptions(field) {
       if (!NS.needsOptions) return true;
       if (!NS.needsOptions(field.type)) return true;
       const opts = NS.parseOptions ? NS.parseOptions(field.options) : [];
       return opts.length > 0;
     }
 
-    cleanField(f){
+    cleanField(f) {
       const out = {};
       const KEYS = NS.CLEAN_KEYS || new Set();
       for (const k of KEYS) if (f[k] !== undefined) out[k] = f[k];
@@ -657,7 +642,7 @@
       return out;
     }
 
-    setTitleValidity(ok, speak = false){
+    setTitleValidity(ok, speak = false) {
       const el = this.$.formTitle;
       if (!el) return;
       if (ok) {
@@ -685,7 +670,7 @@
       let t; return () => { clearTimeout(t); t = setTimeout(fn, 200); };
     })();
 
-    async handleSaveToDB(e){
+    async handleSaveToDB(e) {
       e?.preventDefault?.();
       const title = (this.$.formTitle?.value || '').trim();
       if (!title) { alert('Form must have a title before saving.'); this.$.formTitle?.focus(); return; }
@@ -700,13 +685,13 @@
             this.$.formTitle?.focus();
             return;
           }
-        } catch {}
+        } catch { }
       }
 
       // Field validation
       for (const f of this.fields) {
         if (!String(f.label || '').trim()) { alert('Each field must have a Display Label.'); this.select(f.id); return; }
-        if (!String(f.name || '').trim())  { alert('Each field must have an Internal Field Name.'); this.select(f.id); return; }
+        if (!String(f.name || '').trim()) { alert('Each field must have an Internal Field Name.'); this.select(f.id); return; }
         if (!this.hasValidOptions(f)) { alert('This field needs options (comma-separated).'); this.select(f.id); return; }
       }
 
@@ -755,19 +740,19 @@
     }
 
     // ---- Phone inputs (intl-tel-input) ----
-    initPhoneInputsIn(rootEl){
+    initPhoneInputsIn(rootEl) {
       if (!window.intlTelInput || !rootEl) return;
       const nodes = rootEl.querySelectorAll?.('.js-intl-tel, input[type="tel"]') || [];
       nodes.forEach(input => this._initOnePhone(input));
     }
 
-    initPhoneInputs(){
+    initPhoneInputs() {
       if (!window.intlTelInput) return;
       const nodes = this.$.preview?.querySelectorAll('.js-intl-tel, input[type="tel"]') || [];
       nodes.forEach(input => this._initOnePhone(input));
     }
 
-    _initOnePhone(input){
+    _initOnePhone(input) {
       const existing = window.intlTelInputGlobals?.getInstance?.(input);
       if (existing) existing.destroy();
 
@@ -776,7 +761,7 @@
 
       const iti = window.intlTelInput(input, {
         initialCountry: field?.countryIso2 || 'id',
-        preferredCountries: ['id','us'],
+        preferredCountries: ['id', 'us'],
         utilsScript: window.INTL_UTILS_URL || "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
       });
 
@@ -790,11 +775,11 @@
         try {
           const iso2 = iti.getSelectedCountryData()?.iso2;
           if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
-        } catch {}
+        } catch { }
       });
     }
 
-    initSortable(){
+    initSortable() {
       if (this._sortableReady) return;
       const host = this.$.preview;
       if (!host || typeof window.Sortable === 'undefined') return;
@@ -818,9 +803,9 @@
           },
           onEnd: (evt) => {
             const from = (evt.oldIndex != null ? evt.oldIndex : -1);
-            const to   = (evt.newIndex != null ? evt.newIndex : -1);
+            const to = (evt.newIndex != null ? evt.newIndex : -1);
             this.dnd.draggingId = null;
-            this.dnd.fromIndex  = -1;
+            this.dnd.fromIndex = -1;
             if (from < 0 || to < 0 || from === to) return;
             if (from >= this.fields.length || to >= this.fields.length) return;
             const id = this.fields[from]?.id;
@@ -845,7 +830,7 @@
   }
 
   NS.Builder = Builder;
-  NS.startBuilder = async function startBuilder(){
+  NS.startBuilder = async function startBuilder() {
     const b = new Builder();
     await b.init();
     return b;

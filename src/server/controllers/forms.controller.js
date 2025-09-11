@@ -34,9 +34,6 @@ const PARTIAL_FOR = {
   date: 'fields/date',
   time: 'fields/time',
   datetime: 'fields/datetime',
-  month: 'fields/month',
-  week: 'fields/week',
-  color: 'fields/color',
   url: 'fields/url',
   file: 'fields/file'
 };
@@ -60,7 +57,7 @@ export async function health(_req, res) {
 export async function createOrUpdateForm(req, res) {
   const { id, title = '', fields = [], category: rawCategory } = req.body || {};
 
-  const CATEGORIES = new Set(['survey','quiz','feedback']);
+  const CATEGORIES = new Set(['survey', 'quiz', 'feedback']);
   const category = CATEGORIES.has(String(rawCategory || '').toLowerCase())
     ? String(rawCategory).toLowerCase()
     : 'survey';
@@ -115,7 +112,7 @@ export async function createOrUpdateForm(req, res) {
       const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
-      const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+      const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
@@ -140,7 +137,7 @@ export async function listForms(_req, res) {
       id: r.id,
       title: r.title,
       category: r.category,
-      fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+      fields: (r.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
@@ -160,7 +157,7 @@ export async function readForm(req, res) {
   try {
     const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).json({ error: 'Not found' });
-    const fields = (form.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+    const fields = (form.fields || []).sort((a, b) => a.position - b.position).map(f => ({
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
@@ -175,7 +172,7 @@ export async function readForm(req, res) {
 
 export async function updateForm(req, res) {
   const { title, fields, category: rawCategory } = req.body || {};
-  const CATEGORIES = new Set(['survey','quiz','feedback']);
+  const CATEGORIES = new Set(['survey', 'quiz', 'feedback']);
   const category = rawCategory !== undefined
     ? (CATEGORIES.has(String(rawCategory || '').toLowerCase()) ? String(rawCategory).toLowerCase() : 'survey')
     : undefined;
@@ -230,7 +227,7 @@ export async function updateForm(req, res) {
     await form.save();
 
     const withFields = await Form.findByPk(form.id, { include: [{ model: FormField, as: 'fields' }] });
-    const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+    const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
@@ -321,7 +318,7 @@ export async function hostedForm(req, res) {
   try {
     const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
     if (!form) return res.status(404).send('Form not found');
-    const fields = (form.fields || []).sort((a,b)=>a.position-b.position);
+    const fields = (form.fields || []).sort((a, b) => a.position - b.position);
     const vmFields = fields.map((f, idx) => ({
       partial: PARTIAL_FOR[f.type] || 'fields/text',
       ...toVM({
@@ -343,7 +340,7 @@ export async function builderPage(req, res) {
 
     const formPlain = form.get({ plain: true });
     const fields = (formPlain.fields || [])
-      .sort((a,b)=>a.position-b.position)
+      .sort((a, b) => a.position - b.position)
       .map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
