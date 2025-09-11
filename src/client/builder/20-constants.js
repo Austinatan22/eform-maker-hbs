@@ -1,35 +1,37 @@
 // src/client/builder/20-constants.js
-(function(){
+// TODO: These constants should be shared with server-side constants
+// Consider using a build system to bundle shared constants
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Field types that actually have options
-  NS.OPTION_TYPES = new Set(['dropdown','multipleChoice','checkboxes']);
+  NS.OPTION_TYPES = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
 
   // Only keep these keys when saving
   NS.CLEAN_KEYS = new Set([
-    'id','type','label','options','value','placeholder','name',
-    'required','doNotStore'
+    'id', 'type', 'label', 'options', 'value', 'placeholder', 'name',
+    'required', 'doNotStore'
   ]);
 
   // Map builder types -> partial filenames
   NS.PARTIAL_FOR = {
-    singleLine:     'text',
-    paragraph:      'textarea',
-    dropdown:       'select',
+    singleLine: 'text',
+    paragraph: 'textarea',
+    dropdown: 'select',
     multipleChoice: 'radios',
-    checkboxes:     'checkboxes',
-    number:         'number',
-    name:           'name',
-    email:          'email',
-    phone:          'phone',
-    date:           'date',
-    time:           'time',
-    datetime:       'datetime',
-    month:          'month',
-    week:           'week',
-    color:          'color',
-    url:            'url',
-    file:           'file'
+    checkboxes: 'checkboxes',
+    number: 'number',
+    name: 'name',
+    email: 'email',
+    phone: 'phone',
+    date: 'date',
+    time: 'time',
+    datetime: 'datetime',
+    month: 'month',
+    week: 'week',
+    color: 'color',
+    url: 'url',
+    file: 'file'
   };
 
   // Defaults

@@ -1,6 +1,7 @@
 // /src/server/models/FormSubmission.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
+import { Form } from './Form.js';
 
 /**
  * FormSubmission = optional stored copy of a user's submission
@@ -13,7 +14,13 @@ export const FormSubmission = sequelize.define('FormSubmission', {
   },
   formId: {
     type: DataTypes.STRING(64),
-    allowNull: false
+    allowNull: false,
+    references: {
+      model: 'forms',
+      key: 'id'
+    },
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE'
   },
   payloadJson: {
     type: DataTypes.TEXT,
@@ -39,3 +46,7 @@ export const FormSubmission = sequelize.define('FormSubmission', {
     { name: 'idx_form_submissions_formId', fields: ['formId'] }
   ]
 });
+
+// Define associations
+Form.hasMany(FormSubmission, { foreignKey: 'formId', as: 'submissions', onDelete: 'CASCADE' });
+FormSubmission.belongsTo(Form, { foreignKey: 'formId', as: 'form' });

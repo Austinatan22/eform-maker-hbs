@@ -4,9 +4,11 @@ import { sequelize } from '../db.js';
 import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
-import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
+import { env } from '../config/env.js';
+import { PARTIAL_FOR, FORM_CATEGORIES } from '../../shared/constants.js';
+import { validateFields, validateFormTitle, validateFormCategory, sanitizeFields } from '../utils/validation.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
@@ -21,23 +23,9 @@ function formatDate(date) {
 }
 
 // Map builder field.type -> partial path (under views/partials/fields)
-const PARTIAL_FOR = {
-  singleLine: 'fields/text',
-  paragraph: 'fields/textarea',
-  dropdown: 'fields/select',
-  multipleChoice: 'fields/radios',
-  checkboxes: 'fields/checkboxes',
-  number: 'fields/number',
-  name: 'fields/name',
-  email: 'fields/email',
-  phone: 'fields/phone',
-  date: 'fields/date',
-  time: 'fields/time',
-  datetime: 'fields/datetime',
-  month: 'fields/month',
-  url: 'fields/url',
-  file: 'fields/file'
-};
+const PARTIAL_FOR_SERVER = Object.fromEntries(
+  Object.entries(PARTIAL_FOR).map(([key, value]) => [key, `fields/${value}`])
+);
 
 const toVM = (f, idx) => ({
   name: f.name || f.id || `f_${idx}`,
@@ -58,30 +46,31 @@ export async function health(_req, res) {
 export async function createOrUpdateForm(req, res) {
   const { id, title = '', fields = [], category: rawCategory } = req.body || {};
 
-  const CATEGORIES = new Set(['survey','quiz','feedback']);
-  const category = CATEGORIES.has(String(rawCategory || '').toLowerCase())
+  const category = FORM_CATEGORIES.has(String(rawCategory || '').toLowerCase())
     ? String(rawCategory).toLowerCase()
     : 'survey';
 
-  if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
+  // Validate form title
+  const titleErrors = validateFormTitle(title);
+  if (titleErrors.length > 0) {
+    return res.status(400).json({ error: titleErrors.join('; ') });
+  }
+
+  // Validate form category
+  const categoryErrors = validateFormCategory(rawCategory);
+  if (categoryErrors.length > 0) {
+    return res.status(400).json({ error: categoryErrors.join('; ') });
+  }
+
   const normalizedTitle = normalizeTitle(title);
-  if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
+
+  // Validate fields
+  const fieldErrors = validateFields(fields);
+  if (fieldErrors.length > 0) {
+    return res.status(400).json({ error: fieldErrors.join('; ') });
+  }
 
   const clean = sanitizeFields(fields);
-  for (const f of clean) {
-    if (!isValidField(f)) {
-      return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
-    }
-  }
-  // Ensure field names are unique within the form
-  const seen = new Set();
-  for (const f of clean) {
-    const key = String(f.name || '');
-    if (seen.has(key)) {
-      return res.status(400).json({ error: 'Field names must be unique within a form.' });
-    }
-    seen.add(key);
-  }
 
   try {
     // Enforce case-insensitive title uniqueness on create
@@ -92,7 +81,7 @@ export async function createOrUpdateForm(req, res) {
     }
     if (!id) {
       const reqUser = req.session?.user || req.user || null;
-      const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
+      const createdBy = env.AUTH_ENABLED ? (reqUser?.id || null) : null;
       const { form, rows } = await createFormWithFields(normalizedTitle, clean, category, createdBy);
       await logAudit(req, { entity: 'form', action: 'create', entityId: form.id, meta: { title: form.title, category } });
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
@@ -102,7 +91,7 @@ export async function createOrUpdateForm(req, res) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
       // Owner-or-admin enforcement when auth enabled
-      if (process.env.AUTH_ENABLED === '1') {
+      if (env.AUTH_ENABLED) {
         const f = await Form.findByPk(id);
         const reqUser = req.session?.user || req.user || null;
         const role = reqUser?.role || 'viewer';
@@ -113,7 +102,7 @@ export async function createOrUpdateForm(req, res) {
       const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
-      const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
+      const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
@@ -133,20 +122,34 @@ export async function createOrUpdateForm(req, res) {
 
 export async function listForms(_req, res) {
   try {
-    const rows = await Form.findAll({ order: [['updatedAt', 'DESC']], include: [{ model: FormField, as: 'fields' }] });
+    const rows = await Form.findAll({
+      order: [['updatedAt', 'DESC']],
+      include: [{
+        model: FormField,
+        as: 'fields',
+        order: [['position', 'ASC']] // Order fields by position in the query
+      }]
+    });
+
     const forms = rows.map(r => ({
       id: r.id,
       title: r.title,
       category: r.category,
-      fields: (r.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name,
+      fields: (r.fields || []).map(f => ({
+        id: f.id,
+        type: f.type,
+        label: f.label,
+        name: f.name,
         placeholder: f.placeholder,
-        required: f.required, doNotStore: f.doNotStore,
-        options: f.options, countryIso2: f.countryIso2
+        required: f.required,
+        doNotStore: f.doNotStore,
+        options: f.options,
+        countryIso2: f.countryIso2
       })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
     }));
+
     res.json({ ok: true, forms });
   } catch (err) {
     console.error('List forms error:', err);
@@ -156,14 +159,27 @@ export async function listForms(_req, res) {
 
 export async function readForm(req, res) {
   try {
-    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
+    const form = await Form.findByPk(req.params.id, {
+      include: [{
+        model: FormField,
+        as: 'fields',
+        order: [['position', 'ASC']] // Order fields by position in the query
+      }]
+    });
+
     if (!form) return res.status(404).json({ error: 'Not found' });
-    const fields = (form.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-      id: f.id, type: f.type, label: f.label, name: f.name,
+
+    const fields = (form.fields || []).map(f => ({
+      id: f.id,
+      type: f.type,
+      label: f.label,
+      name: f.name,
       placeholder: f.placeholder,
-      required: f.required, doNotStore: f.doNotStore,
+      required: f.required,
+      doNotStore: f.doNotStore,
       options: f.options
     }));
+
     res.json({ ok: true, form: { id: form.id, title: form.title, fields } });
   } catch (err) {
     console.error('Read form error:', err);
@@ -173,15 +189,14 @@ export async function readForm(req, res) {
 
 export async function updateForm(req, res) {
   const { title, fields, category: rawCategory } = req.body || {};
-  const CATEGORIES = new Set(['survey','quiz','feedback']);
   const category = rawCategory !== undefined
-    ? (CATEGORIES.has(String(rawCategory || '').toLowerCase()) ? String(rawCategory).toLowerCase() : 'survey')
+    ? (FORM_CATEGORIES.has(String(rawCategory || '').toLowerCase()) ? String(rawCategory).toLowerCase() : 'survey')
     : undefined;
   try {
     const form = await Form.findByPk(req.params.id);
     if (!form) return res.status(404).json({ error: 'Not found' });
     // Owner-or-admin enforcement when auth enabled
-    if (process.env.AUTH_ENABLED === '1') {
+    if (env.AUTH_ENABLED) {
       const reqUser = req.session?.user || req.user || null;
       const role = reqUser?.role || 'viewer';
       const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
@@ -190,8 +205,9 @@ export async function updateForm(req, res) {
     }
 
     if (title !== undefined) {
-      if (!String(title).trim()) {
-        return res.status(400).json({ error: 'Form title is required.' });
+      const titleErrors = validateFormTitle(title);
+      if (titleErrors.length > 0) {
+        return res.status(400).json({ error: titleErrors.join('; ') });
       }
       const normalizedTitle = normalizeTitle(title);
       // Strict unique-before-update (case-insensitive)
@@ -206,32 +222,32 @@ export async function updateForm(req, res) {
     }
 
     if (fields !== undefined) {
-      if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
+      const fieldErrors = validateFields(fields);
+      if (fieldErrors.length > 0) {
+        return res.status(400).json({ error: fieldErrors.join('; ') });
+      }
       const clean = sanitizeFields(fields);
-      for (const f of clean) {
-        if (!isValidField(f)) {
-          return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
-        }
-      }
-      // Ensure field names are unique within the form
-      const seen = new Set();
-      for (const f of clean) {
-        const key = String(f.name || '');
-        if (seen.has(key)) {
-          return res.status(400).json({ error: 'Field names must be unique within a form.' });
-        }
-        seen.add(key);
-      }
       await updateFormWithFields(form.id, undefined, clean);
     }
 
     await form.save();
 
-    const withFields = await Form.findByPk(form.id, { include: [{ model: FormField, as: 'fields' }] });
-    const fieldsOut = (withFields.fields || []).sort((a,b)=>a.position-b.position).map(f => ({
-      id: f.id, type: f.type, label: f.label, name: f.name,
+    const withFields = await Form.findByPk(form.id, {
+      include: [{
+        model: FormField,
+        as: 'fields',
+        order: [['position', 'ASC']] // Order fields by position in the query
+      }]
+    });
+
+    const fieldsOut = (withFields.fields || []).map(f => ({
+      id: f.id,
+      type: f.type,
+      label: f.label,
+      name: f.name,
       placeholder: f.placeholder,
-      required: f.required, doNotStore: f.doNotStore,
+      required: f.required,
+      doNotStore: f.doNotStore,
       options: f.options
     }));
     res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields: fieldsOut } });
@@ -294,7 +310,7 @@ export async function deleteForm(req, res) {
       const form = await Form.findByPk(req.params.id, { transaction: t });
       if (!form) return res.status(404).json({ error: 'Not found' });
       // Owner-or-admin enforcement when auth enabled
-      if (process.env.AUTH_ENABLED === '1') {
+      if (env.AUTH_ENABLED) {
         const reqUser = req.session?.user || req.user || null;
         const role = reqUser?.role || 'viewer';
         const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
@@ -317,11 +333,19 @@ export async function deleteForm(req, res) {
 
 export async function hostedForm(req, res) {
   try {
-    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
+    const form = await Form.findByPk(req.params.id, {
+      include: [{
+        model: FormField,
+        as: 'fields',
+        order: [['position', 'ASC']] // Order fields by position in the query
+      }]
+    });
+
     if (!form) return res.status(404).send('Form not found');
-    const fields = (form.fields || []).sort((a,b)=>a.position-b.position);
+
+    const fields = form.fields || [];
     const vmFields = fields.map((f, idx) => ({
-      partial: PARTIAL_FOR[f.type] || 'fields/text',
+      partial: PARTIAL_FOR_SERVER[f.type] || 'fields/text',
       ...toVM({
         name: f.name, label: f.label, required: f.required,
         placeholder: f.placeholder, options: f.options,
@@ -336,18 +360,27 @@ export async function hostedForm(req, res) {
 
 export async function builderPage(req, res) {
   try {
-    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
+    const form = await Form.findByPk(req.params.id, {
+      include: [{
+        model: FormField,
+        as: 'fields',
+        order: [['position', 'ASC']] // Order fields by position in the query
+      }]
+    });
+
     if (!form) return res.status(404).send('Form not found');
 
     const formPlain = form.get({ plain: true });
-    const fields = (formPlain.fields || [])
-      .sort((a,b)=>a.position-b.position)
-      .map(f => ({
-        id: f.id, type: f.type, label: f.label, name: f.name,
-        placeholder: f.placeholder,
-        required: f.required, doNotStore: f.doNotStore,
-        options: f.options
-      }));
+    const fields = (formPlain.fields || []).map(f => ({
+      id: f.id,
+      type: f.type,
+      label: f.label,
+      name: f.name,
+      placeholder: f.placeholder,
+      required: f.required,
+      doNotStore: f.doNotStore,
+      options: f.options
+    }));
 
     const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', fields });
     const preloadB64 = Buffer.from(preload, 'utf8').toString('base64');

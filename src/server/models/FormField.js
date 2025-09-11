@@ -5,41 +5,45 @@ import { Form } from './Form.js';
 
 
 export const FormField = sequelize.define('FormField', {
-id: {
-type: DataTypes.STRING(40),
-primaryKey: true
-},
-formId: {
-type: DataTypes.STRING(64),
-allowNull: false
-},
-// Core field definition
-type: {
-type: DataTypes.ENUM(
-'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
-'checkboxes', 'number', 'name', 'email', 'phone'
-),
-allowNull: false
-},
-label: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
-name: { type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
-
-
-// Optional display/config
-placeholder: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
-required: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-doNotStore: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-
-
-// Options (for dropdown/multipleChoice/checkboxes)
-options: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }, // comma-separated
-
-
-// Ordering within form
-position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  id: {
+    type: DataTypes.STRING(40),
+    primaryKey: true
+  },
+  formId: {
+    type: DataTypes.STRING(64),
+    allowNull: false,
+    references: {
+      model: 'forms',
+      key: 'id'
+    },
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE'
+  },
+  // Core field definition
+  type: {
+    type: DataTypes.ENUM(
+      'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
+      'checkboxes', 'number', 'name', 'email', 'phone',
+      'date', 'time', 'datetime', 'month', 'week', 'color', 'url', 'file'
+    ),
+    allowNull: false
+  },
+  label: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
+  name: { type: DataTypes.STRING(128), allowNull: false, defaultValue: '' },
+  
+  // Optional display/config
+  placeholder: { type: DataTypes.STRING(255), allowNull: false, defaultValue: '' },
+  required: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  doNotStore: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  
+  // Options (for dropdown/multipleChoice/checkboxes)
+  options: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }, // comma-separated
+  
+  // Ordering within form
+  position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 }, {
   tableName: 'form_fields',
-  timestamps: false,
+  timestamps: true, // Enable timestamps for consistency
   indexes: [
     { name: 'idx_form_fields_formId', fields: ['formId'] },
     // Enforce uniqueness of field name within a form (requires migration for existing DBs)

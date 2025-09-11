@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { logAudit } from '../services/audit.service.js';
+import { env } from '../config/env.js';
 
 const router = express.Router();
 
@@ -64,9 +65,9 @@ router.post('/logout', (req, res) => {
 });
 
 // ---------------- JWT helpers -----------------
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
-const ACCESS_TTL_SEC = parseInt(process.env.JWT_TTL_SEC || '900', 10); // 15m default
-const REFRESH_TTL_SEC = parseInt(process.env.REFRESH_TTL_SEC || '1209600', 10); // 14d default
+const JWT_SECRET = env.JWT_SECRET;
+const ACCESS_TTL_SEC = env.JWT_TTL_SEC; // 15m default
+const REFRESH_TTL_SEC = env.REFRESH_TTL_SEC; // 14d default
 
 function signAccess(user) {
   return jwt.sign({ sub: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: ACCESS_TTL_SEC });

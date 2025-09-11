@@ -18,6 +18,9 @@ import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
 import { AuditLog } from './models/AuditLog.js';
 import { User } from './models/User.js';
+import { env } from './config/env.js';
+import { errorHandler, notFoundHandler } from './utils/errorHandler.js';
+import { runMigrations } from './utils/migrate.js';
 
 // Paths / __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -39,8 +42,8 @@ const app = express();
 // ---- Security headers (Helmet) ----
 // Configure a conservative CSP that allows our local assets and required CDNs
 // NOTE: Inline scripts/styles are used in server-rendered views; keep 'unsafe-inline'.
-if (process.env.CSP_ENABLED === '1') {
-  const extraConnect = String(process.env.CSP_CONNECT_SRC || '')
+if (env.CSP_ENABLED) {
+  const extraConnect = String(env.CSP_CONNECT_SRC || '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
@@ -91,13 +94,13 @@ app.use(cookieParser());
 // Sessions (dev-friendly; for production use a persistent store)
 app.use(session({
   name: 'sid',
-  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  secret: env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false // set true behind HTTPS/proxy
+    secure: env.NODE_ENV === 'production' // secure cookies in production
   }
 }));
 
@@ -145,7 +148,7 @@ app.use((req, res, next) => {
   });
   // Make token available to views on all HTML routes
   app.use((req, res, next) => {
-    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch {}
+    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch { }
     next();
   });
 }
@@ -153,11 +156,11 @@ app.use((req, res, next) => {
 // ---- CORS (strict allowlist) ----
 // Specify one or more allowed origins via CORS_ORIGIN (comma-separated)
 {
-  const list = String(process.env.CORS_ORIGIN || '')
+  const list = String(env.CORS_ORIGIN || '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
-  const allowAllLocal = process.env.NODE_ENV !== 'production' && list.length === 0;
+  const allowAllLocal = env.NODE_ENV !== 'production' && list.length === 0;
   const corsOptions = {
     credentials: true,
     origin: (origin, cb) => {
@@ -177,6 +180,10 @@ app.use(usersRouter);
 app.use(formsRouter);
 app.use(adminRouter);
 app.get('/', (_req, res) => res.redirect('/forms'));
+
+// Error handling middleware (must be last)
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Handlebars
 app.engine('hbs', engine({
@@ -235,13 +242,13 @@ app.engine('hbs', engine({
         if (!val) return '';
         const d = new Date(val);
         if (isNaN(d)) return String(val);
-        const DD = String(d.getDate()).padStart(2,'0');
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const DD = String(d.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const MMM = months[d.getMonth()] || '';
         const YYYY = d.getFullYear();
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mm = String(d.getMinutes()).padStart(2,'0');
-        const ss = String(d.getSeconds()).padStart(2,'0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
         return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
       } catch { return String(val || ''); }
     }
@@ -250,146 +257,44 @@ app.engine('hbs', engine({
 app.set('view engine', 'hbs');
 app.set('views', VIEWS_DIR);
 
-async function ensureSchema() {
+async function seedAdminUser() {
   try {
-    // If starting on a fresh DB, sync creates the column from the model.
-    // For existing DBs, add the column if it doesn't exist (SQLite only).
-    const [cols] = await sequelize.query("PRAGMA table_info('forms')");
-    const hasCategory = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'category');
-    if (!hasCategory) {
-      await sequelize.getQueryInterface().addColumn('forms', 'category', {
-        type: DataTypes.STRING(32),
-        allowNull: false,
-        defaultValue: 'survey'
-      });
-      console.log('Added missing column forms.category');
-    }
-
-    const hasCreatedBy = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'createdby');
-    if (!hasCreatedBy) {
-      await sequelize.getQueryInterface().addColumn('forms', 'createdBy', {
-        type: DataTypes.STRING(64),
-        allowNull: true
-      });
-      console.log('Added missing column forms.createdBy');
-    }
-
-    // Ensure unique index on forms.title (case-insensitive)
-    try {
-      const [idx] = await sequelize.query("PRAGMA index_list('forms')");
-      const hasTitleIdx = Array.isArray(idx) && idx.some(r => String(r.name || '').toLowerCase() === 'forms_title_nocase_unique');
-      if (!hasTitleIdx) {
-        // Check for existing duplicates (case-insensitive) to avoid index creation failure
-        const [dups] = await sequelize.query(
-          "SELECT lower(title) AS lt, COUNT(*) AS c FROM forms GROUP BY lt HAVING c > 1 LIMIT 1"
-        );
-        const hasDups = Array.isArray(dups) && dups.length > 0;
-        if (hasDups) {
-          console.warn('Cannot create unique index on forms.title: duplicates exist (case-insensitive). Please resolve and restart.');
-        } else {
-          await sequelize.query("CREATE UNIQUE INDEX IF NOT EXISTS forms_title_nocase_unique ON forms(title COLLATE NOCASE)");
-          console.log('Ensured unique index forms_title_nocase_unique');
-        }
-      }
-    } catch (e) {
-      console.warn('Index ensure failed (forms.title unique):', e.message || e);
-    }
-
-    // Ensure indexes on form_fields (including unique(formId,name))
-    try {
-      const [idx] = await sequelize.query("PRAGMA index_list('form_fields')");
-      const have = new Set((Array.isArray(idx) ? idx : []).map(r => String(r.name || '').toLowerCase()));
-      if (!have.has('idx_form_fields_formid')) {
-        await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_fields_formId ON form_fields(formId)");
-        console.log('Ensured index idx_form_fields_formId');
-      }
-      if (!have.has('uq_form_fields_formid_name')) {
-        // Check duplicates before creating unique index
-        const [dups] = await sequelize.query(
-          "SELECT formId, name, COUNT(*) AS c FROM form_fields GROUP BY formId, name HAVING c > 1 LIMIT 1"
-        );
-        const hasDups = Array.isArray(dups) && dups.length > 0;
-        if (hasDups) {
-          console.warn('Cannot create unique index on form_fields(formId,name): duplicates exist. Please resolve and restart.');
-        } else {
-          await sequelize.query("CREATE UNIQUE INDEX IF NOT EXISTS uq_form_fields_formId_name ON form_fields(formId, name)");
-          console.log('Ensured unique index uq_form_fields_formId_name');
-        }
-      }
-    } catch (e) {
-      console.warn('Index ensure failed (form_fields):', e.message || e);
-    }
-
-    // Ensure index on form_submissions(formId)
-    try {
-      const [idx] = await sequelize.query("PRAGMA index_list('form_submissions')");
-      const have = new Set((Array.isArray(idx) ? idx : []).map(r => String(r.name || '').toLowerCase()));
-      if (!have.has('idx_form_submissions_formid')) {
-        await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId ON form_submissions(formId)");
-        console.log('Ensured index idx_form_submissions_formId');
-      }
-    } catch (e) {
-      console.warn('Index ensure failed (form_submissions):', e.message || e);
-    }
-
-    // Ensure users table & seed admin (dev) and add username column if missing
-    try {
-      await User.sync();
-      // Add users.username if missing (SQLite)
-      try {
-        const [uCols] = await sequelize.query("PRAGMA table_info('users')");
-        const hasUsername = Array.isArray(uCols) && uCols.some(c => String(c.name).toLowerCase() === 'username');
-        if (!hasUsername) {
-          await sequelize.getQueryInterface().addColumn('users', 'username', {
-            type: DataTypes.STRING(64),
-            allowNull: true
-          });
-          console.log('Added missing column users.username');
-        }
-      } catch (e) {
-        console.warn('Users.username ensure failed:', e.message || e);
-      }
-
-      const [rows] = await sequelize.query("SELECT COUNT(*) as c FROM users");
-      const count = Array.isArray(rows) ? (rows[0]?.c ?? rows[0]?.C ?? 0) : 0;
-      if (!count) {
-        const bcrypt = await import('bcryptjs');
-        const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-        const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-        const hash = bcrypt.hashSync(adminPass, 10);
-        await User.create({ id: 'u-admin', email: adminEmail, username: 'admin', passwordHash: hash, role: 'admin' });
-        console.log(`Seeded admin user: ${adminEmail} / ${adminPass}`);
-      }
-    } catch (e) {
-      console.warn('User schema/seed issue:', e.message || e);
-    }
-
-    // Ensure refresh_tokens table exists
-    try { await RefreshToken.sync(); } catch (e) {
-      console.warn('RefreshToken schema issue:', e.message || e);
-    }
-    // Ensure audit_logs table exists
-    try { await AuditLog.sync(); } catch (e) {
-      console.warn('AuditLog schema issue:', e.message || e);
+    const [rows] = await sequelize.query("SELECT COUNT(*) as c FROM users");
+    const count = Array.isArray(rows) ? (rows[0]?.c ?? rows[0]?.C ?? 0) : 0;
+    if (!count) {
+      const bcrypt = await import('bcryptjs');
+      const adminEmail = env.ADMIN_EMAIL;
+      const adminPass = env.ADMIN_PASSWORD;
+      const hash = bcrypt.hashSync(adminPass, 10);
+      await User.create({ id: 'u-admin', email: adminEmail, username: 'admin', passwordHash: hash, role: 'admin' });
+      console.log(`✓ Seeded admin user: ${adminEmail} / ${adminPass}`);
     }
   } catch (e) {
-    console.warn('Schema ensure failed (category):', e.message || e);
+    console.warn('User seeding issue:', e.message || e);
   }
 }
 
 // Start
-const port = process.env.PORT || 5173;
+const port = env.PORT;
 (async () => {
   try {
     await sequelize.authenticate();
     await sequelize.query('PRAGMA foreign_keys = ON;');
+
+    // Run migrations first
+    await runMigrations(sequelize);
+
+    // Sync models (creates tables if they don't exist)
     await sequelize.sync();
-    await ensureSchema();
+
+    // Seed admin user
+    await seedAdminUser();
+
     app.listen(port, () => {
-      console.log(`Listening on http://localhost:${port}`);
+      console.log(`🚀 Server listening on http://localhost:${port}`);
     });
   } catch (err) {
-    console.error('DB boot error:', err);
+    console.error('❌ Server startup error:', err);
     process.exit(1);
   }
 })();

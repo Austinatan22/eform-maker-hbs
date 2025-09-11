@@ -8,14 +8,19 @@ export const normalizeTitle = (t) => String(t || '').normalize('NFKC').trim();
 
 export async function isTitleTaken(title, excludeId = null) {
   const tnorm = normalizeTitle(title);
-  let sql = `SELECT id FROM forms WHERE title = ? COLLATE NOCASE LIMIT 1`;
-  let repl = [tnorm];
+  
+  // Use Sequelize ORM instead of raw SQL to prevent injection
+  const whereClause = { title: tnorm };
   if (excludeId) {
-    sql = `SELECT id FROM forms WHERE title = ? COLLATE NOCASE AND id <> ? LIMIT 1`;
-    repl = [tnorm, String(excludeId)];
+    whereClause.id = { [sequelize.Sequelize.Op.ne]: String(excludeId) };
   }
-  const [rows] = await sequelize.query(sql, { replacements: repl });
-  return Array.isArray(rows) && rows.length > 0;
+  
+  const form = await Form.findOne({ 
+    where: whereClause,
+    attributes: ['id']
+  });
+  
+  return !!form;
 }
 
 // Helpers for ID generation: form-XXXXXXXX (8 random base62, non-colliding)
