@@ -34,48 +34,49 @@
         </tfoot>
         <tbody class="table-border-bottom-0">
           {{#if forms.length}}
-            {{#each forms}}
-              <tr data-id="{{this.id}}">
-                <td class="fw-medium js-title">{{this.title}}</td>
-                <td>
-                  <span class="badge rounded-pill {{categoryBadgeClass this.category}}">{{categoryLabel this.category}}</span>
-                </td>
-                <td><span class="text-muted">{{this.updatedAt}}</span></td>
-                <td class="col-actions"><div class="d-inline-flex align-items-center gap-1 justify-content-start">
-                    <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
-                      <i class="icon-base ti tabler-edit icon-sm me-1"></i>
-                      Edit
-                    </button>
-                    <div class="btn-group">
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
-                        data-bs-toggle="dropdown"
-                        data-bs-container="body"
-                        aria-expanded="false">
-                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
-                      </button>
-                      <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                          <a class="dropdown-item js-act-rename" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
-                            Info
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
-                            <i class="icon-base ti tabler-trash icon-sm me-2"></i>
-                            Delete
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            {{/each}}
+          {{#each forms}}
+          <tr data-id="{{this.id}}">
+            <td class="fw-medium js-title">{{this.title}}</td>
+            <td>
+              <span class="badge rounded-pill {{categoryBadgeClass this.category}}">{{categoryLabel
+                this.category}}</span>
+            </td>
+            <td><span class="text-muted">{{this.updatedAt}}</span></td>
+            <td class="col-actions">
+              <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
+                  <i class="icon-base ti tabler-edit icon-sm me-1"></i>
+                  Edit
+                </button>
+                <div class="btn-group">
+                  <button type="button"
+                    class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                    data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                    <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a class="dropdown-item js-act-rename" href="javascript:void(0);">
+                        <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
+                        Info
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
+                        <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                        Delete
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {{/each}}
           {{else}}
-            <tr><td colspan="4" class="text-center text-muted py-4">No forms yet.</td></tr>
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">No forms yet.</td>
+          </tr>
           {{/if}}
         </tbody>
       </table>
@@ -97,7 +98,8 @@
           <div class="row g-2">
             <div class="col-6">
               <div class="ratio ratio-1x1">
-                <button type="button" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-blank">
+                <button type="button"
+                  class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-blank">
                   <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-file-plus icon-42px"></i></h2>
                   <div class="fw-medium text-center">Create a blank form</div>
                 </button>
@@ -105,7 +107,8 @@
             </div>
             <div class="col-6">
               <div class="ratio ratio-1x1">
-                <button type="button" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-template">
+                <button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center js-choose-template">
                   <h2 class="mb-1 text-reset"><i class="icon-base ti tabler-template icon-42px"></i></h2>
                   <div class="fw-medium text-center">Start from a template</div>
                 </button>
@@ -133,60 +136,68 @@
           <p class="text-muted">Pick a template</p>
           <div class="row row-cols-2 g-2">
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="newsletter">
-              <i class="icon-base ti tabler-mail me-2 icon-20px"></i>
-              <span class="fw-medium">Newsletter Signup</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="newsletter">
+                <i class="icon-base ti tabler-mail me-2 icon-20px"></i>
+                <span class="fw-medium">Newsletter Signup</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="complaints">
-              <i class="icon-base ti tabler-alert-triangle me-2 icon-20px"></i>
-              <span class="fw-medium">Complaints</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="complaints">
+                <i class="icon-base ti tabler-alert-triangle me-2 icon-20px"></i>
+                <span class="fw-medium">Complaints</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="profile">
-              <i class="icon-base ti tabler-user me-2 icon-20px"></i>
-              <span class="fw-medium">Profile</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="profile">
+                <i class="icon-base ti tabler-user me-2 icon-20px"></i>
+                <span class="fw-medium">Profile</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="rsvp">
-              <i class="icon-base ti tabler-calendar me-2 icon-20px"></i>
-              <span class="fw-medium">Event RSVP</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="rsvp">
+                <i class="icon-base ti tabler-calendar me-2 icon-20px"></i>
+                <span class="fw-medium">Event RSVP</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="contact">
-              <i class="icon-base ti tabler-phone me-2 icon-20px"></i>
-              <span class="fw-medium">Contact Us</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="contact">
+                <i class="icon-base ti tabler-phone me-2 icon-20px"></i>
+                <span class="fw-medium">Contact Us</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="support">
-              <i class="icon-base ti tabler-lifebuoy me-2 icon-20px"></i>
-              <span class="fw-medium">Support Ticket</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="support">
+                <i class="icon-base ti tabler-lifebuoy me-2 icon-20px"></i>
+                <span class="fw-medium">Support Ticket</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="job">
-              <i class="icon-base ti tabler-briefcase me-2 icon-20px"></i>
-              <span class="fw-medium">Job Application</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="job">
+                <i class="icon-base ti tabler-briefcase me-2 icon-20px"></i>
+                <span class="fw-medium">Job Application</span>
+              </label>
             </div>
             <div class="col">
-            <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-              <input class="d-none" type="radio" name="templateChoice" value="nps">
-              <i class="icon-base ti tabler-chart-pie me-2 icon-20px"></i>
-              <span class="fw-medium">NPS Survey</span>
-            </label>
+              <label
+                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                <input class="d-none" type="radio" name="templateChoice" value="nps">
+                <i class="icon-base ti tabler-chart-pie me-2 icon-20px"></i>
+                <span class="fw-medium">NPS Survey</span>
+              </label>
             </div>
           </div>
         </div>
@@ -197,357 +208,373 @@
       </div>
     </div>
   </div>
-  </div>
+</div>
 
 {{#section 'scripts'}}
 <script>
-(function() {
-  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
-  function catBadgeClass(cat) {
-    switch ((cat || '').toLowerCase()) {
-      case 'quiz': return 'bg-label-info';
-      case 'feedback': return 'bg-label-warning';
-      default: return 'bg-label-primary';
-    }
-  }
-
-  function catLabel(cat) {
-    const v = String(cat || 'survey').toLowerCase();
-    if (v === 'quiz') return 'Quiz';
-    if (v === 'feedback') return 'Feedback';
-    return 'Survey';
-  }
-
-  // Initialize category status badges
-  document.querySelectorAll('tr[data-id]').forEach(row => {
-    const badge = row.querySelector('.js-cat-badge');
-    if (!badge) return;
-    const cat = badge.getAttribute('data-cat') || 'survey';
-    badge.textContent = catLabel(cat);
-    badge.classList.add(catBadgeClass(cat));
-  });
-
-  // Initialize kebab action dropdowns with fixed strategy
-  document.querySelectorAll('.js-actions').forEach(btn => {
-    try {
-      const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
-        boundary: 'viewport',
-        popperConfig(config) {
-          return Object.assign({}, config || {}, { strategy: 'fixed' });
-        }
-      });
-      void dd;
-    } catch (_) { /* ignore */ }
-  });
-
-  // Create Form wizard logic
-  (function initCreateFormWizard(){
-    const modalEl = document.getElementById('createFormModal');
-    const wiz = document.getElementById('createFormWizard');
-    if (!modalEl || !wiz) return;
-
-    const stepChoose = wiz.querySelector('[data-step="choose"]');
-    const stepBlank = wiz.querySelector('[data-step="blank"]');
-    const stepTpl = wiz.querySelector('[data-step="templates"]');
-    const btnBack = wiz.querySelector('.js-wiz-back');
-    const btnNext = wiz.querySelector('.js-wiz-next');
-    const titleEl = wiz.querySelector('.js-wiz-title');
-    const inputTitle = wiz.querySelector('#blankTitle');
-    const selCat = wiz.querySelector('#blankCategory');
-
-    let mode = 'choose'; // 'choose' | 'blank' (details) | 'templates'
-    let fromTemplates = false;
-    let selectedFields = [];
-
-    const TEMPLATES = {
-      newsletter: {
-        name: 'Newsletter Signup',
-        category: 'survey',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
-        ]
-      },
-      complaints: {
-        name: 'Complaints',
-        category: 'feedback',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-          { type: 'dropdown', label: 'Issue Type', name: 'issueType', options: 'Billing,Bug,Feature Request,Other', required: true },
-          { type: 'paragraph', label: 'Describe the issue', name: 'details', placeholder: 'Tell us what went wrong...', required: true }
-        ]
-      },
-      profile: {
-        name: 'Profile',
-        category: 'survey',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-          { type: 'phone', label: 'Phone Number', name: 'phone', placeholder: '' }
-        ]
-      },
-      rsvp: {
-        name: 'Event RSVP',
-        category: 'survey',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-          { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
-          { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
-        ]
-      },
-      contact: {
-        name: 'Contact Us',
-        category: 'feedback',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-          { type: 'phone', label: 'Phone Number', name: 'phone' },
-          { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
-          { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
-        ]
-      },
-      support: {
-        name: 'Support Ticket',
-        category: 'feedback',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-          { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
-          { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
-          { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
-        ]
-      },
-      job: {
-        name: 'Job Application',
-        category: 'survey',
-        fields: [
-          { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-          { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-          { type: 'phone', label: 'Phone Number', name: 'phone' },
-          { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
-          { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
-          { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
-        ]
-      },
-      nps: {
-        name: 'NPS Survey',
-        category: 'survey',
-        fields: [
-          { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
-          { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
-        ]
+  (function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
+    function catBadgeClass(cat) {
+      switch ((cat || '').toLowerCase()) {
+        case 'quiz': return 'bg-label-info';
+        case 'feedback': return 'bg-label-warning';
+        default: return 'bg-label-primary';
       }
-    };
-
-    function show(step){
-      mode = step;
-      stepChoose.classList.toggle('d-none', step !== 'choose');
-      stepBlank.classList.toggle('d-none', step !== 'blank');
-      stepTpl.classList.toggle('d-none', step !== 'templates');
-      btnBack.classList.toggle('d-none', step === 'choose');
-      // Hide Next on first step; users pick a tile instead
-      btnNext.classList.toggle('d-none', step === 'choose');
-      btnNext.textContent = 'Create';
-      titleEl.textContent = 'Create a Form';
     }
 
-    wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => {
-      // If user opts for blank after exploring templates, reset any prefilled values
-      fromTemplates = false;
-      selectedFields = [];
-      if (inputTitle) inputTitle.value = '';
-      show('blank');
-    });
-    wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
-    // Template tile click -> select radio and set primary label style
-    wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
-      const tile = e.target.closest('.template-tile');
-      if (!tile) return;
-      // Reset all tiles to outline-secondary and remove active/primary
-      wiz.querySelectorAll('.template-tile').forEach(el => {
-        el.classList.remove('active', 'btn-primary', 'btn-label-primary');
-        el.classList.add('btn-outline-secondary');
-      });
-      // Activate selected tile with primary label color (not filled)
-      tile.classList.add('active', 'btn-label-primary');
-      tile.classList.remove('btn-outline-secondary', 'btn-primary');
-      const input = tile.querySelector('input[type=radio][name=templateChoice]');
-      if (input) { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }
+    function catLabel(cat) {
+      const v = String(cat || 'survey').toLowerCase();
+      if (v === 'quiz') return 'Quiz';
+      if (v === 'feedback') return 'Feedback';
+      return 'Survey';
+    }
+
+    // Initialize category status badges
+    document.querySelectorAll('tr[data-id]').forEach(row => {
+      const badge = row.querySelector('.js-cat-badge');
+      if (!badge) return;
+      const cat = badge.getAttribute('data-cat') || 'survey';
+      badge.textContent = catLabel(cat);
+      badge.classList.add(catBadgeClass(cat));
     });
 
-    btnBack?.addEventListener('click', () => {
-      if (mode === 'blank' && fromTemplates) {
-        show('templates');
-      } else {
-        show('choose');
-      }
-    });
-
-    btnNext?.addEventListener('click', async () => {
+    // Initialize kebab action dropdowns with fixed strategy
+    document.querySelectorAll('.js-actions').forEach(btn => {
       try {
-        if (mode === 'blank') {
-          const title = (inputTitle?.value || '').trim();
-          if (!title) { inputTitle?.focus(); return; }
-          const category = selCat?.value || 'survey';
-          const res = await fetch('/api/forms', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-            body: JSON.stringify({ title, category, fields: (Array.isArray(selectedFields)?selectedFields:[]) })
-          });
-          const out = await res.json();
-          if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
-          bootstrap.Modal.getInstance(modalEl)?.hide();
-          window.location.assign('/builder/' + out.form.id);
-          return;
-        }
+        const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+          boundary: 'viewport',
+          popperConfig(config) {
+            return Object.assign({}, config || {}, { strategy: 'fixed' });
+          }
+        });
+        void dd;
+      } catch (_) { /* ignore */ }
+    });
 
-        if (mode === 'templates') {
-          const selected = wiz.querySelector('input[name="templateChoice"]:checked');
-          if (!selected) return;
-          const key = selected.value;
-          const tpl = TEMPLATES[key];
-          // Move to details step with prefilled fields
-          selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
-          fromTemplates = true;
-          if (inputTitle) inputTitle.value = tpl.name || '';
-          if (selCat) selCat.value = tpl.category || 'survey';
-          show('blank');
-          return;
-        }
+    // Create Form wizard logic
+    (function initCreateFormWizard() {
+      const modalEl = document.getElementById('createFormModal');
+      const wiz = document.getElementById('createFormWizard');
+      if (!modalEl || !wiz) return;
 
-        // From choose -> go to blank as default
+      const stepChoose = wiz.querySelector('[data-step="choose"]');
+      const stepBlank = wiz.querySelector('[data-step="blank"]');
+      const stepTpl = wiz.querySelector('[data-step="templates"]');
+      const btnBack = wiz.querySelector('.js-wiz-back');
+      const btnNext = wiz.querySelector('.js-wiz-next');
+      const titleEl = wiz.querySelector('.js-wiz-title');
+      const inputTitle = wiz.querySelector('#blankTitle');
+      const selCat = wiz.querySelector('#blankCategory');
+
+      let mode = 'choose'; // 'choose' | 'blank' (details) | 'templates'
+      let fromTemplates = false;
+      let selectedFields = [];
+
+      const TEMPLATES = {
+        newsletter: {
+          name: 'Newsletter Signup',
+          category: 'survey',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
+          ]
+        },
+        complaints: {
+          name: 'Complaints',
+          category: 'feedback',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+            { type: 'dropdown', label: 'Issue Type', name: 'issueType', options: 'Billing,Bug,Feature Request,Other', required: true },
+            { type: 'paragraph', label: 'Describe the issue', name: 'details', placeholder: 'Tell us what went wrong...', required: true }
+          ]
+        },
+        profile: {
+          name: 'Profile',
+          category: 'survey',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+            { type: 'phone', label: 'Phone Number', name: 'phone', placeholder: '' }
+          ]
+        },
+        rsvp: {
+          name: 'Event RSVP',
+          category: 'survey',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+            { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
+            { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
+          ]
+        },
+        contact: {
+          name: 'Contact Us',
+          category: 'feedback',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+            { type: 'phone', label: 'Phone Number', name: 'phone' },
+            { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
+            { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
+          ]
+        },
+        support: {
+          name: 'Support Ticket',
+          category: 'feedback',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+            { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
+            { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
+            { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
+          ]
+        },
+        job: {
+          name: 'Job Application',
+          category: 'survey',
+          fields: [
+            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+            { type: 'phone', label: 'Phone Number', name: 'phone' },
+            { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
+            { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
+            { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
+          ]
+        },
+        nps: {
+          name: 'NPS Survey',
+          category: 'survey',
+          fields: [
+            { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
+            { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
+          ]
+        }
+      };
+
+      function show(step) {
+        mode = step;
+        stepChoose.classList.toggle('d-none', step !== 'choose');
+        stepBlank.classList.toggle('d-none', step !== 'blank');
+        stepTpl.classList.toggle('d-none', step !== 'templates');
+        btnBack.classList.toggle('d-none', step === 'choose');
+        // Hide Next on first step; users pick a tile instead
+        btnNext.classList.toggle('d-none', step === 'choose');
+        btnNext.textContent = 'Create';
+        titleEl.textContent = 'Create a Form';
+      }
+
+      wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => {
+        // If user opts for blank after exploring templates, reset any prefilled values
+        fromTemplates = false;
+        selectedFields = [];
+        if (inputTitle) inputTitle.value = '';
         show('blank');
-      } catch (err) {
-        console.error(err);
-        alert(err?.message || 'Could not create form.');
+      });
+      wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
+      // Template tile click -> select radio and set primary label style
+      wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
+        const tile = e.target.closest('.template-tile');
+        if (!tile) return;
+        // Reset all tiles to outline-secondary and remove active/primary
+        wiz.querySelectorAll('.template-tile').forEach(el => {
+          el.classList.remove('active', 'btn-primary', 'btn-label-primary');
+          el.classList.add('btn-outline-secondary');
+        });
+        // Activate selected tile with primary label color (not filled)
+        tile.classList.add('active', 'btn-label-primary');
+        tile.classList.remove('btn-outline-secondary', 'btn-primary');
+        const input = tile.querySelector('input[type=radio][name=templateChoice]');
+        if (input) { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
+
+      btnBack?.addEventListener('click', () => {
+        if (mode === 'blank' && fromTemplates) {
+          show('templates');
+        } else {
+          show('choose');
+        }
+      });
+
+      btnNext?.addEventListener('click', async () => {
+        try {
+          if (mode === 'blank') {
+            const title = (inputTitle?.value || '').trim();
+            if (!title) { inputTitle?.focus(); return; }
+            const category = selCat?.value || 'survey';
+            const res = await fetch('/api/forms', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+              body: JSON.stringify({ title, category, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
+            });
+            const out = await res.json();
+            if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+            window.location.assign('/builder/' + out.form.id);
+            return;
+          }
+
+          if (mode === 'templates') {
+            const selected = wiz.querySelector('input[name="templateChoice"]:checked');
+            if (!selected) return;
+            const key = selected.value;
+            const tpl = TEMPLATES[key];
+            // Move to details step with prefilled fields
+            selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
+            fromTemplates = true;
+            if (inputTitle) inputTitle.value = tpl.name || '';
+            if (selCat) selCat.value = tpl.category || 'survey';
+            show('blank');
+            return;
+          }
+
+          // From choose -> go to blank as default
+          show('blank');
+        } catch (err) {
+          console.error(err);
+          alert(err?.message || 'Could not create form.');
+        }
+      });
+
+      // Reset wizard on open
+      modalEl.addEventListener('show.bs.modal', () => {
+        // Clear selected template visual state
+        wiz.querySelectorAll('.template-tile').forEach(el => {
+          el.classList.remove('active', 'btn-primary', 'btn-label-primary');
+          el.classList.add('btn-outline-secondary');
+        });
+        wiz.querySelector('input[name="templateChoice"]:checked')?.closest('label')?.classList.remove('active');
+        const checked = wiz.querySelector('input[name="templateChoice"]:checked');
+        if (checked) checked.checked = false;
+        inputTitle && (inputTitle.value = '');
+        selCat && (selCat.value = 'survey');
+        selectedFields = [];
+        fromTemplates = false;
+        show('choose');
+      });
+    })();
+
+    // Row actions (delete, edit, rename)
+    document.querySelector('table')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-delete');
+      if (btn) {
+        const row = btn.closest('tr');
+        const id = row?.dataset.id;
+        if (!id) return;
+        const title = (row.querySelector('.js-title')?.textContent || '').trim();
+        const modalEl = document.getElementById('confirmDeleteModal');
+        modalEl.dataset.id = id;
+        modalEl.querySelector('.js-del-title').textContent = title || 'this form';
+        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+        m.show();
+        return;
+      }
+      // Category changes are done in Rename modal
+
+      // Edit action
+      const actEdit = e.target.closest('.js-act-edit');
+      if (actEdit) {
+        const row = actEdit.closest('tr');
+        const id = row?.dataset.id;
+        if (!id) return;
+        window.location.assign('/builder/' + id);
+        return;
+      }
+
+      // Rename action
+      const actRename = e.target.closest('.js-act-rename');
+      if (actRename) {
+        const row = actRename.closest('tr');
+        const id = row?.dataset.id;
+        if (!id) return;
+        const titleCell = row.querySelector('.js-title');
+        const current = (titleCell?.textContent || '').trim();
+        const modalEl = document.getElementById('renameFormModal');
+        modalEl.dataset.id = id;
+        const input = modalEl.querySelector('#renameFormInput');
+        input.value = current;
+        // Prefill category from the badge in the row
+        const currentCat = (row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || 'survey').toLowerCase();
+        const sel = modalEl.querySelector('#renameFormCategory');
+        if (sel) sel.value = ['survey', 'quiz', 'feedback'].includes(currentCat) ? currentCat : 'survey';
+        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+        m.show();
+        return;
       }
     });
 
-    // Reset wizard on open
-    modalEl.addEventListener('show.bs.modal', () => {
-      // Clear selected template visual state
-      wiz.querySelectorAll('.template-tile').forEach(el => {
-        el.classList.remove('active', 'btn-primary', 'btn-label-primary');
-        el.classList.add('btn-outline-secondary');
-      });
-      wiz.querySelector('input[name="templateChoice"]:checked')?.closest('label')?.classList.remove('active');
-      const checked = wiz.querySelector('input[name="templateChoice"]:checked');
-      if (checked) checked.checked = false;
-      inputTitle && (inputTitle.value = '');
-      selCat && (selCat.value = 'survey');
-      selectedFields = [];
-      fromTemplates = false;
-      show('choose');
-    });
-  })();
-
-  // Row actions (delete, edit, rename)
-  document.querySelector('table')?.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.js-delete');
-    if (btn) {
-      const row = btn.closest('tr');
-      const id = row?.dataset.id;
-      if (!id) return;
-      const title = (row.querySelector('.js-title')?.textContent || '').trim();
+    // Delete modal confirm
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
       const modalEl = document.getElementById('confirmDeleteModal');
-      modalEl.dataset.id = id;
-      modalEl.querySelector('.js-del-title').textContent = title || 'this form';
-      const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-      m.show();
-      return;
-    }
-    // Category changes are done in Rename modal
-
-    // Edit action
-    const actEdit = e.target.closest('.js-act-edit');
-    if (actEdit) {
-      const row = actEdit.closest('tr');
-      const id = row?.dataset.id;
+      const id = modalEl?.dataset.id;
       if (!id) return;
-      window.location.assign('/builder/' + id);
-      return;
-    }
+      const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+      const btn = document.getElementById('confirmDeleteBtn');
+      const originalText = btn?.textContent;
 
-    // Rename action
-    const actRename = e.target.closest('.js-act-rename');
-    if (actRename) {
-      const row = actRename.closest('tr');
-      const id = row?.dataset.id;
-      if (!id) return;
-      const titleCell = row.querySelector('.js-title');
-      const current = (titleCell?.textContent || '').trim();
-      const modalEl = document.getElementById('renameFormModal');
-      modalEl.dataset.id = id;
-      const input = modalEl.querySelector('#renameFormInput');
-      input.value = current;
-      // Prefill category from the badge in the row
-      const currentCat = (row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || 'survey').toLowerCase();
-      const sel = modalEl.querySelector('#renameFormCategory');
-      if (sel) sel.value = ['survey','quiz','feedback'].includes(currentCat) ? currentCat : 'survey';
-      const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-      m.show();
-      return;
-    }
-  });
-
-  // Delete modal confirm
-  document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
-    const modalEl = document.getElementById('confirmDeleteModal');
-    const id = modalEl?.dataset.id;
-    if (!id) return;
-    const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
       try {
+        // Show loading state
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Deleting...';
+        }
+
         const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
         if (!res.ok) throw new Error('Delete failed');
+
         row?.remove();
         bootstrap.Modal.getInstance(modalEl)?.hide();
-    } catch (err) {
-      console.error(err);
-      alert('Could not delete form.');
-    }
-  });
+      } catch (err) {
+        console.error(err);
+        alert('Could not delete form.');
+      } finally {
+        // Restore button state
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      }
+    });
 
-  // Rename modal submit
-  document.getElementById('renameFormForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const modalEl = document.getElementById('renameFormModal');
-    const id = modalEl?.dataset.id;
-    if (!id) return;
-    const input = document.getElementById('renameFormInput');
-    const newTitle = String(input.value || '').trim();
-    if (!newTitle) return;
-    const catSelect = document.getElementById('renameFormCategory');
-    const newCat = (catSelect?.value || 'survey').toLowerCase();
-    const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-    const titleCell = row?.querySelector('.js-title');
-    try {
-      const res = await fetch('/api/forms/' + id, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-        body: JSON.stringify({ title: newTitle, category: newCat })
-      });
-      const out = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (res.status === 409) throw new Error('Title already exists.');
-        throw new Error(out?.error || 'Update failed');
+    // Rename modal submit
+    document.getElementById('renameFormForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const modalEl = document.getElementById('renameFormModal');
+      const id = modalEl?.dataset.id;
+      if (!id) return;
+      const input = document.getElementById('renameFormInput');
+      const newTitle = String(input.value || '').trim();
+      if (!newTitle) return;
+      const catSelect = document.getElementById('renameFormCategory');
+      const newCat = (catSelect?.value || 'survey').toLowerCase();
+      const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+      const titleCell = row?.querySelector('.js-title');
+      try {
+        const res = await fetch('/api/forms/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+          body: JSON.stringify({ title: newTitle, category: newCat })
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 409) throw new Error('Title already exists.');
+          throw new Error(out?.error || 'Update failed');
+        }
+        if (titleCell) titleCell.textContent = newTitle;
+        // Update badge in the row
+        const badge = row?.querySelector('.js-cat-badge');
+        if (badge) {
+          badge.setAttribute('data-cat', newCat);
+          badge.textContent = catLabel(newCat);
+          badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning');
+          badge.classList.add(catBadgeClass(newCat));
+        }
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+      } catch (err) {
+        console.error(err);
+        alert(err?.message || 'Could not rename form');
       }
-      if (titleCell) titleCell.textContent = newTitle;
-      // Update badge in the row
-      const badge = row?.querySelector('.js-cat-badge');
-      if (badge) {
-        badge.setAttribute('data-cat', newCat);
-        badge.textContent = catLabel(newCat);
-        badge.classList.remove('bg-label-primary','bg-label-info','bg-label-warning');
-        badge.classList.add(catBadgeClass(newCat));
-      }
-      bootstrap.Modal.getInstance(modalEl)?.hide();
-    } catch (err) {
-      console.error(err);
-      alert(err?.message || 'Could not rename form');
-    }
-  });
-})();
+    });
+  })();
 </script>
 {{/section}}
 
@@ -579,7 +606,7 @@
       </div>
     </form>
   </div>
-  </div>
+</div>
 
 {{!-- Delete Confirm modal --}}
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
@@ -590,7 +617,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to delete <strong class="js-del-title">this form</strong>? This action cannot be undone.</p>
+        <p>Are you sure you want to delete <strong class="js-del-title">this form</strong>? This action cannot be
+          undone.</p>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
@@ -598,8 +626,4 @@
       </div>
     </div>
   </div>
-  </div>
-
-
-
-
+</div>

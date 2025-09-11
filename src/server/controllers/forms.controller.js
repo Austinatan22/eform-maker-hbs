@@ -289,9 +289,14 @@ export async function publicSubmit(req, res) {
 
 export async function deleteForm(req, res) {
   try {
+    let formTitle = null;
     await sequelize.transaction(async (t) => {
       const form = await Form.findByPk(req.params.id, { transaction: t });
       if (!form) return res.status(404).json({ error: 'Not found' });
+
+      // Store title for audit logging outside transaction
+      formTitle = form.title;
+
       // Owner-or-admin enforcement when auth enabled
       if (process.env.AUTH_ENABLED === '1') {
         const reqUser = req.session?.user || req.user || null;
@@ -301,13 +306,27 @@ export async function deleteForm(req, res) {
         if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
       }
 
+      // Delete in order of dependencies for better performance
       await FormField.destroy({ where: { formId: form.id }, transaction: t });
-      await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });
+
+      // For forms with many submissions, use batch deletion
+      const submissionCount = await FormSubmission.count({ where: { formId: form.id }, transaction: t });
+      if (submissionCount > 1000) {
+        // Use raw SQL for better performance on large datasets
+        await sequelize.query('DELETE FROM form_submissions WHERE formId = ?', {
+          replacements: [form.id],
+          transaction: t
+        });
+      } else {
+        await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });
+      }
+
       await form.destroy({ transaction: t });
-      // Log after successful delete inside transaction
-      await logAudit(req, { entity: 'form', action: 'delete', entityId: req.params.id, meta: { title: form.title } });
-      res.json({ ok: true });
     });
+
+    // Log audit after successful deletion (outside transaction)
+    await logAudit(req, { entity: 'form', action: 'delete', entityId: req.params.id, meta: { title: formTitle } });
+    res.json({ ok: true });
   } catch (err) {
     console.error('Delete form error:', err);
     res.status(500).json({ error: 'Could not delete form' });

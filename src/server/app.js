@@ -1,4 +1,4 @@
-d// src/server/app.js (ESM)
+// src/server/app.js (ESM)
 import express from 'express';
 import session from 'express-session';
 import path from 'path';
@@ -323,6 +323,11 @@ async function ensureSchema() {
       if (!have.has('idx_form_submissions_formid')) {
         await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId ON form_submissions(formId)");
         console.log('Ensured index idx_form_submissions_formId');
+      }
+      // Add composite index for better deletion performance
+      if (!have.has('idx_form_submissions_formid_created')) {
+        await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId_created ON form_submissions(formId, createdAt)");
+        console.log('Ensured composite index idx_form_submissions_formId_created');
       }
     } catch (e) {
       console.warn('Index ensure failed (form_submissions):', e.message || e);

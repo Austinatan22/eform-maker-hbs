@@ -101,14 +101,30 @@
 /* Prevent horizontal menu scroll arrows and overlays from intercepting clicks */
 .menu-horizontal-prev,
 .menu-horizontal-next { display: none !important; pointer-events: none !important; }
-/* Ensure the top navbar and its dropdowns sit above sticky cards */
-.layout-navbar { z-index: 1100; }
-/* Extra safety: navbar dropdown menus above sticky side panels */
-.layout-navbar .dropdown-menu { z-index: 1101; }
+/* Ensure the top navbar and its dropdowns sit above everything but below modals */
+.layout-navbar { z-index: 1050 !important; }
+/* Extra safety: navbar dropdown menus above everything but below modals */
+.layout-navbar .dropdown-menu { z-index: 1051 !important; }
+/* Specifically ensure avatar dropdown appears above main menu */
+.dropdown-user .dropdown-menu { z-index: 1100 !important; }
+.navbar-dropdown .dropdown-menu { z-index: 1100 !important; }
+.navbar-nav .dropdown-menu { z-index: 1100 !important; }
+.layout-navbar .navbar-nav .dropdown-menu { z-index: 1100 !important; }
+.layout-navbar .dropdown-user .dropdown-menu { z-index: 1100 !important; }
 
-/* Horizontal menu should also overlay sticky builder sidecards */
-.layout-menu-horizontal { z-index: 1100; }
-.layout-menu-horizontal .menu-sub { z-index: 1101; }
+/* Horizontal menu should overlay sticky builder sidecards but below navbar */
+.layout-menu-horizontal { z-index: 1040 !important; }
+.layout-menu-horizontal .menu-sub { z-index: 1041 !important; }
+
+/* Override Vuexy's high z-index for layout-menu on all screen sizes */
+.layout-menu {
+  z-index: 1040 !important;
+}
+@media (max-width: 1199.98px) {
+  .layout-menu {
+    z-index: 1040 !important;
+  }
+}
 
 
 
@@ -147,6 +163,20 @@
 .table .col-actions {
   width: 1%;
   white-space: nowrap;
+}
+
+/* Ensure modals always appear above navigation and other elements */
+.modal {
+  z-index: 1150 !important;
+}
+.modal-backdrop {
+  z-index: 1145 !important;
+}
+.modal-dialog {
+  z-index: 1151 !important;
+}
+.modal-content {
+  z-index: 1152 !important;
 }
 
 
