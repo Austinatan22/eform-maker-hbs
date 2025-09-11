@@ -1,0 +1,296 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Audit Logs</h5>
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control form-control-sm" id="filterEntity" placeholder="Entity (e.g. form)">
+            <input type="text" class="form-control form-control-sm" id="filterAction"
+                placeholder="Action (e.g. create)">
+            <input type="text" class="form-control form-control-sm" id="filterUser" placeholder="User ID">
+            <button class="btn btn-sm btn-outline-primary" id="applyFilters">Filter</button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle" id="logsTable">
+                <colgroup>
+                    <col style="width: 16%">
+                    <col style="width: 22%">
+                    <col style="width: 14%">
+                    <col style="width: 16%">
+                    <col style="width: 14%">
+                    <col class="col-actions">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Entity</th>
+                        <th>Entity ID</th>
+                        <th>Action</th>
+                        <th class="col-actions">Details</th>
+                    </tr>
+                </thead>
+                <tfoot class="table-border-bottom-0">
+                    <tr>
+                        <th class="rounded-start-bottom">Time</th>
+                        <th>User</th>
+                        <th>Entity</th>
+                        <th>Entity ID</th>
+                        <th>Action</th>
+                        <th class="col-actions">Details</th>
+                    </tr>
+                </tfoot>
+                <tbody class="table-border-bottom-0" id="logsTbody">
+                    {{#if logs.length}}
+                    {{#each logs}}
+                    <tr data-id="{{this.id}}" data-meta="{{this.metaJson}}" data-ip="{{this.ip}}" data-ua="{{this.ua}}"
+                        data-entity="{{this.entity}}" data-entity-id="{{this.entityId}}" data-action="{{this.action}}"
+                        data-user-id="{{this.userId}}" data-user-email="{{this.userEmail}}"
+                        data-user-username="{{this.userUsername}}">
+                        <td>
+                            <div class="fw-medium">{{formatDate this.createdAt}}</div>
+                            <div class="text-muted small">{{formatTime this.createdAt}}</div>
+                        </td>
+                        <td>
+                            {{#if this.userId}}
+                            <div class="fw-medium">{{this.userEmail}}{{#unless this.userEmail}}(user:
+                                {{this.userId}}){{/unless}}</div>
+                            <div class="text-muted small">{{this.userUsername}}</div>
+                            {{else}}
+                            <span class="text-muted">-</span>
+                            {{/if}}
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill {{entityBadgeClass this.entity}}">{{entityLabel
+                                this.entity}}</span>
+                        </td>
+                        <td>
+                            {{#if this.entityId}}
+                            <code class="small">{{this.entityId}}</code>
+                            {{else}}
+                            <span class="text-muted">-</span>
+                            {{/if}}
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill {{logActionBadge this.action}}">{{logActionLabel
+                                this.action}}</span>
+                        </td>
+                        <td class="col-actions">
+                            <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                                <button type="button" class="btn btn-sm btn-outline-secondary js-show-details">
+                                    <i class="icon-base ti tabler-info-circle icon-sm me-1"></i>
+                                    Info
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{/each}}
+                    {{else}}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No logs.</td>
+                    </tr>
+                    {{/if}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{#section 'scripts'}}
+<script>
+    (function () {
+        const CSRF = document.querySelector('meta[name="csrf-token"]').content || window.CSRF_TOKEN || '';
+
+        function tryParseJSON(raw) {
+            try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+        }
+
+        function pretty(obj) {
+            try { return JSON.stringify(obj, null, 2); } catch { return String(obj || ''); }
+        }
+
+        function actionLabel(a) {
+            const v = String(a || '').toLowerCase();
+            if (v === 'create') return 'Create';
+            if (v === 'update') return 'Update';
+            if (v === 'delete') return 'Delete';
+            return (a || '').toString();
+        }
+
+        function actionBadge(a) {
+            const v = String(a || '').toLowerCase();
+            if (v === 'create') return 'bg-label-success';
+            if (v === 'update') return 'bg-label-info';
+            if (v === 'delete') return 'bg-label-danger';
+            return 'bg-label-secondary';
+        }
+
+        function entityBadge(e) {
+            const v = String(e || '').toLowerCase();
+            if (v === 'form') return 'bg-label-primary';
+            if (v === 'user') return 'bg-label-info';
+            if (v === 'auth') return 'bg-label-warning';
+            return 'bg-label-secondary';
+        }
+
+        function entityLabel(e) {
+            const s = String(e || '');
+            return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+        }
+
+        // Initialize dropdowns if any
+        document.querySelectorAll('.js-actions').forEach(btn => {
+            try {
+                const dd = bootstrap.Dropdown.getOrCreateInstance(btn, { boundary: 'viewport', popperConfig(c) { return Object.assign({}, c || {}, { strategy: 'fixed' }); } });
+                void dd;
+            } catch (_) { }
+        });
+
+        // Hook Details button to fill modal with full info
+        document.getElementById('logsTbody')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.js-show-details');
+            if (!btn) return;
+            const row = btn.closest('tr[data-id]');
+            const modalEl = document.getElementById('logDetailsModal');
+
+            // Top fields
+            modalEl.querySelector('.js-d-id').textContent = row?.getAttribute('data-id') || '';
+            const userEmail = row?.getAttribute('data-user-email') || '';
+            const userUsername = row?.getAttribute('data-user-username') || '';
+            const userId = row?.getAttribute('data-user-id') || '';
+            modalEl.querySelector('.js-d-user').textContent = userEmail || (userId ? `user: ${userId}` : '-');
+            modalEl.querySelector('.js-d-user-sub').textContent = userUsername || '';
+            const entity = row?.getAttribute('data-entity') || '';
+            const entityId = row?.getAttribute('data-entity-id') || '';
+            modalEl.querySelector('.js-d-entity').textContent = entityLabel(entity);
+            const entBadge = modalEl.querySelector('.js-d-entity');
+            entBadge.className = `badge rounded-pill js-d-entity ${entityBadge(entity)}`;
+            modalEl.querySelector('.js-d-entity-id').textContent = entityId || '-';
+            const action = row?.getAttribute('data-action') || '';
+            const actEl = modalEl.querySelector('.js-d-action');
+            actEl.textContent = actionLabel(action);
+            actEl.className = `badge rounded-pill js-d-action ${actionBadge(action)}`;
+            modalEl.querySelector('.js-d-ip').textContent = row?.getAttribute('data-ip') || '';
+            modalEl.querySelector('.js-d-ua').textContent = row?.getAttribute('data-ua') || '';
+
+            // Meta JSON
+            const metaRaw = row?.getAttribute('data-meta') || '';
+            const meta = tryParseJSON(metaRaw);
+            modalEl.querySelector('.js-json').textContent = pretty(meta);
+
+            const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+            m.show();
+        });
+
+        // Filters -> refetch
+        document.getElementById('applyFilters')?.addEventListener('click', async () => {
+            const entity = document.getElementById('filterEntity').value.trim();
+            const action = document.getElementById('filterAction').value.trim();
+            const userId = document.getElementById('filterUser').value.trim();
+            const params = new URLSearchParams();
+            if (entity) params.set('entity', entity);
+            if (action) params.set('action', action);
+            if (userId) params.set('userId', userId);
+            const res = await fetch('/api/logs?' + params.toString(), { headers: { 'CSRF-Token': CSRF } });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || !out?.logs) { alert(out?.error || 'Failed to load logs'); return; }
+            const tbody = document.getElementById('logsTbody');
+            tbody.innerHTML = '';
+            out.logs.forEach(l => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', l.id);
+                tr.setAttribute('data-meta', l.metaJson || '');
+                tr.setAttribute('data-ip', l.ip || '');
+                tr.setAttribute('data-ua', l.ua || '');
+                tr.setAttribute('data-entity', l.entity || '');
+                tr.setAttribute('data-entity-id', l.entityId || '');
+                tr.setAttribute('data-action', l.action || '');
+                tr.setAttribute('data-user-id', l.userId || '');
+                tr.setAttribute('data-user-email', l.userEmail || '');
+                tr.setAttribute('data-user-username', l.userUsername || '');
+                const createdAt = l.createdAt;
+                const dt = new Date(createdAt);
+                const date = isNaN(dt) ? (createdAt || '') : `${String(dt.getDate()).padStart(2, '0')} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.getMonth()]} ${dt.getFullYear()}`;
+                const time = isNaN(dt) ? '' : `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
+                tr.innerHTML = `
+        <td>
+          <div class="fw-medium">${date}</div>
+          <div class="text-muted small">${time}</div>
+        </td>
+        <td>
+          ${l.userId ? `<div class=\"fw-medium\">${l.userEmail || `user: ${l.userId}`}</div><div class=\"text-muted small\">${l.userUsername || ''}</div>` : '<span class=\"text-muted\">-</span>'}
+        </td>
+        <td>
+          <span class="badge rounded-pill ${entityBadge(l.entity)}">${entityLabel(l.entity)}</span>
+        </td>
+        <td>${l.entityId ? `<code class=\"small\">${l.entityId}</code>` : '<span class=\"text-muted\">-</span>'}</td>
+        <td><span class="badge rounded-pill ${actionBadge(l.action)}">${actionLabel(l.action)}</span></td>
+        <td class="col-actions">
+          <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+            <button type="button" class="btn btn-sm btn-outline-secondary js-show-details">
+              <i class="icon-base ti tabler-info-circle icon-sm me-1"></i>
+              Info
+            </button>
+          </div>
+        </td>`;
+                tbody.appendChild(tr);
+            });
+        });
+
+        // Expose helpers for dynamic rows
+        window.Logs = { actionLabel, actionBadge, entityBadge, entityLabel };
+    })();
+</script>
+{{/section}}
+
+<div class="modal fade" id="logDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-2">
+                    <div class="col-md-4">
+                        <div class="text-muted small">ID</div>
+                        <div class="fw-medium js-d-id"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small">User</div>
+                        <div class="fw-medium js-d-user"></div>
+                        <div class="text-muted small js-d-user-sub"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted small">Entity</div>
+                        <div><span class="badge rounded-pill js-d-entity"></span></div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted small">Entity ID</div>
+                        <div class="fw-medium js-d-entity-id"></div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <div class="text-muted small">Action</div>
+                        <div><span class="badge rounded-pill js-d-action"></span></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-muted small">IP</div>
+                        <div class="fw-medium js-d-ip"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">User Agent</div>
+                        <div class="small js-d-ua" style="word-break: break-word;"></div>
+                    </div>
+                </div>
+                <div class="mb-1 text-muted small">Meta</div>
+                <pre class="mb-0 small"
+                    style="white-space:pre-wrap; word-break:break-word;"><code class="js-json">{}</code></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

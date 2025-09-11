@@ -10,6 +10,7 @@ import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
+import logsRouter from './routes/logs.routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -121,7 +122,8 @@ app.use((req, res, next) => {
       href: 'javascript:void(0)',
       icon: 'ti tabler-settings',
       children: [
-        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' }
+        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
+        { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
       ]
     });
   }
@@ -172,6 +174,7 @@ app.use((req, res, next) => {
 // Routes
 app.use(authRouter);
 app.use(usersRouter);
+app.use(logsRouter);
 app.use(formsRouter);
 app.get('/', (_req, res) => res.redirect('/forms'));
 
@@ -182,6 +185,32 @@ app.engine('hbs', engine({
   layoutsDir: LAYOUTS_DIR,
   partialsDir: PARTIALS_DIR,
   helpers: {
+    logActionLabel(action) {
+      const a = String(action || '').toLowerCase();
+      if (a === 'create') return 'Create';
+      if (a === 'update') return 'Update';
+      if (a === 'delete') return 'Delete';
+      return String(action || '');
+    },
+    logActionBadge(action) {
+      const a = String(action || '').toLowerCase();
+      if (a === 'create') return 'bg-label-success';
+      if (a === 'update') return 'bg-label-info';
+      if (a === 'delete') return 'bg-label-danger';
+      return 'bg-label-secondary';
+    },
+    entityLabel(entity) {
+      const e = String(entity || '').trim();
+      if (!e) return '';
+      return e.charAt(0).toUpperCase() + e.slice(1);
+    },
+    entityBadgeClass(entity) {
+      const e = String(entity || '').toLowerCase();
+      if (e === 'form') return 'bg-label-primary';
+      if (e === 'user') return 'bg-label-info';
+      if (e === 'auth') return 'bg-label-warning';
+      return 'bg-label-secondary';
+    },
     section(name, options) {
       const root = options.data.root;
       root._sections ??= {};
@@ -239,6 +268,29 @@ app.engine('hbs', engine({
         const mm = String(d.getMinutes()).padStart(2, '0');
         const ss = String(d.getSeconds()).padStart(2, '0');
         return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+      } catch { return String(val || ''); }
+    },
+    formatDate(val) {
+      try {
+        if (!val) return '';
+        const d = new Date(val);
+        if (isNaN(d)) return String(val);
+        const DD = String(d.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const MMM = months[d.getMonth()] || '';
+        const YYYY = d.getFullYear();
+        return `${DD} ${MMM} ${YYYY}`;
+      } catch { return String(val || ''); }
+    },
+    formatTime(val) {
+      try {
+        if (!val) return '';
+        const d = new Date(val);
+        if (isNaN(d)) return String(val);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return `${hh}:${mm}:${ss}`;
       } catch { return String(val || ''); }
     }
   }
