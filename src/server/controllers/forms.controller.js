@@ -163,7 +163,7 @@ export async function readForm(req, res) {
       required: f.required, doNotStore: f.doNotStore,
       options: f.options
     }));
-    res.json({ ok: true, form: { id: form.id, title: form.title, fields } });
+    res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields } });
   } catch (err) {
     console.error('Read form error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -367,7 +367,7 @@ export async function builderPage(req, res) {
         options: f.options
       }));
 
-    const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', fields });
+    const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', category: formPlain.category || 'survey', fields });
     const preloadB64 = Buffer.from(preload, 'utf8').toString('base64');
 
     res.render('builder', {

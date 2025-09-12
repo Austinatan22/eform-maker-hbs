@@ -6,10 +6,10 @@
 
 // ---- 00-utils.js ----
 // src/client/builder/00-utils.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.uuid = function uuid(){
+  NS.uuid = function uuid() {
     const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
     const n = 8; // random part length
     const buf = new Uint8Array(n);
@@ -23,11 +23,11 @@
     return 'field_' + rand;
   };
 
-  NS.debounce = function debounce(fn, ms=160){
-    let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), ms); };
+  NS.debounce = function debounce(fn, ms = 160) {
+    let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); };
   };
 
-  NS.toSafeSnake = function toSafeSnake(s){
+  NS.toSafeSnake = function toSafeSnake(s) {
     return String(s || '')
       .trim()
       .replace(/[\s\-]+/g, '_')
@@ -37,41 +37,41 @@
       .toLowerCase();
   };
 
-  NS.toSafeUpperSnake = function toSafeUpperSnake(s){
+  NS.toSafeUpperSnake = function toSafeUpperSnake(s) {
     return NS.toSafeSnake(s).toUpperCase();
   };
 })();
 
 // ---- 05-ui.js ----
 // src/client/builder/05-ui.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const UI = {};
 
   // Flash an element by toggling a CSS class briefly
-  UI.flash = function flash(el, className = 'drop-flash', ms = 450){
+  UI.flash = function flash(el, className = 'drop-flash', ms = 450) {
     if (!el) return;
     try {
       el.classList.add(className);
       setTimeout(() => el.classList.remove(className), ms);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Bootstrap Tab helpers (safe if BS not loaded)
-  UI.getTab = function getTab(btn){
+  UI.getTab = function getTab(btn) {
     const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
     return Tab ? Tab.getOrCreateInstance(btn) : null;
   };
-  UI.showTab = function showTab(btn){
+  UI.showTab = function showTab(btn) {
     if (!btn) return;
     const inst = UI.getTab(btn);
     inst ? inst.show() : btn.click?.();
   };
 
   // Quick query helpers
-  UI.qs = function qs(sel, root){ return (root || document).querySelector(sel); };
-  UI.qsa = function qsa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); };
+  UI.qs = function qs(sel, root) { return (root || document).querySelector(sel); };
+  UI.qsa = function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
 
   NS.UI = UI;
 })();
@@ -79,27 +79,27 @@
 
 // ---- 10-templates.js ----
 // src/client/builder/10-templates.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Compiled Handlebars partials keyed by partial name
   NS.TEMPLATES = Object.create(null);
 
   // Preload and compile field partial templates once
-  NS.preloadTemplates = async function preloadTemplates(){
+  NS.preloadTemplates = async function preloadTemplates() {
     const map = NS.PARTIAL_FOR || {};
     const names = [...new Set(Object.values(map))];
     const fetches = names.map(async (n) => {
       const res = await fetch(`/tpl/fields/${n}.hbs`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`Load template failed: ${n}`);
-      const src  = await res.text();
+      const src = await res.text();
       NS.TEMPLATES[n] = Handlebars.compile(src);
     });
     await Promise.all(fetches);
   };
 
   // Render one field to HTML using a precompiled partial
-  NS.renderFieldHTML = function renderFieldHTML(field, idx){
+  NS.renderFieldHTML = function renderFieldHTML(field, idx) {
     const partialName = (NS.PARTIAL_FOR && NS.PARTIAL_FOR[field.type]) || 'text';
     const tmpl = NS.TEMPLATES[partialName];
     if (!tmpl) return '';
@@ -108,9 +108,9 @@
       .map(s => s.trim())
       .filter(Boolean);
     return tmpl({
-      name:        field.name || field.id || `f_${idx}`,
-      label:       field.label || '',
-      required:    !!field.required,
+      name: field.name || field.id || `f_${idx}`,
+      label: field.label || '',
+      required: !!field.required,
       placeholder: field.placeholder || '',
       options
     });
@@ -120,21 +120,21 @@
 
 // ---- 15-helpers.js ----
 // src/client/builder/15-helpers.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.parseOptions = function parseOptions(str = ''){
+  NS.parseOptions = function parseOptions(str = '') {
     return String(str)
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
   };
 
-  NS.needsOptions = function needsOptions(type){
+  NS.needsOptions = function needsOptions(type) {
     return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
   };
 
-  NS.whenIntlReady = function whenIntlReady(cb, tries = 40){
+  NS.whenIntlReady = function whenIntlReady(cb, tries = 40) {
     if (window.intlTelInput) return cb();
     if (tries <= 0) return;
     setTimeout(() => NS.whenIntlReady(cb, tries - 1), 50);
@@ -251,11 +251,11 @@
 
 // ---- 30-dnd.js ----
 // src/client/builder/30-dnd.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Singleton placeholder element used during drag and drop
-  NS.getPlaceholder = function getPlaceholder(){
+  NS.getPlaceholder = function getPlaceholder() {
     if (!NS._placeholderEl) {
       const el = document.createElement('div');
       el.className = 'dnd-insert';
@@ -264,15 +264,15 @@
     return NS._placeholderEl;
   };
 
-  NS.placePlaceholder = function placePlaceholder(targetEl, before = true){
+  NS.placePlaceholder = function placePlaceholder(targetEl, before = true) {
     const ph = NS.getPlaceholder();
     if (!targetEl || !targetEl.parentNode) return;
     before ? targetEl.parentNode.insertBefore(ph, targetEl)
-           : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
+      : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
   };
 
   // Compute insertion index based on pointer Y relative to children midlines
-  NS.computeIndexByY = function computeIndexByY(previewEl, clientY){
+  NS.computeIndexByY = function computeIndexByY(previewEl, clientY) {
     if (!previewEl) return 0;
     const kids = Array.from(previewEl.children).filter(el => el !== NS.getPlaceholder());
     for (let i = 0; i < kids.length; i++) {
@@ -284,7 +284,7 @@
   };
 
   // Place placeholder at a given child index within preview
-  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index){
+  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index) {
     const ph = NS.getPlaceholder();
     if (!previewEl) return;
     const kids = Array.from(previewEl.children).filter(el => el !== ph);
@@ -300,14 +300,14 @@
     previewEl.insertBefore(ph, kids[index]);
   };
 
-  NS.removePlaceholder = function removePlaceholder(){
+  NS.removePlaceholder = function removePlaceholder() {
     const ph = NS.getPlaceholder();
     if (ph.parentNode) ph.parentNode.removeChild(ph);
   };
 
   // Given the preview container and the index the item was dragged from,
   // compute the logical target index, accounting for the placeholder position
-  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex){
+  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex) {
     const kids = Array.from(previewEl.children);
     let rawTo = kids.indexOf(NS.getPlaceholder());
     if (rawTo < 0) rawTo = kids.length;
@@ -320,7 +320,7 @@
   };
 
   // Immutable move within an array
-  NS.move = function move(arr, from, to){
+  NS.move = function move(arr, from, to) {
     if (from === to || from < 0 || to < 0 || from >= arr.length || to > arr.length) return arr;
     const copy = arr.slice();
     const [item] = copy.splice(from, 1);
@@ -331,19 +331,19 @@
 
 // ---- 40-api.js ----
 // src/client/builder/40-api.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function toQuery(params){
+  function toQuery(params) {
     const u = new URLSearchParams();
-    Object.entries(params || {}).forEach(([k,v]) => {
+    Object.entries(params || {}).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
       u.append(k, String(v));
     });
     return u.toString();
   }
 
-  async function fetchJson(url, opts){
+  async function fetchJson(url, opts) {
     const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
     const headers = Object.assign({}, (opts && opts.headers) || {});
     if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
@@ -355,21 +355,21 @@
   }
 
   NS.API = {
-    async checkTitleUnique(title, excludeId){
+    async checkTitleUnique(title, excludeId) {
       const qs = toQuery({ title, excludeId });
       return fetchJson(`/api/forms/check-title?${qs}`, { cache: 'no-store' });
     },
-    async saveForm(payload){
+    async saveForm(payload) {
       return fetchJson('/api/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
     },
-    async getForm(id){
+    async getForm(id) {
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { cache: 'no-store' });
     },
-    async deleteForm(id){
+    async deleteForm(id) {
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { method: 'DELETE' });
     }
   };
@@ -408,6 +408,8 @@
       this.selectedId = null;
       this._bootstrapped = false;
       this.isDirty = false;
+      this.category = 'survey'; // Default category
+      this._serverDataLoaded = false; // Track if we've loaded from server
       this.$ = { preview: null };
       this.persist = NS.debounce ? NS.debounce(this.persist.bind(this), 140) : this.persist.bind(this);
       this.dnd = { draggingId: null, fromIndex: -1 };
@@ -603,9 +605,40 @@
       this.select(copy.id);
     }
 
-    restore() {
-      const data = NS.readLocal?.(this.formId);
-      if (!data) return;
+    async restore() {
+      // First try to load from localStorage (for unsaved changes)
+      const localData = NS.readLocal?.(this.formId);
+
+      // If we have a formId and haven't loaded from server yet, try to load from server
+      if (this.formId && !this._serverDataLoaded) {
+        try {
+          const { res, body } = await NS.API?.getForm(this.formId);
+          if (res.ok && body?.form) {
+            const serverData = body.form;
+            // Use server data as base, but preserve local changes if they exist
+            const data = localData ? {
+              ...serverData,
+              ...localData,
+              // Always use server category since builder doesn't have category UI
+              category: serverData.category
+            } : serverData;
+            this.loadFormData(data);
+            this._serverDataLoaded = true;
+            return;
+          }
+        } catch (e) {
+          console.warn('Failed to load form from server:', e);
+        }
+        this._serverDataLoaded = true; // Mark as attempted even if failed
+      }
+
+      // Fallback to localStorage only
+      if (localData) {
+        this.loadFormData(localData);
+      }
+    }
+
+    loadFormData(data) {
       if (data.id) this.formId = data.id;
       if (Array.isArray(data.fields)) {
         const existingNames = new Set();
@@ -644,11 +677,12 @@
         });
       }
       if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
+      if (data.category) this.category = data.category;
     }
 
     persist() {
       const title = this.$.formTitle?.value || '';
-      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields }, this.formId);
+      NS.writeLocal?.({ id: this.formId || null, title, category: this.category, fields: this.fields }, this.formId);
     }
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
@@ -726,13 +760,13 @@
       // minimal edit panel sync
       const f = this.fields.find(x => x.id === id);
       if (!f) return;
-      
+
       // Update the edit title to show field type
       if (this.$.editTitle) {
         const fieldTypeName = NS.FIELD_TYPES?.[f.type]?.name || f.type;
         this.$.editTitle.textContent = `Editing ${fieldTypeName} Field`;
       }
-      
+
       if (this.$.editLabel) this.$.editLabel.value = f.label || '';
       if (this.$.editPlaceholder) this.$.editPlaceholder.value = f.placeholder || '';
       if (this.$.editName) this.$.editName.value = f.name || '';
@@ -979,7 +1013,7 @@
         const m = location.pathname.match(/\/builder\/([^/]+)/);
         if (m && m[1]) this.formId = m[1];
       } catch { }
-      this.restore();
+      await this.restore();
       this.renderPreview();
       this.bindEvents();
       this.initSortable?.();
@@ -1097,6 +1131,7 @@
       const payload = {
         id: this.formId || undefined,
         title,
+        category: this.category,
         fields: this.fields.map(f => this.cleanField(f))
       };
 
@@ -1224,10 +1259,10 @@
 
 // ---- 99-boot.js ----
 // src/client/builder/99-boot.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function boot(){
+  function boot() {
     // Only boot modular Builder if explicitly requested
     if (!window.BUILDER_USE_MODULAR) return;
     try { NS.startBuilder?.(); } catch (e) { console.error('Modular Builder failed to start:', e); }

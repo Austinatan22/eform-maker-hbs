@@ -38,7 +38,8 @@
           <tr data-id="{{this.id}}">
             <td class="fw-medium js-title">{{this.title}}</td>
             <td>
-              <span class="badge rounded-pill {{categoryBadgeClass this.category}}">{{categoryLabel
+              <span class="badge rounded-pill js-cat-badge {{categoryBadgeClass this.category}}"
+                data-cat="{{this.category}}">{{categoryLabel
                 this.category}}</span>
             </td>
             <td><span class="text-muted">{{this.updatedAt}}</span></td>
