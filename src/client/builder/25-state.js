@@ -1,30 +1,35 @@
 // src/client/builder/25-state.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.LS_KEY = 'eform-maker-hbs';
 
-  function safeParse(json, fallback){
+  function safeParse(json, fallback) {
     try { return JSON.parse(json); } catch { return fallback; }
   }
 
-  NS.readLocal = function readLocal(){
+  NS.readLocal = function readLocal(formId) {
     try {
-      const raw = localStorage.getItem(NS.LS_KEY);
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      const raw = localStorage.getItem(key);
       if (!raw) return null;
       return safeParse(raw, null);
     } catch { return null; }
   };
 
-  NS.writeLocal = function writeLocal(data){
+  NS.writeLocal = function writeLocal(data, formId) {
     try {
-      localStorage.setItem(NS.LS_KEY, JSON.stringify(data || {}));
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      localStorage.setItem(key, JSON.stringify(data || {}));
       return true;
     } catch { return false; }
   };
 
-  NS.clearLocal = function clearLocal(){
-    try { localStorage.removeItem(NS.LS_KEY); } catch {}
+  NS.clearLocal = function clearLocal(formId) {
+    try {
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      localStorage.removeItem(key);
+    } catch { }
   };
 })();
 

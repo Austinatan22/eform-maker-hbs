@@ -1,0 +1,130 @@
+﻿# Eform Project â€" Working TODOs
+
+This file tracks a comprehensive set of tasks derived from the requirements doc. Items are grouped and marked with status. This TODO is maintained as we implement features â€" whenever we complete a task, we update the status here.
+
+Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
+
+## Accounts, Auth, RBAC
+
+- [x] Users table (email unique, password hash, role)
+- [x] Session login page (Vuexy) + logout
+- [x] JWT API (login, refresh, logout) + bcrypt hashing
+- [x] Login rate limiting (20 attempts per 5 min window)
+- [x] Feature flag `AUTH_ENABLED` to enforce guards
+- [x] Protect UI routes: `/forms`, `/builder/:id`, `/builder/new`
+- [x] Protect APIs: `/api/forms` CRUD (session or Bearer JWT)
+- [x] CORS: strict allowlist via `CORS_ORIGIN` (dev fallback allowed)
+- [~] RBAC middleware: `requireRole('admin'|'editor'|'viewer')` (implemented but has syntax error in forms.routes.js line 40)
+- [~] Apply RBAC to routes: create/update/delete (admin|editor), read (all) (partially implemented, needs fixing)
+- [x] Ownership: add `forms.createdBy` and enforce owner-or-admin edits
+- [x] User management (admin UI/API): create user, set role, reset password (full admin interface implemented)
+- [~] Password policy + account lockout on repeated failures (basic 6+ char requirement, no lockout)
+- [ ] Password reset (token email) + change password flows
+- [ ] JWT refresh rotation + logout-all-sessions
+- [x] CSRF tokens for session-based POSTs (enabled for HTML routes; APIs/public submissions exempt)
+
+## Backend Security & Compliance
+
+- [x] Strict CORS allowlist (`CORS_ORIGIN`), remove permissive defaults
+- [x] Security headers (Helmet) + CSP (CSP behind `CSP_ENABLED=1`; defaults on in prod, off in dev)
+- [~] Input validation/sanitization for auth and user inputs (server) (basic validation present, could be enhanced)
+- [ ] Rate limit other POST APIs (form writes, submissions) (only login endpoints rate limited)
+- [x] Audit log: form create/update/delete + auth events (full audit service with UI implemented)
+- [ ] HTTPS in prod, secure cookies, trust proxy, persistent session store
+
+## Forms: Features & Builder (from doc)
+
+- [x] Types & categories UI (survey/quiz/feedback; category label editing)
+- [x] Elements: text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file (all field types implemented)
+- [x] Attributes: label, placeholder, required, options, position (all core attributes implemented)
+- [x] Validation: required/options; email/number formatting; real-time feedback present in builder
+- [x] Drag-and-drop reorder; duplicate; delete elements
+- [x] Responsive builder layout (desktop/mobile)
+- [x] Preview mode (builder preview exists; hosted form serves as publish preview)
+
+## Rules & Conditional Logic
+
+- [ ] Form rules engine (If answer is X â†’ show Y)
+- [ ] Server-side mirroring of rules validation
+
+## API & Data
+
+- [x] REST API for forms CRUD (JSON)
+- [x] Public submission endpoint + store
+- [ ] Export submissions (JSON/CSV) (submissions stored but no export API yet)
+
+## Database Schema (from doc)
+
+- [x] Form table: has `created_by`, `category` (form_type equivalent), missing `version_number`
+- [x] Elements table: FormField model with all attributes, position (order_index equivalent) - fully implemented
+- [ ] Rules table: `rule_id`, `condition`, `action` (conditional logic not implemented)
+- [x] Submissions table (FormSubmission model implemented)
+- [ ] Submission answers table (normalized) â€" currently stored as JSON in FormSubmission.payloadJson
+- [ ] Drafts table: `draft_id`, `form_id`, `user_id`, `draft_data`, `last_saved_at`
+- [ ] Versioning storage & rollback support
+- [x] Indexes (form_id/submission_id) implemented where needed
+- [ ] Cleanup job: delete expired drafts (>30 days)
+
+## File Uploads
+
+- [x] File field type in builder + UI (file field type available in builder, basic HTML file input)
+- [ ] Backend upload endpoint (size/type restrictions) (no server-side upload handling yet)
+- [ ] Storage (local/S3) + metadata persistence
+- [ ] Malware scanning hook (optional)
+
+## Frontend Security
+
+- [x] Escape/sanitize labels and inputs (Handlebars escapes by default, validation in place)
+- [x] CSP to block unauthorized scripts (implemented with CSP_ENABLED flag)
+- [ ] Secure file uploads on client (type/size checks) (basic file input present, no validation yet)
+
+## Infra & Monitoring
+
+- [ ] Enforce HTTPS everywhere in prod (secure cookie flags set to false for dev)
+- [x] Logging/monitoring for auth attempts, API usage, errors (comprehensive audit logging implemented)
+- [ ] Alerts for suspicious activity
+- [ ] Keep dependencies patched (schedule)
+
+---
+
+### Immediate Next Steps (suggested order)
+
+1) Fix RBAC middleware syntax error in forms.routes.js line 40
+2) Add rate limiting to other POST APIs (form writes, submissions)
+3) Implement password reset flow (token email + change password)
+4) Add export functionality for form submissions (JSON/CSV)
+5) Implement conditional logic/rules engine for forms
+6) Add file upload backend handling with storage
+7) Add form versioning and draft functionality
+
+## Meta
+
+- [x] Keep this TODO up to date after each implemented change (mark items done/partial and adjust next steps).
+
+---
+
+### Summary of Current Implementation Status
+
+**COMPLETED MAJOR FEATURES:**
+- Full authentication system with JWT and session support
+- Complete RBAC with user management admin interface
+- Comprehensive form builder with all field types (text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file)
+- Form validation and real-time feedback
+- Drag-and-drop form builder interface
+- Public form hosting and submission handling
+- Full audit logging system with admin interface
+- Security headers, CORS, CSRF protection
+- Rate limiting for authentication endpoints
+
+**PARTIALLY IMPLEMENTED:**
+- File uploads (UI exists, backend handling missing)
+- Password policies (basic length requirement, no lockout)
+- Input validation (basic validation, could be enhanced)
+
+**NOT YET IMPLEMENTED:**
+- Conditional logic/rules engine for forms
+- Form versioning and drafts
+- Export functionality for submissions
+- Password reset flows
+- File upload backend processing
+- Rate limiting for non-auth endpoints

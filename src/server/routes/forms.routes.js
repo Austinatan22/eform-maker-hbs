@@ -1,6 +1,8 @@
 // src/server/routes/forms.routes.js
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import { Form } from '../models/Form.js';
+import { FormField } from '../models/FormField.js';
 import {
   health,
   createOrUpdateForm,
@@ -29,7 +31,7 @@ function ensureAuth(req, res, next) {
       const payload = jwt.verify(m[1], process.env.JWT_SECRET || 'dev_jwt_secret_change_me');
       req.user = { id: payload.sub, role: payload.role, email: payload.email };
       return next();
-    } catch (e) {}
+    } catch (e) { }
   }
   if (req.accepts('html')) return res.redirect('/login');
   return res.status(401).json({ error: 'Unauthorized' });
@@ -49,13 +51,13 @@ function requireRole(...roles) {
 router.get('/api/health', health);
 
 // Forms API
-router.post('/api/forms', ensureAuth, requireRole('admin','editor'), createOrUpdateForm);
-router.get('/api/forms', ensureAuth, requireRole('admin','editor','viewer'), listForms);
+router.post('/api/forms', ensureAuth, requireRole('admin', 'editor'), createOrUpdateForm);
+router.get('/api/forms', ensureAuth, requireRole('admin', 'editor', 'viewer'), listForms);
 // Place specific route before dynamic :id to avoid conflicts
 router.get('/api/forms/check-title', checkTitleUnique);
-router.get('/api/forms/:id', ensureAuth, requireRole('admin','editor','viewer'), readForm);
-router.put('/api/forms/:id', ensureAuth, requireRole('admin','editor'), updateForm);
-router.delete('/api/forms/:id', ensureAuth, requireRole('admin','editor'), deleteForm);
+router.get('/api/forms/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), readForm);
+router.put('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), updateForm);
+router.delete('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), deleteForm);
 
 // Hosted form
 router.get('/f/:id', hostedForm);
@@ -63,11 +65,38 @@ router.post('/public/forms/:id/submissions', publicSubmit);
 
 // Builder deep-link
 // Place specific route before dynamic to avoid catching '/builder/new' as :id
-router.get('/builder/new', ensureAuth, requireRole('admin','editor','viewer'), builderNewPage);
-router.get('/builder/:id', ensureAuth, requireRole('admin','editor','viewer'), builderPage);
+router.get('/builder/new', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderNewPage);
+router.get('/builder/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderPage);
 
 // UI pages (optional)
-router.get('/forms', ensureAuth, requireRole('admin','editor','viewer'), listFormsPage);
+router.get('/forms', ensureAuth, requireRole('admin', 'editor', 'viewer'), listFormsPage);
+
+// Test page for hosted forms
+router.get('/test-hosted-forms', async (req, res) => {
+  try {
+    const forms = await Form.findAll({
+      include: [{ model: FormField, as: 'fields' }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    const formsData = forms.map(form => ({
+      id: form.id,
+      title: form.title,
+      category: form.category,
+      fieldCount: form.fields?.length || 0
+    }));
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.render('test-hosted-form', {
+      title: 'Test Hosted Forms',
+      forms: formsData,
+      baseUrl
+    });
+  } catch (err) {
+    console.error('Test hosted forms error:', err);
+    res.status(500).send('Server error');
+  }
+});
 
 export default router;
 

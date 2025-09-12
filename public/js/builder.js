@@ -6,10 +6,10 @@
 
 // ---- 00-utils.js ----
 // src/client/builder/00-utils.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.uuid = function uuid() {
+  NS.uuid = function uuid(){
     const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
     const n = 8; // random part length
     const buf = new Uint8Array(n);
@@ -23,11 +23,11 @@
     return 'field_' + rand;
   };
 
-  NS.debounce = function debounce(fn, ms = 160) {
-    let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); };
+  NS.debounce = function debounce(fn, ms=160){
+    let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), ms); };
   };
 
-  NS.toSafeSnake = function toSafeSnake(s) {
+  NS.toSafeSnake = function toSafeSnake(s){
     return String(s || '')
       .trim()
       .replace(/[\s\-]+/g, '_')
@@ -37,41 +37,41 @@
       .toLowerCase();
   };
 
-  NS.toSafeUpperSnake = function toSafeUpperSnake(s) {
+  NS.toSafeUpperSnake = function toSafeUpperSnake(s){
     return NS.toSafeSnake(s).toUpperCase();
   };
 })();
 
 // ---- 05-ui.js ----
 // src/client/builder/05-ui.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const UI = {};
 
   // Flash an element by toggling a CSS class briefly
-  UI.flash = function flash(el, className = 'drop-flash', ms = 450) {
+  UI.flash = function flash(el, className = 'drop-flash', ms = 450){
     if (!el) return;
     try {
       el.classList.add(className);
       setTimeout(() => el.classList.remove(className), ms);
-    } catch (_) { }
+    } catch (_) {}
   };
 
   // Bootstrap Tab helpers (safe if BS not loaded)
-  UI.getTab = function getTab(btn) {
+  UI.getTab = function getTab(btn){
     const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
     return Tab ? Tab.getOrCreateInstance(btn) : null;
   };
-  UI.showTab = function showTab(btn) {
+  UI.showTab = function showTab(btn){
     if (!btn) return;
     const inst = UI.getTab(btn);
     inst ? inst.show() : btn.click?.();
   };
 
   // Quick query helpers
-  UI.qs = function qs(sel, root) { return (root || document).querySelector(sel); };
-  UI.qsa = function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
+  UI.qs = function qs(sel, root){ return (root || document).querySelector(sel); };
+  UI.qsa = function qsa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); };
 
   NS.UI = UI;
 })();
@@ -79,27 +79,27 @@
 
 // ---- 10-templates.js ----
 // src/client/builder/10-templates.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Compiled Handlebars partials keyed by partial name
   NS.TEMPLATES = Object.create(null);
 
   // Preload and compile field partial templates once
-  NS.preloadTemplates = async function preloadTemplates() {
+  NS.preloadTemplates = async function preloadTemplates(){
     const map = NS.PARTIAL_FOR || {};
     const names = [...new Set(Object.values(map))];
     const fetches = names.map(async (n) => {
       const res = await fetch(`/tpl/fields/${n}.hbs`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`Load template failed: ${n}`);
-      const src = await res.text();
+      const src  = await res.text();
       NS.TEMPLATES[n] = Handlebars.compile(src);
     });
     await Promise.all(fetches);
   };
 
   // Render one field to HTML using a precompiled partial
-  NS.renderFieldHTML = function renderFieldHTML(field, idx) {
+  NS.renderFieldHTML = function renderFieldHTML(field, idx){
     const partialName = (NS.PARTIAL_FOR && NS.PARTIAL_FOR[field.type]) || 'text';
     const tmpl = NS.TEMPLATES[partialName];
     if (!tmpl) return '';
@@ -108,9 +108,9 @@
       .map(s => s.trim())
       .filter(Boolean);
     return tmpl({
-      name: field.name || field.id || `f_${idx}`,
-      label: field.label || '',
-      required: !!field.required,
+      name:        field.name || field.id || `f_${idx}`,
+      label:       field.label || '',
+      required:    !!field.required,
       placeholder: field.placeholder || '',
       options
     });
@@ -120,21 +120,21 @@
 
 // ---- 15-helpers.js ----
 // src/client/builder/15-helpers.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.parseOptions = function parseOptions(str = '') {
+  NS.parseOptions = function parseOptions(str = ''){
     return String(str)
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
   };
 
-  NS.needsOptions = function needsOptions(type) {
+  NS.needsOptions = function needsOptions(type){
     return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
   };
 
-  NS.whenIntlReady = function whenIntlReady(cb, tries = 40) {
+  NS.whenIntlReady = function whenIntlReady(cb, tries = 40){
     if (window.intlTelInput) return cb();
     if (tries <= 0) return;
     setTimeout(() => NS.whenIntlReady(cb, tries - 1), 50);
@@ -214,43 +214,48 @@
 
 // ---- 25-state.js ----
 // src/client/builder/25-state.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.LS_KEY = 'eform-maker-hbs';
 
-  function safeParse(json, fallback) {
+  function safeParse(json, fallback){
     try { return JSON.parse(json); } catch { return fallback; }
   }
 
-  NS.readLocal = function readLocal() {
+  NS.readLocal = function readLocal(formId){
     try {
-      const raw = localStorage.getItem(NS.LS_KEY);
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      const raw = localStorage.getItem(key);
       if (!raw) return null;
       return safeParse(raw, null);
     } catch { return null; }
   };
 
-  NS.writeLocal = function writeLocal(data) {
+  NS.writeLocal = function writeLocal(data, formId){
     try {
-      localStorage.setItem(NS.LS_KEY, JSON.stringify(data || {}));
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      localStorage.setItem(key, JSON.stringify(data || {}));
       return true;
     } catch { return false; }
   };
 
-  NS.clearLocal = function clearLocal() {
-    try { localStorage.removeItem(NS.LS_KEY); } catch { }
+  NS.clearLocal = function clearLocal(formId){
+    try { 
+      const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
+      localStorage.removeItem(key); 
+    } catch {}
   };
 })();
 
 
 // ---- 30-dnd.js ----
 // src/client/builder/30-dnd.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Singleton placeholder element used during drag and drop
-  NS.getPlaceholder = function getPlaceholder() {
+  NS.getPlaceholder = function getPlaceholder(){
     if (!NS._placeholderEl) {
       const el = document.createElement('div');
       el.className = 'dnd-insert';
@@ -259,15 +264,15 @@
     return NS._placeholderEl;
   };
 
-  NS.placePlaceholder = function placePlaceholder(targetEl, before = true) {
+  NS.placePlaceholder = function placePlaceholder(targetEl, before = true){
     const ph = NS.getPlaceholder();
     if (!targetEl || !targetEl.parentNode) return;
     before ? targetEl.parentNode.insertBefore(ph, targetEl)
-      : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
+           : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
   };
 
   // Compute insertion index based on pointer Y relative to children midlines
-  NS.computeIndexByY = function computeIndexByY(previewEl, clientY) {
+  NS.computeIndexByY = function computeIndexByY(previewEl, clientY){
     if (!previewEl) return 0;
     const kids = Array.from(previewEl.children).filter(el => el !== NS.getPlaceholder());
     for (let i = 0; i < kids.length; i++) {
@@ -279,7 +284,7 @@
   };
 
   // Place placeholder at a given child index within preview
-  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index) {
+  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index){
     const ph = NS.getPlaceholder();
     if (!previewEl) return;
     const kids = Array.from(previewEl.children).filter(el => el !== ph);
@@ -295,14 +300,14 @@
     previewEl.insertBefore(ph, kids[index]);
   };
 
-  NS.removePlaceholder = function removePlaceholder() {
+  NS.removePlaceholder = function removePlaceholder(){
     const ph = NS.getPlaceholder();
     if (ph.parentNode) ph.parentNode.removeChild(ph);
   };
 
   // Given the preview container and the index the item was dragged from,
   // compute the logical target index, accounting for the placeholder position
-  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex) {
+  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex){
     const kids = Array.from(previewEl.children);
     let rawTo = kids.indexOf(NS.getPlaceholder());
     if (rawTo < 0) rawTo = kids.length;
@@ -315,7 +320,7 @@
   };
 
   // Immutable move within an array
-  NS.move = function move(arr, from, to) {
+  NS.move = function move(arr, from, to){
     if (from === to || from < 0 || to < 0 || from >= arr.length || to > arr.length) return arr;
     const copy = arr.slice();
     const [item] = copy.splice(from, 1);
@@ -326,19 +331,19 @@
 
 // ---- 40-api.js ----
 // src/client/builder/40-api.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function toQuery(params) {
+  function toQuery(params){
     const u = new URLSearchParams();
-    Object.entries(params || {}).forEach(([k, v]) => {
+    Object.entries(params || {}).forEach(([k,v]) => {
       if (v === undefined || v === null) return;
       u.append(k, String(v));
     });
     return u.toString();
   }
 
-  async function fetchJson(url, opts) {
+  async function fetchJson(url, opts){
     const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
     const headers = Object.assign({}, (opts && opts.headers) || {});
     if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
@@ -350,21 +355,21 @@
   }
 
   NS.API = {
-    async checkTitleUnique(title, excludeId) {
+    async checkTitleUnique(title, excludeId){
       const qs = toQuery({ title, excludeId });
       return fetchJson(`/api/forms/check-title?${qs}`, { cache: 'no-store' });
     },
-    async saveForm(payload) {
+    async saveForm(payload){
       return fetchJson('/api/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
     },
-    async getForm(id) {
+    async getForm(id){
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { cache: 'no-store' });
     },
-    async deleteForm(id) {
+    async deleteForm(id){
       return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { method: 'DELETE' });
     }
   };
@@ -386,8 +391,6 @@
     editLabel: '#editLabel',
     editOptionsRow: '#editOptionsRow',
     editOptions: '#editOptions',
-    editValueRow: '#editValueRow',
-    editValue: '#editValue',
     editPlaceholder: '#editPlaceholder',
     editName: '#editName',
     editRequired: '#editRequired',
@@ -420,8 +423,6 @@
       this.$.editLabel = q(SELECTORS.editLabel);
       this.$.editOptionsRow = q(SELECTORS.editOptionsRow);
       this.$.editOptions = q(SELECTORS.editOptions);
-      this.$.editValueRow = q(SELECTORS.editValueRow);
-      this.$.editValue = q(SELECTORS.editValue);
       this.$.editPlaceholder = q(SELECTORS.editPlaceholder);
       this.$.editName = q(SELECTORS.editName);
       this.$.editRequired = q(SELECTORS.editRequired);
@@ -497,16 +498,30 @@
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch { }
     }
 
-    // Keep date/time inputs empty in preview so format hints are visible
+    // Set sample values on date/time inputs in the preview so segment-click editing works
     _applyPreviewDefaults(root) {
       if (!root) return;
-      const clearIfAny = (sel) => {
+      const pad = (n) => String(n).padStart(2, '0');
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = pad(now.getMonth() + 1);
+      const dd = pad(now.getDate());
+      const HH = pad(now.getHours());
+      const MI = pad(now.getMinutes());
+      const SS = pad(now.getSeconds());
+
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const timeStr = `${HH}:${MI}:${SS}`; // Vuexy demo shows seconds
+      const dtStr = `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
+
+      const setIfEmpty = (sel, val) => {
         const el = root.querySelector(sel);
-        if (el) el.value = '';
+        if (el && !el.value) el.value = val;
       };
-      clearIfAny('input[type="date"]');
-      clearIfAny('input[type="time"]');
-      clearIfAny('input[type="datetime-local"]');
+
+      setIfEmpty('input[type="date"]', dateStr);
+      setIfEmpty('input[type="time"]', timeStr);
+      setIfEmpty('input[type="datetime-local"]', dtStr);
     }
 
     deleteSelected() {
@@ -589,7 +604,7 @@
     }
 
     restore() {
-      const data = NS.readLocal?.();
+      const data = NS.readLocal?.(this.formId);
       if (!data) return;
       if (data.id) this.formId = data.id;
       if (Array.isArray(data.fields)) {
@@ -633,7 +648,7 @@
 
     persist() {
       const title = this.$.formTitle?.value || '';
-      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields });
+      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields }, this.formId);
     }
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
@@ -716,19 +731,6 @@
       if (this.$.editName) this.$.editName.value = f.name || '';
       if (this.$.editOptions) this.$.editOptions.value = NS.needsOptions && NS.needsOptions(f.type) ? (f.options || '') : '';
       if (this.$.editOptionsRow) this.$.editOptionsRow.style.display = (NS.needsOptions && NS.needsOptions(f.type)) ? '' : 'none';
-      // Hide/disable Default Value for time-related fields
-      const timeRelated = new Set(['time', 'date', 'datetime']);
-      const hideDefault = timeRelated.has(f.type);
-      if (this.$.editValueRow) this.$.editValueRow.style.display = hideDefault ? 'none' : '';
-      if (this.$.editValue) {
-        this.$.editValue.disabled = !!hideDefault;
-        this.$.editValue.value = f.value || '';
-      }
-      // Hide placeholder editor for time-related fields too
-      if (this.$.editPlaceholder) {
-        const phRow = this.$.editPlaceholder.closest('.mb-3') || this.$.editPlaceholder.closest('.row') || this.$.editPlaceholder.parentElement;
-        if (phRow) phRow.style.display = hideDefault ? 'none' : '';
-      }
       if (this.$.editRequired) this.$.editRequired.checked = !!f.required;
       if (this.$.editDoNotStore) this.$.editDoNotStore.checked = !!f.doNotStore;
       NS.UI?.showTab?.(this.$.tabEditBtn);
@@ -940,18 +942,6 @@
         }
         this.persist();
         relayout();
-      });
-      this.$.editValue?.addEventListener('input', () => {
-        const f = this.fields.find(x => x.id === this.selectedId);
-        if (!f) return;
-        // Only store value when not time-related; otherwise ignore
-        const timeRelated = new Set(['time', 'date', 'datetime']);
-        if (!timeRelated.has(f.type)) {
-          f.value = this.$.editValue.value || '';
-          this.persist();
-          this.setDirty();
-          relayout();
-        }
       });
       [this.$.editRequired, this.$.editDoNotStore].forEach(el => el?.addEventListener('input', () => {
         const f = this.fields.find(x => x.id === this.selectedId);
@@ -1227,10 +1217,10 @@
 
 // ---- 99-boot.js ----
 // src/client/builder/99-boot.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function boot() {
+  function boot(){
     // Only boot modular Builder if explicitly requested
     if (!window.BUILDER_USE_MODULAR) return;
     try { NS.startBuilder?.(); } catch (e) { console.error('Modular Builder failed to start:', e); }

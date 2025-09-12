@@ -226,7 +226,7 @@
     }
 
     restore() {
-      const data = NS.readLocal?.();
+      const data = NS.readLocal?.(this.formId);
       if (!data) return;
       if (data.id) this.formId = data.id;
       if (Array.isArray(data.fields)) {
@@ -270,7 +270,7 @@
 
     persist() {
       const title = this.$.formTitle?.value || '';
-      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields });
+      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields }, this.formId);
     }
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
