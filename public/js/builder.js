@@ -214,16 +214,16 @@
 
 // ---- 25-state.js ----
 // src/client/builder/25-state.js
-(function(){
+(function () {
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   NS.LS_KEY = 'eform-maker-hbs';
 
-  function safeParse(json, fallback){
+  function safeParse(json, fallback) {
     try { return JSON.parse(json); } catch { return fallback; }
   }
 
-  NS.readLocal = function readLocal(formId){
+  NS.readLocal = function readLocal(formId) {
     try {
       const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
       const raw = localStorage.getItem(key);
@@ -232,7 +232,7 @@
     } catch { return null; }
   };
 
-  NS.writeLocal = function writeLocal(data, formId){
+  NS.writeLocal = function writeLocal(data, formId) {
     try {
       const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
       localStorage.setItem(key, JSON.stringify(data || {}));
@@ -240,11 +240,11 @@
     } catch { return false; }
   };
 
-  NS.clearLocal = function clearLocal(formId){
-    try { 
+  NS.clearLocal = function clearLocal(formId) {
+    try {
       const key = formId ? `${NS.LS_KEY}-${formId}` : NS.LS_KEY;
-      localStorage.removeItem(key); 
-    } catch {}
+      localStorage.removeItem(key);
+    } catch { }
   };
 })();
 
@@ -436,7 +436,7 @@
     buildCard(field, idx) {
       const card = document.createElement('div');
       // Use Vuexy card styling for preview items
-      card.className = 'card mb-4 position-relative';
+      card.className = 'card mb-4 position-relative border-light';
       card.dataset.fid = field.id;
       card.dataset.index = String(idx);
       card.style.cursor = 'move';
@@ -726,6 +726,13 @@
       // minimal edit panel sync
       const f = this.fields.find(x => x.id === id);
       if (!f) return;
+      
+      // Update the edit title to show field type
+      if (this.$.editTitle) {
+        const fieldTypeName = NS.FIELD_TYPES?.[f.type]?.name || f.type;
+        this.$.editTitle.textContent = `Editing ${fieldTypeName} Field`;
+      }
+      
       if (this.$.editLabel) this.$.editLabel.value = f.label || '';
       if (this.$.editPlaceholder) this.$.editPlaceholder.value = f.placeholder || '';
       if (this.$.editName) this.$.editName.value = f.name || '';

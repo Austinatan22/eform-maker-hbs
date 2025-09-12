@@ -58,7 +58,7 @@
     buildCard(field, idx) {
       const card = document.createElement('div');
       // Use Vuexy card styling for preview items
-      card.className = 'card mb-4 position-relative';
+      card.className = 'card mb-4 position-relative border-light';
       card.dataset.fid = field.id;
       card.dataset.index = String(idx);
       card.style.cursor = 'move';
@@ -348,6 +348,13 @@
       // minimal edit panel sync
       const f = this.fields.find(x => x.id === id);
       if (!f) return;
+
+      // Update the edit title to show field type
+      if (this.$.editTitle) {
+        const fieldTypeName = NS.FIELD_TYPES?.[f.type]?.name || f.type;
+        this.$.editTitle.textContent = `Editing ${fieldTypeName} Field`;
+      }
+
       if (this.$.editLabel) this.$.editLabel.value = f.label || '';
       if (this.$.editPlaceholder) this.$.editPlaceholder.value = f.placeholder || '';
       if (this.$.editName) this.$.editName.value = f.name || '';

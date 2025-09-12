@@ -24,6 +24,18 @@
   animation: dropFlash 420ms ease-out;
   border-color: var(--bs-primary) !important;
 }
+
+/* Ensure selected form fields have visible primary border */
+#preview .card.border-primary {
+  border-color: var(--bs-primary) !important;
+  border-width: 1px !important;
+}
+
+/* Default border for unselected fields */
+#preview .card.border-light {
+  border-color: var(--bs-border-color, #dee2e6) !important;
+  border-width: 1px !important;
+}
 @media (prefers-reduced-motion: reduce) {
   .drop-flash {
     animation: none;
