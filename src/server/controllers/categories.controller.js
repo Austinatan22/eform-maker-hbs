@@ -1,5 +1,6 @@
 // src/server/controllers/categories.controller.js
 import crypto from 'crypto';
+import { Op } from 'sequelize';
 import { Category } from '../models/Category.js';
 import { Form } from '../models/Form.js';
 import { logAudit } from '../services/audit.service.js';
@@ -102,9 +103,10 @@ export async function updateCategory(req, res) {
 
             // Check if new name conflicts with existing category
             const existing = await Category.findOne({
-                where: { name: trimmedName },
-                // Exclude current category from the check
-                ...(category.id ? { id: { [require('sequelize').Op.ne]: category.id } } : {})
+                where: {
+                    name: trimmedName,
+                    id: { [Op.ne]: category.id }
+                }
             });
             if (existing) {
                 return res.status(409).json({ error: 'Category name already exists' });
@@ -213,10 +215,21 @@ export async function categoriesPage(req, res) {
             order: [['name', 'ASC']]
         });
 
+        // Convert Sequelize instances to plain objects for Handlebars
+        const categoriesData = categories.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            description: cat.description,
+            color: cat.color,
+            isActive: cat.isActive,
+            createdAt: cat.createdAt,
+            updatedAt: cat.updatedAt
+        }));
+
         res.render('admin-categories', {
             title: 'Categories',
             currentPath: '/admin/categories',
-            categories
+            categories: categoriesData
         });
     } catch (err) {
         console.error('Categories page error:', err);

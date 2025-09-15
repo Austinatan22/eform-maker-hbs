@@ -329,6 +329,7 @@ async function ensureSchema() {
     await RefreshToken.sync();
     await AuditLog.sync();
     await Category.sync();
+    await UserLockout.sync();
 
     // Define model associations
     Form.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
