@@ -134,11 +134,13 @@
                         orderable: false,
                         searchable: false,
                         render: function (data, type, full, meta) {
+                            // Store meta data in a more reliable way to avoid HTML attribute issues
+                            const metaData = full.metaJson ? JSON.stringify(full.metaJson) : '';
                             return `
                                 <div class="d-inline-flex align-items-center gap-1 justify-content-start">
                                     <button type="button" class="btn btn-sm btn-outline-secondary js-show-details" 
                                             data-id="${full.id}" 
-                                            data-meta="${full.metaJson || ''}" 
+                                            data-meta-json="${encodeURIComponent(metaData)}"
                                             data-ip="${full.ip || ''}" 
                                             data-ua="${full.ua || ''}"
                                             data-entity="${full.entity || ''}" 
@@ -218,9 +220,31 @@
                 modalEl.querySelector('.js-d-ua').textContent = btn.getAttribute('data-ua') || '';
 
                 // Meta JSON
-                const metaRaw = btn.getAttribute('data-meta') || '';
-                const meta = tryParseJSON(metaRaw);
-                modalEl.querySelector('.js-json').textContent = pretty(meta);
+                const metaRaw = btn.getAttribute('data-meta-json') || '';
+                console.log('DEBUG: metaRaw from attribute:', metaRaw);
+                console.log('DEBUG: metaRaw length:', metaRaw.length);
+
+                let meta;
+                if (metaRaw) {
+                    try {
+                        // Decode the URI component first
+                        const decodedMeta = decodeURIComponent(metaRaw);
+                        console.log('DEBUG: decoded meta:', decodedMeta);
+
+                        // Then parse as JSON
+                        meta = JSON.parse(decodedMeta);
+                        console.log('DEBUG: parsed meta:', meta);
+                    } catch (e) {
+                        console.log('DEBUG: parse error:', e.message);
+                        meta = metaRaw;
+                    }
+                } else {
+                    meta = null;
+                }
+
+                const prettyMeta = pretty(meta);
+                console.log('DEBUG: final pretty meta:', prettyMeta);
+                modalEl.querySelector('.js-json').textContent = prettyMeta;
 
                 const m = bootstrap.Modal.getOrCreateInstance(modalEl);
                 m.show();

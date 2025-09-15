@@ -37,19 +37,32 @@ router.get('/admin/logs', ensureAuth, requireAdmin, async (_req, res) => {
     const userIds = [...new Set(rows.map(r => r.userId).filter(Boolean))];
     const users = userIds.length ? await User.findAll({ where: { id: userIds } }) : [];
     const byId = new Map(users.map(u => [u.id, { email: u.email, username: u.username }]));
-    const logs = rows.map(r => ({
-        id: r.id,
-        entity: r.entity,
-        action: r.action,
-        entityId: r.entityId,
-        userId: r.userId,
-        userEmail: byId.get(r.userId)?.email || null,
-        userUsername: byId.get(r.userId)?.username || null,
-        ip: r.ip,
-        ua: r.ua,
-        metaJson: r.metaJson,
-        createdAt: r.createdAt
-    }));
+    const logs = rows.map(r => {
+        // Parse metaJson if it exists
+        let metaJson = null;
+        if (r.metaJson) {
+            try {
+                metaJson = JSON.parse(r.metaJson);
+            } catch (e) {
+                console.warn('Failed to parse metaJson for log', r.id, ':', e.message);
+                metaJson = r.metaJson; // Keep as string if parsing fails
+            }
+        }
+
+        return {
+            id: r.id,
+            entity: r.entity,
+            action: r.action,
+            entityId: r.entityId,
+            userId: r.userId,
+            userEmail: byId.get(r.userId)?.email || null,
+            userUsername: byId.get(r.userId)?.username || null,
+            ip: r.ip,
+            ua: r.ua,
+            metaJson: metaJson,
+            createdAt: r.createdAt
+        };
+    });
     res.render('admin-logs', { title: 'Logs', currentPath: '/admin/logs', logs });
 });
 
@@ -75,19 +88,32 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
         const users = userIds.length ? await User.findAll({ where: { id: userIds } }) : [];
         const byId = new Map(users.map(u => [u.id, { email: u.email, username: u.username }]));
 
-        const logs = rows.map(r => ({
-            id: r.id,
-            entity: r.entity,
-            action: r.action,
-            entityId: r.entityId,
-            userId: r.userId,
-            userEmail: byId.get(r.userId)?.email || null,
-            userUsername: byId.get(r.userId)?.username || null,
-            ip: r.ip,
-            ua: r.ua,
-            metaJson: r.metaJson,
-            createdAt: r.createdAt
-        }));
+        const logs = rows.map(r => {
+            // Parse metaJson if it exists
+            let metaJson = null;
+            if (r.metaJson) {
+                try {
+                    metaJson = JSON.parse(r.metaJson);
+                } catch (e) {
+                    console.warn('Failed to parse metaJson for log', r.id, ':', e.message);
+                    metaJson = r.metaJson; // Keep as string if parsing fails
+                }
+            }
+
+            return {
+                id: r.id,
+                entity: r.entity,
+                action: r.action,
+                entityId: r.entityId,
+                userId: r.userId,
+                userEmail: byId.get(r.userId)?.email || null,
+                userUsername: byId.get(r.userId)?.username || null,
+                ip: r.ip,
+                ua: r.ua,
+                metaJson: metaJson,
+                createdAt: r.createdAt
+            };
+        });
 
         // Return in DataTables expected format
         res.json({ data: logs });
