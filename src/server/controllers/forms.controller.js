@@ -142,7 +142,8 @@ export async function createOrUpdateForm(req, res) {
           title: form.title,
           category,
           fieldCount: clean.length,
-          fields: clean.map(f => ({ type: f.type, label: f.label, required: f.required }))
+          fields: clean.map(f => ({ type: f.type, label: f.label, required: f.required })),
+          summary: `Created form "${form.title}" (${category}) with ${clean.length} fields`
         }
       });
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
@@ -170,11 +171,15 @@ export async function createOrUpdateForm(req, res) {
 
       // Enhanced audit logging with before/after states
       const changes = {};
+      const changeSummary = [];
+
       if (currentForm.title !== withFields.title) {
         changes.title = { from: currentForm.title, to: withFields.title };
+        changeSummary.push(`Title changed from "${currentForm.title}" to "${withFields.title}"`);
       }
       if (currentForm.category !== withFields.category) {
         changes.category = { from: currentForm.category, to: withFields.category };
+        changeSummary.push(`Category changed from "${currentForm.category}" to "${withFields.category}"`);
       }
 
       // Check for field changes
@@ -183,6 +188,7 @@ export async function createOrUpdateForm(req, res) {
 
       if (currentFields.length !== newFields.length) {
         changes.fieldCount = { from: currentFields.length, to: newFields.length };
+        changeSummary.push(`Field count changed from ${currentFields.length} to ${newFields.length}`);
       }
 
       // Check for individual field changes
@@ -194,17 +200,34 @@ export async function createOrUpdateForm(req, res) {
 
         if (!currentField && newField) {
           fieldChanges.push({ action: 'added', field: { label: newField.label, type: newField.type } });
+          changeSummary.push(`Added field: "${newField.label}" (${newField.type})`);
         } else if (currentField && !newField) {
           fieldChanges.push({ action: 'removed', field: { label: currentField.label, type: currentField.type } });
+          changeSummary.push(`Removed field: "${currentField.label}" (${currentField.type})`);
         } else if (currentField && newField) {
           const fieldChange = {};
-          if (currentField.label !== newField.label) fieldChange.label = { from: currentField.label, to: newField.label };
-          if (currentField.type !== newField.type) fieldChange.type = { from: currentField.type, to: newField.type };
-          if (currentField.required !== newField.required) fieldChange.required = { from: currentField.required, to: newField.required };
-          if (currentField.options !== newField.options) fieldChange.options = { from: currentField.options, to: newField.options };
+          const fieldChangesText = [];
+
+          if (currentField.label !== newField.label) {
+            fieldChange.label = { from: currentField.label, to: newField.label };
+            fieldChangesText.push(`label from "${currentField.label}" to "${newField.label}"`);
+          }
+          if (currentField.type !== newField.type) {
+            fieldChange.type = { from: currentField.type, to: newField.type };
+            fieldChangesText.push(`type from "${currentField.type}" to "${newField.type}"`);
+          }
+          if (currentField.required !== newField.required) {
+            fieldChange.required = { from: currentField.required, to: newField.required };
+            fieldChangesText.push(`required from ${currentField.required} to ${newField.required}`);
+          }
+          if (currentField.options !== newField.options) {
+            fieldChange.options = { from: currentField.options, to: newField.options };
+            fieldChangesText.push(`options changed`);
+          }
 
           if (Object.keys(fieldChange).length > 0) {
             fieldChanges.push({ action: 'modified', field: { label: currentField.label }, changes: fieldChange });
+            changeSummary.push(`Modified field "${currentField.label}": ${fieldChangesText.join(', ')}`);
           }
         }
       }
@@ -213,6 +236,9 @@ export async function createOrUpdateForm(req, res) {
         changes.fields = fieldChanges;
       }
 
+      // Create human-readable summary
+      const summary = changeSummary.length > 0 ? changeSummary.join('; ') : 'No changes detected';
+
       await logAudit(req, {
         entity: 'form',
         action: 'update',
@@ -220,6 +246,7 @@ export async function createOrUpdateForm(req, res) {
         meta: {
           title: withFields.title,
           category: withFields.category,
+          summary: summary,
           changes: Object.keys(changes).length > 0 ? changes : 'No changes detected'
         }
       });
@@ -410,7 +437,8 @@ export async function deleteForm(req, res) {
         title: formTitle,
         category: form.category,
         fieldCount: form.fields?.length || 0,
-        deletedAt: new Date().toISOString()
+        deletedAt: new Date().toISOString(),
+        summary: `Deleted form "${formTitle}" (${form.category}) with ${form.fields?.length || 0} fields`
       }
     });
     res.json({ ok: true });

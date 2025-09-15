@@ -237,8 +237,21 @@
                     meta = null;
                 }
 
+                // Display summary as bullet points if available
+                const summaryEl = modalEl.querySelector('.js-summary');
+                const jsonEl = modalEl.querySelector('.js-json');
+
+                if (meta && meta.summary) {
+                    // Split summary by semicolons and create bullet points
+                    const summaryPoints = meta.summary.split(';').map(point => point.trim()).filter(point => point);
+                    summaryEl.innerHTML = summaryPoints.map(point => `<li>${point}</li>`).join('');
+                    summaryEl.style.display = 'block';
+                } else {
+                    summaryEl.style.display = 'none';
+                }
+
                 const prettyMeta = pretty(meta);
-                modalEl.querySelector('.js-json').textContent = prettyMeta;
+                jsonEl.textContent = prettyMeta;
 
                 const m = bootstrap.Modal.getOrCreateInstance(modalEl);
                 m.show();
@@ -292,6 +305,8 @@
                         <div class="small js-d-ua" style="word-break: break-word;"></div>
                     </div>
                 </div>
+                <div class="mb-1 text-muted small">Summary</div>
+                <ul class="mb-2 small js-summary" style="display: none;"></ul>
                 <div class="mb-1 text-muted small">Meta</div>
                 <pre class="mb-0 small"
                     style="white-space:pre-wrap; word-break:break-word;"><code class="js-json">{}</code></pre>

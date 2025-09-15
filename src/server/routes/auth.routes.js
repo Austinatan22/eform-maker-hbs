@@ -44,7 +44,8 @@ router.post('/login', loginLimiter, async (req, res) => {
           email: e,
           reason: 'account_locked',
           lockoutUntil: lockoutTime,
-          failedAttempts: lockoutStatus.failedAttempts || 0
+          failedAttempts: lockoutStatus.failedAttempts || 0,
+          summary: `Login blocked for ${e} - account locked (${lockoutStatus.failedAttempts || 0} failed attempts)`
         }
       });
       return renderLogin(req, res, { error: `Account is locked until ${lockoutTime}. Too many failed login attempts.` });
@@ -61,7 +62,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         meta: {
           email: e,
           reason: 'user_not_found',
-          failedAttempts: attemptResult.failedAttempts || 1
+          failedAttempts: attemptResult.failedAttempts || 1,
+          summary: `Failed login attempt for ${e} - user not found (${attemptResult.failedAttempts || 1} failed attempts)`
         }
       });
       return renderLogin(req, res, { error: 'Invalid credentials' });
@@ -70,7 +72,17 @@ router.post('/login', loginLimiter, async (req, res) => {
     const ok = bcrypt.compareSync(String(password), user.passwordHash);
     if (!ok) {
       const attemptResult = await recordFailedAttempt(e, user.id);
-      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: user.id, meta: { email: e, reason: 'invalid_password', failedAttempts: attemptResult.failedAttempts } });
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_failed',
+        entityId: user.id,
+        meta: {
+          email: e,
+          reason: 'invalid_password',
+          failedAttempts: attemptResult.failedAttempts,
+          summary: `Failed login attempt for ${e} - invalid password (${attemptResult.failedAttempts} failed attempts)`
+        }
+      });
 
       if (attemptResult.locked) {
         const lockoutTime = new Date(attemptResult.lockedUntil).toLocaleString();
@@ -94,7 +106,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         username: user.username,
         role: user.role,
         sessionId: req.sessionID,
-        loginTime: new Date().toISOString()
+        loginTime: new Date().toISOString(),
+        summary: `Successful login for ${user.email} (${user.role})`
       }
     });
     res.redirect('/forms');
@@ -116,7 +129,8 @@ router.post('/logout', (req, res) => {
           entityId: userId,
           meta: {
             logoutTime: new Date().toISOString(),
-            sessionId: req.sessionID
+            sessionId: req.sessionID,
+            summary: `User logout (session: ${req.sessionID})`
           }
         });
       } catch { }

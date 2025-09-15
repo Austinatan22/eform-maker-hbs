@@ -85,7 +85,8 @@ router.post('/api/users', ensureAuth, requireAdmin, async (req, res) => {
       meta: {
         email: user.email,
         username: user.username,
-        role: user.role
+        role: user.role,
+        summary: `Created user "${user.email}" (${user.role}) with username "${user.username}"`
       }
     });
 
@@ -149,12 +150,25 @@ router.put('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
 
     // Log user update if there were changes
     if (Object.keys(changes).length > 0) {
+      // Create human-readable summary of changes
+      const changeSummary = [];
+      Object.keys(changes).forEach(key => {
+        const change = changes[key];
+        if (key === 'password') {
+          changeSummary.push('Password was reset');
+        } else {
+          changeSummary.push(`${key} changed from "${change.from}" to "${change.to}"`);
+        }
+      });
+      const summary = changeSummary.join('; ');
+
       await logAudit(req, {
         entity: 'user',
         action: 'update',
         entityId: user.id,
         meta: {
           email: user.email,
+          summary: summary,
           changes
         }
       });
@@ -195,7 +209,10 @@ router.delete('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
       entity: 'user',
       action: 'delete',
       entityId: req.params.id,
-      meta: userInfo
+      meta: {
+        ...userInfo,
+        summary: `Deleted user "${user.email}" (${user.role})`
+      }
     });
 
     res.json({ ok: true });
