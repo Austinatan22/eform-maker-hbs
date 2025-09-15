@@ -117,7 +117,8 @@ app.use((req, res, next) => {
       href: 'javascript:void(0)',
       icon: 'ti tabler-file-text',
       children: [
-        { label: 'Forms', href: '/forms', icon: 'ti tabler-file-text' }
+        { label: 'Forms', href: '/forms', icon: 'ti tabler-file-text' },
+        { label: 'Categories', href: '/admin/categories', icon: 'ti tabler-tags' }
       ]
     }
   ];
@@ -254,12 +255,18 @@ app.engine('hbs', engine({
       return 'bg-label-primary';
     },
     categoryLabel(cat) {
+      if (cat && typeof cat === 'object' && cat.name) {
+        return cat.name;
+      }
       const c = String(cat || '').toLowerCase();
       if (c === 'quiz') return 'Quiz';
       if (c === 'feedback') return 'Feedback';
       return 'Survey';
     },
     categoryBadgeClass(cat) {
+      if (cat && typeof cat === 'object' && cat.color) {
+        return ''; // We'll use inline styles for custom colors
+      }
       const c = String(cat || '').toLowerCase();
       if (c === 'quiz') return 'bg-label-info';
       if (c === 'feedback') return 'bg-label-warning';

@@ -38,9 +38,13 @@
           <tr data-id="{{this.id}}">
             <td class="fw-medium js-title">{{this.title}}</td>
             <td>
-              <span class="badge rounded-pill js-cat-badge {{categoryBadgeClass this.category}}"
-                data-cat="{{this.category}}">{{categoryLabel
-                this.category}}</span>
+              {{#if this.category}}
+              <span class="badge rounded-pill js-cat-badge"
+                style="background-color: {{this.category.color}}; color: white;"
+                data-cat="{{this.category.id}}">{{this.category.name}}</span>
+              {{else}}
+              <span class="badge rounded-pill js-cat-badge bg-label-secondary">Uncategorized</span>
+              {{/if}}
             </td>
             <td><span class="text-muted">{{this.updatedAt}}</span></td>
             <td class="col-actions">
@@ -132,9 +136,10 @@
           <div>
             <label class="form-label" for="blankCategory">Category</label>
             <select id="blankCategory" class="form-select">
-              <option value="survey" selected>Survey</option>
-              <option value="quiz">Quiz</option>
-              <option value="feedback">Feedback</option>
+              <option value="">Uncategorized</option>
+              {{#each categories}}
+              <option value="{{this.id}}">{{this.name}}</option>
+              {{/each}}
             </select>
           </div>
         </div>
@@ -236,14 +241,7 @@
       return 'Survey';
     }
 
-    // Initialize category status badges
-    document.querySelectorAll('tr[data-id]').forEach(row => {
-      const badge = row.querySelector('.js-cat-badge');
-      if (!badge) return;
-      const cat = badge.getAttribute('data-cat') || 'survey';
-      badge.textContent = catLabel(cat);
-      badge.classList.add(catBadgeClass(cat));
-    });
+    // Category badges are now rendered server-side, no need to initialize them
 
     // Initialize kebab action dropdowns with fixed strategy
     document.querySelectorAll('.js-actions').forEach(btn => {
@@ -280,7 +278,7 @@
       const TEMPLATES = {
         newsletter: {
           name: 'Newsletter Signup',
-          category: 'survey',
+          categoryId: 'cat-survey',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
@@ -288,7 +286,7 @@
         },
         complaints: {
           name: 'Complaints',
-          category: 'feedback',
+          categoryId: 'cat-feedback',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
@@ -298,7 +296,7 @@
         },
         profile: {
           name: 'Profile',
-          category: 'survey',
+          categoryId: 'cat-survey',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
@@ -307,7 +305,7 @@
         },
         rsvp: {
           name: 'Event RSVP',
-          category: 'survey',
+          categoryId: 'cat-registration',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
@@ -317,7 +315,7 @@
         },
         contact: {
           name: 'Contact Us',
-          category: 'feedback',
+          categoryId: 'cat-contact',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
@@ -328,7 +326,7 @@
         },
         support: {
           name: 'Support Ticket',
-          category: 'feedback',
+          categoryId: 'cat-feedback',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
@@ -339,7 +337,7 @@
         },
         job: {
           name: 'Job Application',
-          category: 'survey',
+          categoryId: 'cat-registration',
           fields: [
             { type: 'name', label: 'Full Name', name: 'fullName', required: true },
             { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
@@ -351,7 +349,7 @@
         },
         nps: {
           name: 'NPS Survey',
-          category: 'survey',
+          categoryId: 'cat-survey',
           fields: [
             { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
             { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
@@ -408,10 +406,10 @@
           if (mode === 'blank') {
             const title = (inputTitle?.value || '').trim();
             if (!title) { inputTitle?.focus(); return; }
-            const category = selCat?.value || 'survey';
+            const categoryId = selCat?.value || '';
             const res = await fetch('/api/forms', {
               method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-              body: JSON.stringify({ title, category, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
+              body: JSON.stringify({ title, categoryId, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
             });
             const out = await res.json();
             if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
@@ -429,7 +427,7 @@
             selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
             fromTemplates = true;
             if (inputTitle) inputTitle.value = tpl.name || '';
-            if (selCat) selCat.value = tpl.category || 'survey';
+            if (selCat) selCat.value = tpl.categoryId || '';
             show('blank');
             return;
           }
@@ -453,7 +451,7 @@
         const checked = wiz.querySelector('input[name="templateChoice"]:checked');
         if (checked) checked.checked = false;
         inputTitle && (inputTitle.value = '');
-        selCat && (selCat.value = 'survey');
+        selCat && (selCat.value = '');
         selectedFields = [];
         fromTemplates = false;
         show('choose');
@@ -500,9 +498,9 @@
         const input = modalEl.querySelector('#renameFormInput');
         input.value = current;
         // Prefill category from the badge in the row
-        const currentCat = (row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || 'survey').toLowerCase();
+        const currentCat = row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || '';
         const sel = modalEl.querySelector('#renameFormCategory');
-        if (sel) sel.value = ['survey', 'quiz', 'feedback'].includes(currentCat) ? currentCat : 'survey';
+        if (sel) sel.value = currentCat;
         const m = bootstrap.Modal.getOrCreateInstance(modalEl);
         m.show();
         return;
@@ -563,14 +561,14 @@
       const newTitle = String(input.value || '').trim();
       if (!newTitle) return;
       const catSelect = document.getElementById('renameFormCategory');
-      const newCat = (catSelect?.value || 'survey').toLowerCase();
+      const newCategoryId = catSelect?.value || '';
       const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
       const titleCell = row?.querySelector('.js-title');
       try {
         const res = await fetch('/api/forms/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-          body: JSON.stringify({ title: newTitle, category: newCat })
+          body: JSON.stringify({ title: newTitle, categoryId: newCategoryId })
         });
         const out = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -580,11 +578,21 @@
         if (titleCell) titleCell.textContent = newTitle;
         // Update badge in the row
         const badge = row?.querySelector('.js-cat-badge');
-        if (badge) {
-          badge.setAttribute('data-cat', newCat);
-          badge.textContent = catLabel(newCat);
-          badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning');
-          badge.classList.add(catBadgeClass(newCat));
+        if (badge && out.form) {
+          if (out.form.category) {
+            badge.setAttribute('data-cat', out.form.category.id);
+            badge.textContent = out.form.category.name;
+            badge.style.backgroundColor = out.form.category.color;
+            badge.style.color = 'white';
+            badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning', 'bg-label-secondary');
+          } else {
+            badge.setAttribute('data-cat', '');
+            badge.textContent = 'Uncategorized';
+            badge.style.backgroundColor = '';
+            badge.style.color = '';
+            badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning');
+            badge.classList.add('bg-label-secondary');
+          }
         }
         bootstrap.Modal.getInstance(modalEl)?.hide();
       } catch (err) {
@@ -612,9 +620,10 @@
         <div>
           <label class="form-label" for="renameFormCategory">Category</label>
           <select id="renameFormCategory" class="form-select">
-            <option value="survey">Survey</option>
-            <option value="quiz">Quiz</option>
-            <option value="feedback">Feedback</option>
+            <option value="">Uncategorized</option>
+            {{#each categories}}
+            <option value="{{this.id}}">{{this.name}}</option>
+            {{/each}}
           </select>
         </div>
       </div>

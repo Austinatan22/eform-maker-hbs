@@ -383,7 +383,12 @@ export async function updateForm(req, res) {
   }
   try {
     // Get current form state for audit logging (save original values)
-    const currentForm = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
+    const currentForm = await Form.findByPk(req.params.id, {
+      include: [
+        { model: FormField, as: 'fields' },
+        { model: Category, as: 'category' }
+      ]
+    });
     if (!currentForm) return res.status(404).json({ error: 'Not found' });
 
     // Save original values before any changes
@@ -548,17 +553,22 @@ export async function updateForm(req, res) {
       });
     }
 
+    // Reload form with category information for response
+    const updatedForm = await Form.findByPk(form.id, {
+      include: [{ model: Category, as: 'category' }]
+    });
+
     res.json({
       ok: true,
       form: {
-        id: form.id,
-        title: form.title,
-        categoryId: form.categoryId,
-        category: form.category ? {
-          id: form.category.id,
-          name: form.category.name,
-          description: form.category.description,
-          color: form.category.color
+        id: updatedForm.id,
+        title: updatedForm.title,
+        categoryId: updatedForm.categoryId,
+        category: updatedForm.category ? {
+          id: updatedForm.category.id,
+          name: updatedForm.category.name,
+          description: updatedForm.category.description,
+          color: updatedForm.category.color
         } : null,
         fields: fieldsOut
       }
@@ -769,7 +779,19 @@ export async function listFormsPage(_req, res) {
       createdAt: formatDate(r.createdAt),
       updatedAt: formatDate(r.updatedAt)
     }));
-    res.render('forms', { title: 'Forms', currentPath: '/forms', forms });
+
+    // Get all categories for the dropdown
+    const categories = await Category.findAll({
+      order: [['name', 'ASC']]
+    });
+    const categoriesData = categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description,
+      color: cat.color
+    }));
+
+    res.render('forms', { title: 'Forms', currentPath: '/forms', forms, categories: categoriesData });
   } catch (err) {
     console.error('List page error:', err);
     res.status(500).send('Server error');
