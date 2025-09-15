@@ -1,0 +1,338 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Categories</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">+ New
+            Category</button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <colgroup>
+                    <col style="width: 25%">
+                    <col style="width: 40%">
+                    <col style="width: 10%">
+                    <col style="width: 15%">
+                    <col class="col-actions">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Color</th>
+                        <th>Updated</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tfoot class="table-border-bottom-0">
+                    <tr>
+                        <th class="rounded-start-bottom">Name</th>
+                        <th>Description</th>
+                        <th>Color</th>
+                        <th>Updated</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </tfoot>
+                <tbody id="categoriesTbody" class="table-border-bottom-0">
+                    {{#if categories.length}}
+                    {{#each categories}}
+                    <tr data-id="{{this.id}}">
+                        <td class="fw-medium">{{this.name}}</td>
+                        <td class="text-muted">{{this.description}}</td>
+                        <td>
+                            <span class="badge rounded-pill" style="background-color: {{this.color}}; color: white;">
+                                {{this.color}}
+                            </span>
+                        </td>
+                        <td><span class="text-muted">{{formatDateTime this.updatedAt}}</span></td>
+                        <td class="col-actions">
+                            <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                                <div class="btn-group">
+                                    <button type="button"
+                                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                                        data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item js-edit-category" href="javascript:void(0);">
+                                                <i class="icon-base ti tabler-edit icon-sm me-2"></i>
+                                                Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger js-delete-category"
+                                                href="javascript:void(0);">
+                                                <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                                                Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {{/each}}
+                    {{else}}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No categories yet.</td>
+                    </tr>
+                    {{/if}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Category Modal -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="createCategoryForm" onsubmit="event.preventDefault();">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="newCategoryName">Name</label>
+                    <input id="newCategoryName" type="text" class="form-control" placeholder="e.g. Survey" required
+                        maxlength="255">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="newCategoryDescription">Description</label>
+                    <textarea id="newCategoryDescription" class="form-control" placeholder="Optional description"
+                        rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="newCategoryColor">Color</label>
+                    <div class="input-group">
+                        <input id="newCategoryColor" type="color" class="form-control form-control-color"
+                            value="#6c757d">
+                        <input type="text" class="form-control" id="newCategoryColorText" value="#6c757d"
+                            placeholder="#6c757d" maxlength="7">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="editCategoryForm" onsubmit="event.preventDefault();">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="editCategoryName">Name</label>
+                    <input id="editCategoryName" type="text" class="form-control" placeholder="e.g. Survey" required
+                        maxlength="255">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="editCategoryDescription">Description</label>
+                    <textarea id="editCategoryDescription" class="form-control" placeholder="Optional description"
+                        rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="editCategoryColor">Color</label>
+                    <div class="input-group">
+                        <input id="editCategoryColor" type="color" class="form-control form-control-color"
+                            value="#6c757d">
+                        <input type="text" class="form-control" id="editCategoryColorText" value="#6c757d"
+                            placeholder="#6c757d" maxlength="7">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editCategoryActive" checked>
+                        <label class="form-check-label" for="editCategoryActive">
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{#section 'scripts'}}
+<script>
+    (function () {
+        const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
+
+        function formatDateVerbose(val) {
+            try {
+                const d = new Date(val);
+                if (isNaN(d)) return String(val || '');
+                const DD = String(d.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+                const MMM = months[d.getMonth()] || '';
+                const YYYY = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                const ss = String(d.getSeconds()).padStart(2, '0');
+                return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+            } catch (_) { return String(val || ''); }
+        }
+
+        // Color picker synchronization
+        function syncColorInputs(colorInput, textInput) {
+            colorInput.addEventListener('input', () => {
+                textInput.value = colorInput.value;
+            });
+            textInput.addEventListener('input', () => {
+                const value = textInput.value;
+                if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                    colorInput.value = value;
+                }
+            });
+        }
+
+        // Initialize color picker sync for create modal
+        syncColorInputs(
+            document.getElementById('newCategoryColor'),
+            document.getElementById('newCategoryColorText')
+        );
+
+        // Initialize color picker sync for edit modal
+        syncColorInputs(
+            document.getElementById('editCategoryColor'),
+            document.getElementById('editCategoryColorText')
+        );
+
+        document.querySelectorAll('.js-actions').forEach(btn => {
+            try {
+                const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+                    boundary: 'viewport',
+                    popperConfig(config) { return Object.assign({}, config || {}, { strategy: 'fixed' }); }
+                });
+                void dd;
+            } catch (_) { }
+        });
+
+        document.getElementById('categoriesTbody')?.addEventListener('click', async (e) => {
+            const row = e.target.closest('tr[data-id]');
+            const id = row?.dataset.id;
+            if (!id) return;
+
+            const edit = e.target.closest('.js-edit-category');
+            if (edit) {
+                const modalEl = document.getElementById('editCategoryModal');
+                modalEl.dataset.id = id;
+
+                // Populate form with current values
+                const nameCell = row.cells[0];
+                const descCell = row.cells[1];
+                const colorBadge = row.cells[2].querySelector('.badge');
+
+                document.getElementById('editCategoryName').value = nameCell.textContent.trim();
+                document.getElementById('editCategoryDescription').value = descCell.textContent.trim();
+
+                const currentColor = colorBadge.style.backgroundColor || '#6c757d';
+                document.getElementById('editCategoryColor').value = currentColor;
+                document.getElementById('editCategoryColorText').value = currentColor;
+
+                const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                m.show();
+                return;
+            }
+
+            const del = e.target.closest('.js-delete-category');
+            if (del) {
+                if (!confirm('Delete this category? This action cannot be undone.')) return;
+                try {
+                    const res = await fetch('/api/categories/' + id, {
+                        method: 'DELETE',
+                        headers: { 'CSRF-Token': CSRF }
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result?.error || 'Delete failed');
+                    row.remove();
+                } catch (err) {
+                    alert(err?.message || 'Could not delete category');
+                }
+                return;
+            }
+        });
+
+        // Create category form
+        document.getElementById('createCategoryForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newCategoryName').value.trim();
+            const description = document.getElementById('newCategoryDescription').value.trim();
+            const color = document.getElementById('newCategoryColor').value;
+
+            if (!name) {
+                alert('Category name is required');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                    body: JSON.stringify({ name, description, color })
+                });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result?.error || 'Create failed');
+                location.reload();
+            } catch (err) {
+                alert(err?.message || 'Could not create category');
+            }
+        });
+
+        // Edit category form
+        document.getElementById('editCategoryForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const modalEl = document.getElementById('editCategoryModal');
+            const id = modalEl?.dataset.id;
+            if (!id) return;
+
+            const name = document.getElementById('editCategoryName').value.trim();
+            const description = document.getElementById('editCategoryDescription').value.trim();
+            const color = document.getElementById('editCategoryColor').value;
+            const isActive = document.getElementById('editCategoryActive').checked;
+
+            if (!name) {
+                alert('Category name is required');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/categories/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                    body: JSON.stringify({ name, description, color, isActive })
+                });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result?.error || 'Update failed');
+
+                // Update the row in place
+                const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+                if (row) {
+                    row.cells[0].textContent = name;
+                    row.cells[1].textContent = description;
+                    const colorBadge = row.cells[2].querySelector('.badge');
+                    colorBadge.style.backgroundColor = color;
+                    colorBadge.textContent = color;
+                    row.cells[3].innerHTML = `<span class="text-muted">${formatDateVerbose(new Date())}</span>`;
+                }
+
+                bootstrap.Modal.getInstance(modalEl)?.hide();
+            } catch (err) {
+                alert(err?.message || 'Could not update category');
+            }
+        });
+    })();
+</script>
+{{/section}}

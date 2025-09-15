@@ -4,6 +4,7 @@ import { sequelize, submissionsSequelize } from '../db.js';
 import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
+import { Category } from '../models/Category.js';
 import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
@@ -58,12 +59,11 @@ export async function health(_req, res) {
 }
 
 export async function createOrUpdateForm(req, res) {
-  const { id, title = '', fields = [], category: rawCategory } = req.body || {};
+  const { id, title = '', fields = [], categoryId } = req.body || {};
 
   // Enhanced form validation
-  const formValidationResult = runValidation({ title, category: rawCategory, fields }, {
+  const formValidationResult = runValidation({ title, fields }, {
     title: formValidation.title,
-    category: formValidation.category,
     fields: formValidation.fields
   });
 
@@ -74,10 +74,16 @@ export async function createOrUpdateForm(req, res) {
     });
   }
 
-  const CATEGORIES = new Set(['survey', 'quiz', 'feedback']);
-  const category = CATEGORIES.has(String(rawCategory || '').toLowerCase())
-    ? String(rawCategory).toLowerCase()
-    : 'survey';
+  // Validate categoryId if provided
+  let category = null;
+  if (categoryId) {
+    category = await Category.findByPk(categoryId);
+    if (!category) {
+      return res.status(400).json({
+        error: 'Invalid category ID'
+      });
+    }
+  }
 
   const normalizedTitle = normalizeTitle(sanitize.html(title));
 
@@ -133,7 +139,7 @@ export async function createOrUpdateForm(req, res) {
     if (!id) {
       const reqUser = req.session?.user || req.user || null;
       const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
-      const { form, rows } = await createFormWithFields(normalizedTitle, clean, category, createdBy);
+      const { form, rows } = await createFormWithFields(normalizedTitle, clean, categoryId, createdBy);
       await logAudit(req, {
         entity: 'form',
         action: 'create',
@@ -157,10 +163,15 @@ export async function createOrUpdateForm(req, res) {
       if (!currentForm) return res.status(404).json({ error: 'Not found' });
 
       // Ownership restrictions removed - editors can now edit any form
-      const out = await updateFormWithFields(id, normalizedTitle, clean, category);
+      const out = await updateFormWithFields(id, normalizedTitle, clean, categoryId);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
 
-      const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
+      const withFields = await Form.findByPk(id, {
+        include: [
+          { model: FormField, as: 'fields' },
+          { model: Category, as: 'category' }
+        ]
+      });
       const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
@@ -257,11 +268,25 @@ export async function createOrUpdateForm(req, res) {
         entityId: withFields.id,
         meta: {
           title: withFields.title,
-          category: withFields.category,
+          categoryId: withFields.categoryId,
           changes: Object.keys(changes).length > 0 ? changes : 'No changes detected'
         }
       });
-      return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, category: withFields.category, fields: fieldsOut } });
+      return res.json({
+        ok: true,
+        form: {
+          id: withFields.id,
+          title: withFields.title,
+          categoryId: withFields.categoryId,
+          category: withFields.category ? {
+            id: withFields.category.id,
+            name: withFields.category.name,
+            description: withFields.category.description,
+            color: withFields.category.color
+          } : null,
+          fields: fieldsOut
+        }
+      });
     }
   } catch (err) {
     if (err?.name === 'SequelizeUniqueConstraintError') {
@@ -274,11 +299,23 @@ export async function createOrUpdateForm(req, res) {
 
 export async function listForms(_req, res) {
   try {
-    const rows = await Form.findAll({ order: [['updatedAt', 'DESC']], include: [{ model: FormField, as: 'fields' }] });
+    const rows = await Form.findAll({
+      order: [['updatedAt', 'DESC']],
+      include: [
+        { model: FormField, as: 'fields' },
+        { model: Category, as: 'category' }
+      ]
+    });
     const forms = rows.map(r => ({
       id: r.id,
       title: r.title,
-      category: r.category,
+      categoryId: r.categoryId,
+      category: r.category ? {
+        id: r.category.id,
+        name: r.category.name,
+        description: r.category.description,
+        color: r.category.color
+      } : null,
       fields: (r.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
@@ -297,7 +334,12 @@ export async function listForms(_req, res) {
 
 export async function readForm(req, res) {
   try {
-    const form = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
+    const form = await Form.findByPk(req.params.id, {
+      include: [
+        { model: FormField, as: 'fields' },
+        { model: Category, as: 'category' }
+      ]
+    });
     if (!form) return res.status(404).json({ error: 'Not found' });
     const fields = (form.fields || []).sort((a, b) => a.position - b.position).map(f => ({
       id: f.id, type: f.type, label: f.label, name: f.name,
@@ -305,7 +347,21 @@ export async function readForm(req, res) {
       required: f.required, doNotStore: f.doNotStore,
       options: f.options
     }));
-    res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields } });
+    res.json({
+      ok: true,
+      form: {
+        id: form.id,
+        title: form.title,
+        categoryId: form.categoryId,
+        category: form.category ? {
+          id: form.category.id,
+          name: form.category.name,
+          description: form.category.description,
+          color: form.category.color
+        } : null,
+        fields
+      }
+    });
   } catch (err) {
     console.error('Read form error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -313,11 +369,18 @@ export async function readForm(req, res) {
 }
 
 export async function updateForm(req, res) {
-  const { title, fields, category: rawCategory } = req.body || {};
-  const CATEGORIES = new Set(['survey', 'quiz', 'feedback']);
-  const category = rawCategory !== undefined
-    ? (CATEGORIES.has(String(rawCategory || '').toLowerCase()) ? String(rawCategory).toLowerCase() : 'survey')
-    : undefined;
+  const { title, fields, categoryId } = req.body || {};
+
+  // Validate categoryId if provided
+  let category = null;
+  if (categoryId) {
+    category = await Category.findByPk(categoryId);
+    if (!category) {
+      return res.status(400).json({
+        error: 'Invalid category ID'
+      });
+    }
+  }
   try {
     // Get current form state for audit logging (save original values)
     const currentForm = await Form.findByPk(req.params.id, { include: [{ model: FormField, as: 'fields' }] });
@@ -325,7 +388,7 @@ export async function updateForm(req, res) {
 
     // Save original values before any changes
     const originalTitle = currentForm.title;
-    const originalCategory = currentForm.category;
+    const originalCategoryId = currentForm.categoryId;
 
     const form = currentForm; // Use the same instance
     // Ownership restrictions removed - editors can now edit any form
@@ -343,8 +406,8 @@ export async function updateForm(req, res) {
       form.title = normalizedTitle;
     }
 
-    if (category !== undefined) {
-      form.category = category;
+    if (categoryId !== undefined) {
+      form.categoryId = categoryId;
     }
 
     if (fields !== undefined) {
@@ -369,7 +432,12 @@ export async function updateForm(req, res) {
 
     await form.save();
 
-    const withFields = await Form.findByPk(form.id, { include: [{ model: FormField, as: 'fields' }] });
+    const withFields = await Form.findByPk(form.id, {
+      include: [
+        { model: FormField, as: 'fields' },
+        { model: Category, as: 'category' }
+      ]
+    });
     const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
@@ -387,8 +455,8 @@ export async function updateForm(req, res) {
     if (originalTitleNormalized !== newTitleNormalized) {
       changes.title = { from: originalTitle, to: withFields.title };
     }
-    if (originalCategory !== withFields.category) {
-      changes.category = { from: originalCategory, to: withFields.category };
+    if (originalCategoryId !== withFields.categoryId) {
+      changes.categoryId = { from: originalCategoryId, to: withFields.categoryId };
     }
 
     // Check for field changes if fields were updated
@@ -480,7 +548,21 @@ export async function updateForm(req, res) {
       });
     }
 
-    res.json({ ok: true, form: { id: form.id, title: form.title, category: form.category, fields: fieldsOut } });
+    res.json({
+      ok: true,
+      form: {
+        id: form.id,
+        title: form.title,
+        categoryId: form.categoryId,
+        category: form.category ? {
+          id: form.category.id,
+          name: form.category.name,
+          description: form.category.description,
+          color: form.category.color
+        } : null,
+        fields: fieldsOut
+      }
+    });
   } catch (err) {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ error: 'Form title already exists. Choose another.' });
@@ -670,8 +752,23 @@ export async function builderNewPage(_req, res) {
 // Optional UI endpoints (not required by tests, but handy)
 export async function listFormsPage(_req, res) {
   try {
-    const rows = await Form.findAll({ order: [['updatedAt', 'DESC']] });
-    const forms = rows.map(r => ({ id: r.id, title: r.title || '(Untitled)', category: r.category || 'survey', createdAt: formatDate(r.createdAt), updatedAt: formatDate(r.updatedAt) }));
+    const rows = await Form.findAll({
+      order: [['updatedAt', 'DESC']],
+      include: [{ model: Category, as: 'category' }]
+    });
+    const forms = rows.map(r => ({
+      id: r.id,
+      title: r.title || '(Untitled)',
+      categoryId: r.categoryId,
+      category: r.category ? {
+        id: r.category.id,
+        name: r.category.name,
+        description: r.category.description,
+        color: r.category.color
+      } : null,
+      createdAt: formatDate(r.createdAt),
+      updatedAt: formatDate(r.updatedAt)
+    }));
     res.render('forms', { title: 'Forms', currentPath: '/forms', forms });
   } catch (err) {
     console.error('List page error:', err);

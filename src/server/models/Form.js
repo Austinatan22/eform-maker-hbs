@@ -1,6 +1,7 @@
 // /src/server/models/Form.js (ESM)
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../db.js';
+import { Category } from './Category.js';
 
 export const Form = sequelize.define('Form', {
   id: {
@@ -16,13 +17,17 @@ export const Form = sequelize.define('Form', {
     type: DataTypes.STRING(64),
     allowNull: true
   },
-  category: {
-    // survey | quiz | feedback (free text with controlled values at controller)
-    type: DataTypes.STRING(32),
-    allowNull: false,
-    defaultValue: 'survey'
+  categoryId: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    references: {
+      model: Category,
+      key: 'id'
+    }
   }
 }, {
   tableName: 'forms',
   timestamps: true
 });
+
+// Associations will be defined in app.js after all models are loaded

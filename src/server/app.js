@@ -11,6 +11,7 @@ import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
 import logsRouter from './routes/logs.routes.js';
+import categoriesRouter from './routes/categories.routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -22,6 +23,7 @@ import { UserLockout } from './models/UserLockout.js';
 import { FormSubmission } from './models/FormSubmission.js';
 import { Form } from './models/Form.js';
 import { FormField } from './models/FormField.js';
+import { Category } from './models/Category.js';
 
 // Paths / __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -180,6 +182,7 @@ app.use(authRouter);
 app.use(usersRouter);
 app.use(logsRouter);
 app.use(formsRouter);
+app.use(categoriesRouter);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(ROOT, 'uploads')));
@@ -325,18 +328,29 @@ async function ensureSchema() {
     await User.sync();
     await RefreshToken.sync();
     await AuditLog.sync();
+    await Category.sync();
+
+    // Define model associations
+    Form.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+    Category.hasMany(Form, { foreignKey: 'categoryId', as: 'forms' });
 
     // If starting on a fresh DB, sync creates the column from the model.
     // For existing DBs, add the column if it doesn't exist (SQLite only).
     const [cols] = await sequelize.query("PRAGMA table_info('forms')");
-    const hasCategory = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'category');
-    if (!hasCategory) {
-      await sequelize.getQueryInterface().addColumn('forms', 'category', {
-        type: DataTypes.STRING(32),
-        allowNull: false,
-        defaultValue: 'survey'
+    const hasCategoryId = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'categoryid');
+    const hasOldCategory = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'category');
+
+    if (!hasCategoryId) {
+      await sequelize.getQueryInterface().addColumn('forms', 'categoryId', {
+        type: DataTypes.STRING(64),
+        allowNull: true
       });
-      console.log('Added missing column forms.category');
+      console.log('Added missing column forms.categoryId');
+    }
+
+    // If old category column exists, we can optionally migrate data or remove it
+    if (hasOldCategory && !hasCategoryId) {
+      console.log('Old category column found. You may want to migrate data to categoryId column.');
     }
 
     const hasCreatedBy = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'createdby');
