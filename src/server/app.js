@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { engine } from 'express-handlebars';
-import { sequelize } from './db.js';
+import { sequelize, submissionsSequelize } from './db.js';
 import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
 import authRouter from './routes/auth.routes.js';
@@ -18,6 +18,9 @@ import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
 import { AuditLog } from './models/AuditLog.js';
 import { User } from './models/User.js';
+import { FormSubmission } from './models/FormSubmission.js';
+import { Form } from './models/Form.js';
+import { FormField } from './models/FormField.js';
 
 // Paths / __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -300,6 +303,24 @@ app.set('views', VIEWS_DIR);
 
 async function ensureSchema() {
   try {
+    // Remove old form_submissions table from main database if it exists
+    try {
+      const [tables] = await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name='form_submissions'");
+      if (tables.length > 0) {
+        await sequelize.query("DROP TABLE form_submissions");
+        console.log('Removed old form_submissions table from main database');
+      }
+    } catch (e) {
+      console.warn('Could not remove old form_submissions table:', e.message || e);
+    }
+
+    // Sync main application models
+    await Form.sync();
+    await FormField.sync();
+    await User.sync();
+    await RefreshToken.sync();
+    await AuditLog.sync();
+
     // If starting on a fresh DB, sync creates the column from the model.
     // For existing DBs, add the column if it doesn't exist (SQLite only).
     const [cols] = await sequelize.query("PRAGMA table_info('forms')");
@@ -368,26 +389,30 @@ async function ensureSchema() {
       console.warn('Index ensure failed (form_fields):', e.message || e);
     }
 
-    // Ensure index on form_submissions(formId)
+    // Ensure submissions database and its schema
     try {
-      const [idx] = await sequelize.query("PRAGMA index_list('form_submissions')");
+      await submissionsSequelize.authenticate();
+      await submissionsSequelize.query('PRAGMA foreign_keys = ON;');
+      await FormSubmission.sync();
+
+      // Ensure index on form_submissions(formId) in submissions database
+      const [idx] = await submissionsSequelize.query("PRAGMA index_list('form_submissions')");
       const have = new Set((Array.isArray(idx) ? idx : []).map(r => String(r.name || '').toLowerCase()));
       if (!have.has('idx_form_submissions_formid')) {
-        await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId ON form_submissions(formId)");
-        console.log('Ensured index idx_form_submissions_formId');
+        await submissionsSequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId ON form_submissions(formId)");
+        console.log('Ensured index idx_form_submissions_formId in submissions database');
       }
       // Add composite index for better deletion performance
       if (!have.has('idx_form_submissions_formid_created')) {
-        await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId_created ON form_submissions(formId, createdAt)");
-        console.log('Ensured composite index idx_form_submissions_formId_created');
+        await submissionsSequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId_created ON form_submissions(formId, createdAt)");
+        console.log('Ensured composite index idx_form_submissions_formId_created in submissions database');
       }
     } catch (e) {
-      console.warn('Index ensure failed (form_submissions):', e.message || e);
+      console.warn('Submissions database initialization failed:', e.message || e);
     }
 
     // Ensure users table & seed admin (dev) and add username column if missing
     try {
-      await User.sync();
       // Add users.username if missing (SQLite)
       try {
         const [uCols] = await sequelize.query("PRAGMA table_info('users')");
@@ -417,14 +442,7 @@ async function ensureSchema() {
       console.warn('User schema/seed issue:', e.message || e);
     }
 
-    // Ensure refresh_tokens table exists
-    try { await RefreshToken.sync(); } catch (e) {
-      console.warn('RefreshToken schema issue:', e.message || e);
-    }
-    // Ensure audit_logs table exists
-    try { await AuditLog.sync(); } catch (e) {
-      console.warn('AuditLog schema issue:', e.message || e);
-    }
+    // RefreshToken and AuditLog tables are already synced above
   } catch (e) {
     console.warn('Schema ensure failed (category):', e.message || e);
   }
@@ -434,9 +452,14 @@ async function ensureSchema() {
 const port = process.env.PORT || 5173;
 (async () => {
   try {
+    // Initialize main application database
     await sequelize.authenticate();
     await sequelize.query('PRAGMA foreign_keys = ON;');
-    await sequelize.sync();
+
+    // Initialize submissions database
+    await submissionsSequelize.authenticate();
+    await submissionsSequelize.query('PRAGMA foreign_keys = ON;');
+
     await ensureSchema();
     app.listen(port, () => {
       console.log(`Listening on http://localhost:${port}`);

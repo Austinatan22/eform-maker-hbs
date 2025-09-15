@@ -30,7 +30,7 @@ async function waitForHealthy(timeoutMs = 8000) {
     try {
       const { res, body } = await fetchJson(`${BASE}/api/health`);
       if (res.ok && body && body.ok) return true;
-    } catch {}
+    } catch { }
     await sleep(200);
   }
   return false;
@@ -39,21 +39,23 @@ async function waitForHealthy(timeoutMs = 8000) {
 async function run() {
   let failures = 0;
 
-  // Clean test db
-  try { fs.rmSync(TEST_DB, { force: true }); } catch {}
+  // Clean test dbs
+  const TEST_SUBMISSIONS_DB = path.join(ROOT, 'data', 'test-submissions.sqlite');
+  try { fs.rmSync(TEST_DB, { force: true }); } catch { }
+  try { fs.rmSync(TEST_SUBMISSIONS_DB, { force: true }); } catch { }
   fs.mkdirSync(path.dirname(TEST_DB), { recursive: true });
 
   log('Starting server...');
   const child = spawn(process.execPath, ['src/server/app.js'], {
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PORT, DB_FILE: TEST_DB }
+    env: { ...process.env, PORT, DB_FILE: TEST_DB, SUBMISSIONS_DB_FILE: TEST_SUBMISSIONS_DB }
   });
 
   child.stdout.on('data', d => process.stdout.write(`[app] ${d}`));
   child.stderr.on('data', d => process.stderr.write(`[app-err] ${d}`));
 
   // Ensure cleanup
-  const stop = () => { try { child.kill(); } catch {} };
+  const stop = () => { try { child.kill(); } catch { } };
   process.on('exit', stop);
   process.on('SIGINT', () => { stop(); process.exit(1); });
 
@@ -131,7 +133,7 @@ async function run() {
   try {
     const badPayload = {
       title: 'Bad Form',
-      fields: [ { id: 'd1', type: 'dropdown', label: 'Pick', name: 'pick', options: '' } ]
+      fields: [{ id: 'd1', type: 'dropdown', label: 'Pick', name: 'pick', options: '' }]
     };
     const { res } = await fetchJson(`${BASE}/api/forms`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(badPayload)
@@ -144,7 +146,7 @@ async function run() {
   try {
     const upd = {
       title: 'Test Form Updated',
-      fields: [ { id: 'f1', type: 'singleLine', label: 'Your Name', name: 'yourName' } ]
+      fields: [{ id: 'f1', type: 'singleLine', label: 'Your Name', name: 'yourName' }]
     };
     const { res, body } = await fetchJson(`${BASE}/api/forms/${formId}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(upd)
@@ -204,13 +206,13 @@ async function run() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error(`status ${res.status}`);
-    // verify via models against the same DB file
+    // verify via models against the submissions DB file
     try {
-      process.env.DB_FILE = TEST_DB; // ensure models use test DB
+      process.env.SUBMISSIONS_DB_FILE = TEST_SUBMISSIONS_DB; // ensure models use test submissions DB
       const { FormSubmission } = await import('../src/server/models/FormSubmission.js');
       const rows = await FormSubmission.findAll({ where: { formId } });
       if (!(rows && rows.length > 0)) throw new Error('no submission rows');
-      log('✓ public submission stored');
+      log('✓ public submission stored in separate database');
     } catch (e) {
       throw e;
     }

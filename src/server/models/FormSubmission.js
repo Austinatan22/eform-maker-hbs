@@ -1,12 +1,13 @@
 // /src/server/models/FormSubmission.js (ESM)
 import { DataTypes } from 'sequelize';
-import { sequelize } from '../db.js';
+import { submissionsSequelize } from '../db.js';
 
 /**
  * FormSubmission = optional stored copy of a user's submission
  * (only if they consent; canonical data is forwarded to client's DB).
+ * Uses separate submissions database for data isolation.
  */
-export const FormSubmission = sequelize.define('FormSubmission', {
+export const FormSubmission = submissionsSequelize.define('FormSubmission', {
   id: {
     type: DataTypes.STRING(40),
     primaryKey: true

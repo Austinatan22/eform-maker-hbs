@@ -1,12 +1,13 @@
 // src/server/controllers/forms.controller.js
 import crypto from 'crypto';
-import { sequelize } from '../db.js';
+import { sequelize, submissionsSequelize } from '../db.js';
 import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
 import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
+import { createSubmission, deleteSubmissionsByFormId } from '../services/submissions.service.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
@@ -273,11 +274,7 @@ export async function publicSubmit(req, res) {
         // Store by safe field key without any title prefix or suffix
         reduced[safeKey(k)] = v;
       }
-      await FormSubmission.create({
-        id: crypto.randomBytes(9).toString('base64url'),
-        formId: form.id,
-        payloadJson: reduced
-      });
+      await createSubmission(form.id, reduced);
     }
 
     res.json({ ok: true });
@@ -309,17 +306,8 @@ export async function deleteForm(req, res) {
       // Delete in order of dependencies for better performance
       await FormField.destroy({ where: { formId: form.id }, transaction: t });
 
-      // For forms with many submissions, use batch deletion
-      const submissionCount = await FormSubmission.count({ where: { formId: form.id }, transaction: t });
-      if (submissionCount > 1000) {
-        // Use raw SQL for better performance on large datasets
-        await sequelize.query('DELETE FROM form_submissions WHERE formId = ?', {
-          replacements: [form.id],
-          transaction: t
-        });
-      } else {
-        await FormSubmission.destroy({ where: { formId: form.id }, transaction: t });
-      }
+      // Delete submissions from the separate submissions database
+      await deleteSubmissionsByFormId(form.id);
 
       await form.destroy({ transaction: t });
     });

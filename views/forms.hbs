@@ -63,6 +63,12 @@
                       </a>
                     </li>
                     <li>
+                      <a class="dropdown-item js-act-test-hosted" href="javascript:void(0);">
+                        <i class="icon-base ti tabler-external-link icon-sm me-2"></i>
+                        Test Hosted Form
+                      </a>
+                    </li>
+                    <li>
                       <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
                         <i class="icon-base ti tabler-trash icon-sm me-2"></i>
                         Delete
@@ -499,6 +505,17 @@
         if (sel) sel.value = ['survey', 'quiz', 'feedback'].includes(currentCat) ? currentCat : 'survey';
         const m = bootstrap.Modal.getOrCreateInstance(modalEl);
         m.show();
+        return;
+      }
+
+      // Test hosted form action
+      const actTestHosted = e.target.closest('.js-act-test-hosted');
+      if (actTestHosted) {
+        const row = actTestHosted.closest('tr');
+        const id = row?.dataset.id;
+        if (!id) return;
+        // Open the hosted form in a new tab
+        window.open('/f/' + id, '_blank');
         return;
       }
     });
