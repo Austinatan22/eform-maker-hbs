@@ -1,90 +1,97 @@
 <!doctype html>
-<html
-  lang="en"
-  dir="ltr"
+<html lang="en" dir="ltr"
   class="layout-navbar-fixed layout-horizontal layout-navbar-full layout-without-menu layout-menu-fixed layout-compact"
-  data-bs-theme="light"
-  data-skin="default"
-  data-assets-path="/assets/"
+  data-bs-theme="light" data-skin="default" data-assets-path="/assets/"
   data-template="horizontal-menu-template-no-customizer">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>{{title}} | Vuexy</title>
-    <meta name="csrf-token" content="{{csrfToken}}"/>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/assets/img/favicon/favicon.ico" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+  <title>{{title}} | Vuexy</title>
+  <meta name="csrf-token" content="{{csrfToken}}" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/assets/img/favicon/favicon.ico" />
 
-    <!-- Icon font used by Vuexy (Tabler) -->
-    <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css"/>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
 
-    <!-- Core CSS (Vuexy) -->
-    <link rel="stylesheet" href="/assets/vendor/libs/node-waves/node-waves.css"/>
-    <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css"/>
-    <link rel="stylesheet" href="/assets/vendor/css/core.css"/>
-    <link rel="stylesheet" href="/assets/css/demo.css"/>
-    <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css"/>
+  <!-- Icon font used by Vuexy (Tabler) -->
+  <link rel="stylesheet" href="/assets/vendor/fonts/iconify-icons.css" />
 
-    <!-- Your overrides -->
-    <link rel="stylesheet" href="/css/custom.css">
+  <!-- Core CSS (Vuexy) -->
+  <link rel="stylesheet" href="/assets/vendor/libs/node-waves/node-waves.css" />
+  <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+  <link rel="stylesheet" href="/assets/vendor/css/core.css" />
+  <link rel="stylesheet" href="/assets/css/demo.css" />
+  <link rel="stylesheet" href="/assets/vendor/css/pages/page-auth.css" />
 
-    <!-- Vuexy helpers/config (must be in <head>) -->
-    <script src="/assets/vendor/js/helpers.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script>
-      window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    </script>
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="/assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css" />
+  <link rel="stylesheet" href="/assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css" />
+  <link rel="stylesheet" href="/assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css" />
 
-    <!-- Handlebars (runtime used by builder to compile field partials in browser) -->
-    <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script>
+  <!-- Your overrides -->
+  <link rel="stylesheet" href="/css/custom.css">
 
-    <!-- intl-tel-input CSS (builder preview flags) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
-  </head>
+  <!-- Vuexy helpers/config (must be in <head>) -->
+  <script src="/assets/vendor/js/helpers.js"></script>
+  <script src="/assets/js/config.js"></script>
+  <script>
+    window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  </script>
 
-  <body>
-    {{#if hideNavbar}}
-      {{{body}}}
-    {{else}}
-      <div class="layout-wrapper">
-        <div class="layout-container">
-          {{> navbar menu=menu currentPath=currentPath brand=brand }}
-          <div class="layout-page">
-            <div class="content-wrapper">
-              <div class="container-xxl flex-grow-1 container-p-y">
-                {{{body}}}
-              </div>
-            </div>
+  <!-- Handlebars (runtime used by builder to compile field partials in browser) -->
+  <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script>
+
+  <!-- intl-tel-input CSS (builder preview flags) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+</head>
+
+<body>
+  {{#if hideNavbar}}
+  {{{body}}}
+  {{else}}
+  <div class="layout-wrapper">
+    <div class="layout-container">
+      {{> navbar menu=menu currentPath=currentPath brand=brand }}
+      <div class="layout-page">
+        <div class="content-wrapper">
+          <div class="container-xxl flex-grow-1 container-p-y">
+            {{{body}}}
           </div>
         </div>
       </div>
-    {{/if}}
+    </div>
+  </div>
+  {{/if}}
 
-    <!-- Core JS (order matters: jQuery -> Bootstrap -> Vuexy libs) -->
-    <script src="/assets/vendor/libs/jquery/jquery.js"></script>
-    <script src="/assets/vendor/js/bootstrap.js"></script>
-    <script src="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-    <script src="/assets/vendor/libs/hammer/hammer.js"></script>
-    <script src="/assets/vendor/libs/node-waves/node-waves.js"></script>
+  <!-- Core JS (order matters: jQuery -> Bootstrap -> Vuexy libs) -->
+  <script src="/assets/vendor/libs/jquery/jquery.js"></script>
+  <script src="/assets/vendor/js/bootstrap.js"></script>
+  <script src="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+  <script src="/assets/vendor/libs/hammer/hammer.js"></script>
+  <script src="/assets/vendor/libs/node-waves/node-waves.js"></script>
 
-    <!-- Vuexy menu/boot -->
-    <script src="/assets/vendor/js/menu.js"></script>
-    <script src="/assets/js/main.js"></script>
+  <!-- Vuexy menu/boot -->
+  <script src="/assets/vendor/js/menu.js"></script>
+  <script src="/assets/js/main.js"></script>
 
-    <!-- App-level helpers -->
-    <script src="/js/app.js"></script>
+  <!-- DataTables JS -->
+  <script src="/assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js"></script>
 
-    <!-- intl-tel-input (JS) once -->
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+  <!-- App-level helpers -->
+  <script src="/js/app.js"></script>
 
-    <!-- Page-level scripts injected here -->
-    {{{_sections.scripts}}}
-  </body>
+  <!-- intl-tel-input (JS) once -->
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+
+  <!-- Page-level scripts injected here -->
+  {{{_sections.scripts}}}
+</body>
+
 </html>
