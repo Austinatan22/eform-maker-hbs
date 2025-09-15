@@ -69,7 +69,6 @@ router.get('/admin/logs', ensureAuth, requireAdmin, async (_req, res) => {
 // API: list logs (DataTables format)
 router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
     try {
-        console.log('API /api/logs called');
         const where = {};
 
         // Apply filters
@@ -83,8 +82,6 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
             order: [['createdAt', 'DESC']],
             limit: 1000 // Reasonable limit for client-side pagination
         });
-
-        console.log(`Found ${rows.length} audit logs`);
 
         // Attach user email/username for convenience
         const userIds = [...new Set(rows.map(r => r.userId).filter(Boolean))];

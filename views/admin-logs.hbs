@@ -65,15 +65,10 @@
         let dt_logs;
 
         if (logsTable) {
-            console.log('Initializing DataTable for logs...');
             dt_logs = new DataTable(logsTable, {
                 ajax: {
                     url: '/api/logs',
-                    headers: { 'CSRF-Token': CSRF },
-                    error: function (xhr, error, thrown) {
-                        console.error('DataTable AJAX error:', error, thrown);
-                        console.error('Response:', xhr.responseText);
-                    }
+                    headers: { 'CSRF-Token': CSRF }
                 },
                 columns: [
                     { data: 'createdAt' },
@@ -266,6 +261,8 @@
                                     summaryPoints.push(`Added field: "${fieldChange.field.label}" (${fieldChange.field.type})`);
                                 } else if (fieldChange.action === 'removed') {
                                     summaryPoints.push(`Removed field: "${fieldChange.field.label}" (${fieldChange.field.type})`);
+                                } else if (fieldChange.action === 'moved') {
+                                    summaryPoints.push(`Moved field: "${fieldChange.field.label}" (${fieldChange.field.type}) from position ${fieldChange.changes.position.from + 1} to ${fieldChange.changes.position.to + 1}`);
                                 } else if (fieldChange.action === 'modified') {
                                     const fieldChanges = [];
                                     if (fieldChange.changes.label) {

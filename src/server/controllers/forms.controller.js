@@ -178,7 +178,7 @@ export async function createOrUpdateForm(req, res) {
         changes.category = { from: currentForm.category, to: withFields.category };
       }
 
-      // Check for field changes
+      // Check for field changes using content-based comparison
       const currentFields = (currentForm.fields || []).sort((a, b) => a.position - b.position);
       const newFields = fieldsOut;
 
@@ -186,38 +186,66 @@ export async function createOrUpdateForm(req, res) {
         changes.fieldCount = { from: currentFields.length, to: newFields.length };
       }
 
-      // Check for individual field changes
+      // Check for individual field changes using content-based comparison
       const fieldChanges = [];
-      const maxLength = Math.max(currentFields.length, newFields.length);
-      for (let i = 0; i < maxLength; i++) {
-        const currentField = currentFields[i];
-        const newField = newFields[i];
 
-        if (!currentField && newField) {
+      // Create maps for efficient lookup
+      const currentFieldMap = new Map();
+      const newFieldMap = new Map();
+
+      currentFields.forEach(field => {
+        const key = `${field.label}|${field.type}|${field.required}|${JSON.stringify(field.options || {})}`;
+        currentFieldMap.set(key, field);
+      });
+
+      newFields.forEach(field => {
+        const key = `${field.label}|${field.type}|${field.required}|${JSON.stringify(field.options || {})}`;
+        newFieldMap.set(key, field);
+      });
+
+      // Find added fields (in new but not in current)
+      newFields.forEach(newField => {
+        const key = `${newField.label}|${newField.type}|${newField.required}|${JSON.stringify(newField.options || {})}`;
+        if (!currentFieldMap.has(key)) {
           fieldChanges.push({ action: 'added', field: { label: newField.label, type: newField.type } });
-        } else if (currentField && !newField) {
+        }
+      });
+
+      // Find removed fields (in current but not in new)
+      currentFields.forEach(currentField => {
+        const key = `${currentField.label}|${currentField.type}|${currentField.required}|${JSON.stringify(currentField.options || {})}`;
+        if (!newFieldMap.has(key)) {
           fieldChanges.push({ action: 'removed', field: { label: currentField.label, type: currentField.type } });
-        } else if (currentField && newField) {
-          const fieldChange = {};
+        }
+      });
 
-          if (currentField.label !== newField.label) {
-            fieldChange.label = { from: currentField.label, to: newField.label };
-          }
-          if (currentField.type !== newField.type) {
-            fieldChange.type = { from: currentField.type, to: newField.type };
-          }
-          if (currentField.required !== newField.required) {
-            fieldChange.required = { from: currentField.required, to: newField.required };
-          }
-          if (currentField.options !== newField.options) {
-            fieldChange.options = { from: currentField.options, to: newField.options };
-          }
+      // Find moved fields (same content, different position)
+      const movedFields = [];
+      currentFields.forEach((currentField, currentIndex) => {
+        const currentKey = `${currentField.label}|${currentField.type}|${currentField.required}|${JSON.stringify(currentField.options || {})}`;
+        const newIndex = newFields.findIndex(newField => {
+          const newKey = `${newField.label}|${newField.type}|${newField.required}|${JSON.stringify(newField.options || {})}`;
+          return newKey === currentKey;
+        });
 
-          if (Object.keys(fieldChange).length > 0) {
-            fieldChanges.push({ action: 'modified', field: { label: currentField.label }, changes: fieldChange });
+        if (newIndex !== -1 && newIndex !== currentIndex) {
+          // Field exists in both but at different positions
+          const isAlreadyTracked = movedFields.some(moved =>
+            moved.field.label === currentField.label &&
+            moved.field.type === currentField.type
+          );
+
+          if (!isAlreadyTracked) {
+            movedFields.push({
+              action: 'moved',
+              field: { label: currentField.label, type: currentField.type },
+              changes: { position: { from: currentIndex, to: newIndex } }
+            });
           }
         }
-      }
+      });
+
+      fieldChanges.push(...movedFields);
 
       if (fieldChanges.length > 0) {
         changes.fields = fieldChanges;
@@ -372,38 +400,66 @@ export async function updateForm(req, res) {
         changes.fieldCount = { from: currentFields.length, to: newFields.length };
       }
 
-      // Check for individual field changes
+      // Check for individual field changes using content-based comparison
       const fieldChanges = [];
-      const maxLength = Math.max(currentFields.length, newFields.length);
-      for (let i = 0; i < maxLength; i++) {
-        const currentField = currentFields[i];
-        const newField = newFields[i];
 
-        if (!currentField && newField) {
+      // Create maps for efficient lookup
+      const currentFieldMap = new Map();
+      const newFieldMap = new Map();
+
+      currentFields.forEach(field => {
+        const key = `${field.label}|${field.type}|${field.required}|${JSON.stringify(field.options || {})}`;
+        currentFieldMap.set(key, field);
+      });
+
+      newFields.forEach(field => {
+        const key = `${field.label}|${field.type}|${field.required}|${JSON.stringify(field.options || {})}`;
+        newFieldMap.set(key, field);
+      });
+
+      // Find added fields (in new but not in current)
+      newFields.forEach(newField => {
+        const key = `${newField.label}|${newField.type}|${newField.required}|${JSON.stringify(newField.options || {})}`;
+        if (!currentFieldMap.has(key)) {
           fieldChanges.push({ action: 'added', field: { label: newField.label, type: newField.type } });
-        } else if (currentField && !newField) {
+        }
+      });
+
+      // Find removed fields (in current but not in new)
+      currentFields.forEach(currentField => {
+        const key = `${currentField.label}|${currentField.type}|${currentField.required}|${JSON.stringify(currentField.options || {})}`;
+        if (!newFieldMap.has(key)) {
           fieldChanges.push({ action: 'removed', field: { label: currentField.label, type: currentField.type } });
-        } else if (currentField && newField) {
-          const fieldChange = {};
+        }
+      });
 
-          if (currentField.label !== newField.label) {
-            fieldChange.label = { from: currentField.label, to: newField.label };
-          }
-          if (currentField.type !== newField.type) {
-            fieldChange.type = { from: currentField.type, to: newField.type };
-          }
-          if (currentField.required !== newField.required) {
-            fieldChange.required = { from: currentField.required, to: newField.required };
-          }
-          if (currentField.options !== newField.options) {
-            fieldChange.options = { from: currentField.options, to: newField.options };
-          }
+      // Find moved fields (same content, different position)
+      const movedFields = [];
+      currentFields.forEach((currentField, currentIndex) => {
+        const currentKey = `${currentField.label}|${currentField.type}|${currentField.required}|${JSON.stringify(currentField.options || {})}`;
+        const newIndex = newFields.findIndex(newField => {
+          const newKey = `${newField.label}|${newField.type}|${newField.required}|${JSON.stringify(newField.options || {})}`;
+          return newKey === currentKey;
+        });
 
-          if (Object.keys(fieldChange).length > 0) {
-            fieldChanges.push({ action: 'modified', field: { label: currentField.label }, changes: fieldChange });
+        if (newIndex !== -1 && newIndex !== currentIndex) {
+          // Field exists in both but at different positions
+          const isAlreadyTracked = movedFields.some(moved =>
+            moved.field.label === currentField.label &&
+            moved.field.type === currentField.type
+          );
+
+          if (!isAlreadyTracked) {
+            movedFields.push({
+              action: 'moved',
+              field: { label: currentField.label, type: currentField.type },
+              changes: { position: { from: currentIndex, to: newIndex } }
+            });
           }
         }
-      }
+      });
+
+      fieldChanges.push(...movedFields);
 
       if (fieldChanges.length > 0) {
         changes.fields = fieldChanges;
