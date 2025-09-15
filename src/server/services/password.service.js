@@ -55,14 +55,7 @@ export function validatePassword(password) {
         errors.push(`Password must contain at least one special character (${SPECIAL_CHARS})`);
     }
 
-    // Check for common weak patterns
-    if (/(.)\1{2,}/.test(pwd)) {
-        errors.push('Password cannot contain more than 2 consecutive identical characters');
-    }
-
-    if (/123|abc|qwe|asd|zxc/i.test(pwd)) {
-        errors.push('Password cannot contain common sequences');
-    }
+    // Removed hidden requirements for better user experience
 
     return {
         valid: errors.length === 0,
