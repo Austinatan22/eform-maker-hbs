@@ -3,83 +3,18 @@
     <h5 class="mb-0">Users</h5>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">+ New User</button>
   </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle" data-protected-id="{{protectedAdminId}}">
-        <colgroup>
-          <col style="width: 32%">
-          <col style="width: 20%">
-          <col style="width: 18%">
-          <col style="width: 18%">
-          <col class="col-actions">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Updated</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </thead>
-        <tfoot class="table-border-bottom-0">
-          <tr>
-            <th class="rounded-start-bottom">Email</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Updated</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </tfoot>
-        <tbody id="usersTbody" class="table-border-bottom-0">
-          {{#if users.length}}
-          {{#each users}}
-          <tr data-id="{{this.id}}">
-            <td class="fw-medium">{{this.email}}</td>
-            <td class="js-username">{{this.username}}</td>
-            <td>
-              <span class="badge rounded-pill {{roleBadgeClass this.role}}">{{roleLabel this.role}}</span>
-            </td>
-            <td><span class="text-muted">{{formatDateTime this.updatedAt}}</span></td>
-            <td class="col-actions">
-              <div class="d-inline-flex align-items-center gap-1 justify-content-start">
-                <button class="btn btn-sm btn-outline-secondary js-reset-pass" type="button">
-                  <i class="icon-base ti tabler-key icon-sm me-1"></i>
-                  Reset
-                </button>
-                <div class="btn-group">
-                  <button type="button"
-                    class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
-                    data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
-                    <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                      <a class="dropdown-item js-act-info" href="javascript:void(0);">
-                        <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
-                        Info
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item text-danger js-delete-user" href="javascript:void(0);">
-                        <i class="icon-base ti tabler-trash icon-sm me-2"></i>
-                        Delete
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </td>
-          </tr>
-          {{/each}}
-          {{else}}
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">No users yet.</td>
-          </tr>
-          {{/if}}
-        </tbody>
-      </table>
-    </div>
+  <div class="card-datatable table-responsive pt-0">
+    <table class="datatables-users table" id="usersTable" data-protected-id="{{protectedAdminId}}">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+    </table>
   </div>
 </div>
 
@@ -131,8 +66,9 @@
 
 {{#section 'scripts'}}
 <script>
-  (function () {
-    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
+  document.addEventListener('DOMContentLoaded', function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]').content || window.CSRF_TOKEN || '';
+
     function roleLabel(r) { return r === 'admin' ? 'Admin' : (r === 'viewer' ? 'Viewer' : 'Editor'); }
     function roleBadgeClass(r) {
       switch ((r || '').toLowerCase()) {
@@ -157,212 +93,339 @@
       } catch (_) { return String(val || ''); }
     }
 
-    // Hide delete for protected admin on UI
-    (function protectMainAdmin() {
-      const table = document.querySelector('table[data-protected-id]');
-      const pid = table?.getAttribute('data-protected-id') || '';
-      if (!pid) return;
-      const prow = document.querySelector(`tr[data-id="${CSS.escape(pid)}"]`);
-      prow?.querySelector('.js-delete-user')?.closest('li')?.remove();
-    })();
+    // Initialize DataTable
+    const usersTable = document.getElementById('usersTable');
+    let dt_users;
 
-    document.querySelectorAll('.js-actions').forEach(btn => {
-      try {
-        const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
-          boundary: 'viewport',
-          popperConfig(config) { return Object.assign({}, config || {}, { strategy: 'fixed' }); }
-        });
-        void dd;
-      } catch (_) { }
-    });
+    if (usersTable) {
+      const protectedAdminId = usersTable.getAttribute('data-protected-id') || '';
 
-    document.getElementById('usersTbody')?.addEventListener('click', async (e) => {
-      const row = e.target.closest('tr[data-id]');
-      const id = row?.dataset.id;
-      if (!id) return;
-      const info = e.target.closest('.js-act-info');
-      if (info) {
-        const modalEl = document.getElementById('userInfoModal');
-        modalEl.dataset.id = id;
-        const input = modalEl.querySelector('#userInfoUsername');
-        const roleSel = modalEl.querySelector('#userInfoRole');
-        input.value = (row.querySelector('.js-username')?.textContent || '').trim();
-        const curRole = (row.querySelector('.js-role-badge')?.getAttribute('data-role') || 'editor').toLowerCase();
-        if (roleSel) roleSel.value = ['admin', 'editor', 'viewer'].includes(curRole) ? curRole : 'editor';
-        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-        m.show();
-        return;
-      }
-      const reset = e.target.closest('.js-reset-pass');
-      if (reset) {
-        const modalEl = document.getElementById('resetPasswordModal');
-        modalEl.dataset.id = id;
-        // Clear form fields
-        document.getElementById('resetPasswordInput').value = '';
-        document.getElementById('resetPasswordConfirm').value = '';
-        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-        m.show();
-        return;
-      }
-      const del = e.target.closest('.js-delete-user');
-      if (del) {
-        const pid = document.querySelector('table[data-protected-id]')?.getAttribute('data-protected-id') || '';
-        if (id && pid && id === pid) { alert('Cannot delete main admin user'); return; }
-        if (!confirm('Delete this user?')) return;
-        try {
-          const res = await fetch('/api/users/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
-          if (!res.ok) throw new Error('Delete failed');
-          row.remove();
-        } catch (err) { alert(err?.message || 'Could not delete user'); }
-        return;
-      }
-    });
-
-    document.getElementById('createUserForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('newUserEmail').value.trim();
-      const username = document.getElementById('newUserUsername').value.trim();
-      const password = document.getElementById('newUserPassword').value;
-      const role = document.getElementById('newUserRole').value;
-
-      // Password validation
-      if (password.length < 8) {
-        alert('Password must be at least 8 characters long');
-        return;
-      }
-      if (password.length > 128) {
-        alert('Password must be no more than 128 characters long');
-        return;
-      }
-      if (!/[A-Z]/.test(password)) {
-        alert('Password must contain at least one uppercase letter');
-        return;
-      }
-      if (!/[a-z]/.test(password)) {
-        alert('Password must contain at least one lowercase letter');
-        return;
-      }
-      if (!/\d/.test(password)) {
-        alert('Password must contain at least one number');
-        return;
-      }
-      if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
-        alert('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ email, username, password, role }) });
-        const out = await res.json();
-        if (!res.ok || !out?.user) throw new Error(out?.error || 'Create failed');
-        location.reload();
-      } catch (err) { alert(err?.message || 'Could not create user'); }
-    });
-
-    // Handle Info modal submit (username + role)
-    document.getElementById('userInfoForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const modalEl = document.getElementById('userInfoModal');
-      const id = modalEl?.dataset.id;
-      if (!id) return;
-      const username = String(document.getElementById('userInfoUsername')?.value || '').trim();
-      const role = String(document.getElementById('userInfoRole')?.value || 'editor');
-      try {
-        const res = await fetch('/api/users/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-          body: JSON.stringify({ username, role })
-        });
-        const out = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(out?.error || 'Update failed');
-        const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-        row?.querySelector('.js-username') && (row.querySelector('.js-username').textContent = username);
-        const badge = row?.querySelector('.js-role-badge');
-        if (badge) {
-          badge.setAttribute('data-role', role);
-          badge.textContent = roleLabel(role);
-          badge.classList.remove('bg-label-danger', 'bg-label-secondary', 'bg-label-primary');
-          badge.classList.add(roleBadgeClass(role));
+      dt_users = new DataTable(usersTable, {
+        ajax: {
+          url: '/api/users',
+          headers: { 'CSRF-Token': CSRF }
+        },
+        columns: [
+          { data: 'email' },
+          { data: 'username' },
+          { data: 'role' },
+          { data: 'updatedAt' },
+          { data: 'id' }
+        ],
+        columnDefs: [
+          {
+            // Email column
+            targets: 0,
+            render: function (data, type, full, meta) {
+              return `<span class="fw-medium">${data || ''}</span>`;
+            }
+          },
+          {
+            // Username column
+            targets: 1,
+            render: function (data, type, full, meta) {
+              return `<span class="js-username">${data || ''}</span>`;
+            }
+          },
+          {
+            // Role column
+            targets: 2,
+            render: function (data, type, full, meta) {
+              return `<span class="badge rounded-pill ${roleBadgeClass(data)}">${roleLabel(data)}</span>`;
+            }
+          },
+          {
+            // Updated column
+            targets: 3,
+            render: function (data, type, full, meta) {
+              return `<span class="text-muted">${formatDateVerbose(data)}</span>`;
+            }
+          },
+          {
+            // Actions column
+            targets: -1,
+            title: 'Actions',
+            orderable: false,
+            searchable: false,
+            render: function (data, type, full, meta) {
+              const isProtected = full.id === protectedAdminId;
+              return `
+                <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                  <button class="btn btn-sm btn-outline-secondary js-reset-pass" type="button" data-id="${full.id}">
+                    <i class="icon-base ti tabler-key icon-sm me-1"></i>
+                    Reset
+                  </button>
+                  <div class="btn-group">
+                    <button type="button"
+                      class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                      data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                      <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <a class="dropdown-item js-act-info" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
+                          Info
+                        </a>
+                      </li>
+                      ${isProtected ? '' : `
+                      <li>
+                        <a class="dropdown-item text-danger js-delete-user" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                          Delete
+                        </a>
+                      </li>
+                      `}
+                    </ul>
+                  </div>
+                </div>
+              `;
+            }
+          }
+        ],
+        order: [[3, 'desc']], // Sort by updated date descending by default
+        layout: {
+          topStart: {
+            rowClass: 'row mx-3 my-0 justify-content-between',
+            features: [
+              {
+                pageLength: {
+                  menu: [10, 25, 50, 100],
+                  text: 'Show_MENU_entries'
+                }
+              }
+            ]
+          },
+          topEnd: {
+            search: {
+              placeholder: 'Search users...'
+            }
+          },
+          bottomStart: {
+            rowClass: 'row mx-3 justify-content-between',
+            features: ['info']
+          },
+          bottomEnd: 'paging'
+        },
+        language: {
+          paginate: {
+            next: '<i class="icon-base ti tabler-chevron-right scaleX-n1-rtl icon-18px"></i>',
+            previous: '<i class="icon-base ti tabler-chevron-left scaleX-n1-rtl icon-18px"></i>',
+            first: '<i class="icon-base ti tabler-chevrons-left scaleX-n1-rtl icon-18px"></i>',
+            last: '<i class="icon-base ti tabler-chevrons-right scaleX-n1-rtl icon-18px"></i>'
+          }
         }
-        bootstrap.Modal.getInstance(modalEl)?.hide();
-      } catch (err) { alert(err?.message || 'Could not update user'); }
-    });
+      });
 
-    // Handle Reset Password modal submit
-    document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const modalEl = document.getElementById('resetPasswordModal');
-      const id = modalEl?.dataset.id;
-      if (!id) return;
-
-      const password = document.getElementById('resetPasswordInput')?.value || '';
-      const confirmPassword = document.getElementById('resetPasswordConfirm')?.value || '';
-      const btn = document.getElementById('resetPasswordBtn');
-      const originalText = btn?.textContent;
-
-      // Validation
-      if (password.length < 8) {
-        alert('Password must be at least 8 characters long');
-        return;
-      }
-      if (password.length > 128) {
-        alert('Password must be no more than 128 characters long');
-        return;
-      }
-      if (!/[A-Z]/.test(password)) {
-        alert('Password must contain at least one uppercase letter');
-        return;
-      }
-      if (!/[a-z]/.test(password)) {
-        alert('Password must contain at least one lowercase letter');
-        return;
-      }
-      if (!/\d/.test(password)) {
-        alert('Password must contain at least one number');
-        return;
-      }
-      if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
-        alert('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
-        return;
-      }
-      if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
-      }
-
-      try {
-        // Show loading state
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = 'Resetting...';
-        }
-
-        const res = await fetch('/api/users/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-          body: JSON.stringify({ password })
+      // Initialize dropdowns after table is drawn
+      usersTable.addEventListener('draw.dt', function () {
+        document.querySelectorAll('.js-actions').forEach(btn => {
+          try {
+            const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+              boundary: 'viewport',
+              popperConfig(config) { return Object.assign({}, config || {}, { strategy: 'fixed' }); }
+            });
+            void dd;
+          } catch (_) { }
         });
-        const out = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(out?.error || 'Reset failed');
+      });
 
-        if (out?.reauth) {
-          alert('Password updated. Please log in again.');
-          window.location.assign('/login');
+      // Handle table clicks
+      usersTable.addEventListener('click', async (e) => {
+        const info = e.target.closest('.js-act-info');
+        if (info) {
+          const id = info.getAttribute('data-id');
+          if (!id) return;
+
+          // Get user data from DataTable
+          const userData = dt_users.row(`tr:has([data-id="${id}"])`).data();
+          if (!userData) return;
+
+          const modalEl = document.getElementById('userInfoModal');
+          modalEl.dataset.id = id;
+          const input = modalEl.querySelector('#userInfoUsername');
+          const roleSel = modalEl.querySelector('#userInfoRole');
+          input.value = userData.username || '';
+          const curRole = userData.role || 'editor';
+          if (roleSel) roleSel.value = ['admin', 'editor', 'viewer'].includes(curRole) ? curRole : 'editor';
+          const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+          m.show();
           return;
         }
-        alert('Password updated successfully');
-        bootstrap.Modal.getInstance(modalEl)?.hide();
-      } catch (err) {
-        alert(err?.message || 'Could not reset password');
-      } finally {
-        // Restore button state
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = originalText;
+
+        const reset = e.target.closest('.js-reset-pass');
+        if (reset) {
+          const id = reset.getAttribute('data-id');
+          if (!id) return;
+
+          const modalEl = document.getElementById('resetPasswordModal');
+          modalEl.dataset.id = id;
+          // Clear form fields
+          document.getElementById('resetPasswordInput').value = '';
+          document.getElementById('resetPasswordConfirm').value = '';
+          const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+          m.show();
+          return;
         }
-      }
-    });
-  })();
+
+        const del = e.target.closest('.js-delete-user');
+        if (del) {
+          const id = del.getAttribute('data-id');
+          if (!id) return;
+
+          const pid = usersTable.getAttribute('data-protected-id') || '';
+          if (id && pid && id === pid) { alert('Cannot delete main admin user'); return; }
+          if (!confirm('Delete this user?')) return;
+
+          try {
+            const res = await fetch('/api/users/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+            if (!res.ok) throw new Error('Delete failed');
+            dt_users.ajax.reload();
+          } catch (err) { alert(err?.message || 'Could not delete user'); }
+          return;
+        }
+      });
+
+      document.getElementById('createUserForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('newUserEmail').value.trim();
+        const username = document.getElementById('newUserUsername').value.trim();
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+
+        // Password validation
+        if (password.length < 8) {
+          alert('Password must be at least 8 characters long');
+          return;
+        }
+        if (password.length > 128) {
+          alert('Password must be no more than 128 characters long');
+          return;
+        }
+        if (!/[A-Z]/.test(password)) {
+          alert('Password must contain at least one uppercase letter');
+          return;
+        }
+        if (!/[a-z]/.test(password)) {
+          alert('Password must contain at least one lowercase letter');
+          return;
+        }
+        if (!/\d/.test(password)) {
+          alert('Password must contain at least one number');
+          return;
+        }
+        if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+          alert('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ email, username, password, role }) });
+          const out = await res.json();
+          if (!res.ok || !out?.user) throw new Error(out?.error || 'Create failed');
+          dt_users.ajax.reload();
+          bootstrap.Modal.getInstance(document.getElementById('createUserModal'))?.hide();
+        } catch (err) { alert(err?.message || 'Could not create user'); }
+      });
+
+      // Handle Info modal submit (username + role)
+      document.getElementById('userInfoForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const modalEl = document.getElementById('userInfoModal');
+        const id = modalEl?.dataset.id;
+        if (!id) return;
+        const username = String(document.getElementById('userInfoUsername')?.value || '').trim();
+        const role = String(document.getElementById('userInfoRole')?.value || 'editor');
+        try {
+          const res = await fetch('/api/users/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            body: JSON.stringify({ username, role })
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(out?.error || 'Update failed');
+          dt_users.ajax.reload();
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+        } catch (err) { alert(err?.message || 'Could not update user'); }
+      });
+
+      // Handle Reset Password modal submit
+      document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const modalEl = document.getElementById('resetPasswordModal');
+        const id = modalEl?.dataset.id;
+        if (!id) return;
+
+        const password = document.getElementById('resetPasswordInput')?.value || '';
+        const confirmPassword = document.getElementById('resetPasswordConfirm')?.value || '';
+        const btn = document.getElementById('resetPasswordBtn');
+        const originalText = btn?.textContent;
+
+        // Validation
+        if (password.length < 8) {
+          alert('Password must be at least 8 characters long');
+          return;
+        }
+        if (password.length > 128) {
+          alert('Password must be no more than 128 characters long');
+          return;
+        }
+        if (!/[A-Z]/.test(password)) {
+          alert('Password must contain at least one uppercase letter');
+          return;
+        }
+        if (!/[a-z]/.test(password)) {
+          alert('Password must contain at least one lowercase letter');
+          return;
+        }
+        if (!/\d/.test(password)) {
+          alert('Password must contain at least one number');
+          return;
+        }
+        if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+          alert('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+          return;
+        }
+        if (password !== confirmPassword) {
+          alert('Passwords do not match');
+          return;
+        }
+
+        try {
+          // Show loading state
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
+          }
+
+          const res = await fetch('/api/users/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            body: JSON.stringify({ password })
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(out?.error || 'Reset failed');
+
+          if (out?.reauth) {
+            alert('Password updated. Please log in again.');
+            window.location.assign('/login');
+            return;
+          }
+          alert('Password updated successfully');
+          dt_users.ajax.reload();
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+        } catch (err) {
+          alert(err?.message || 'Could not reset password');
+        } finally {
+          // Restore button state
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        }
+      });
+    }
+  });
 </script>
 {{/section}}
 

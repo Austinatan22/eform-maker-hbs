@@ -4,82 +4,18 @@
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">+ New
             Category</button>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <colgroup>
-                    <col style="width: 25%">
-                    <col style="width: 40%">
-                    <col style="width: 10%">
-                    <col style="width: 15%">
-                    <col class="col-actions">
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Color</th>
-                        <th>Updated</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
-                </thead>
-                <tfoot class="table-border-bottom-0">
-                    <tr>
-                        <th class="rounded-start-bottom">Name</th>
-                        <th>Description</th>
-                        <th>Color</th>
-                        <th>Updated</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
-                </tfoot>
-                <tbody id="categoriesTbody" class="table-border-bottom-0">
-                    {{#if categories.length}}
-                    {{#each categories}}
-                    <tr data-id="{{this.id}}">
-                        <td class="fw-medium">{{this.name}}</td>
-                        <td class="text-muted">{{this.description}}</td>
-                        <td>
-                            <span class="badge rounded-pill" style="background-color: {{this.color}}; color: white;">
-                                {{this.color}}
-                            </span>
-                        </td>
-                        <td><span class="text-muted">{{formatDateTime this.updatedAt}}</span></td>
-                        <td class="col-actions">
-                            <div class="d-inline-flex align-items-center gap-1 justify-content-start">
-                                <div class="btn-group">
-                                    <button type="button"
-                                        class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
-                                        data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
-                                        <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item js-edit-category" href="javascript:void(0);">
-                                                <i class="icon-base ti tabler-edit icon-sm me-2"></i>
-                                                Edit
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item text-danger js-delete-category"
-                                                href="javascript:void(0);">
-                                                <i class="icon-base ti tabler-trash icon-sm me-2"></i>
-                                                Delete
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {{/each}}
-                    {{else}}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No categories yet.</td>
-                    </tr>
-                    {{/if}}
-                </tbody>
-            </table>
-        </div>
+    <div class="card-datatable table-responsive pt-0">
+        <table class="datatables-categories table" id="categoriesTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Color</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
     </div>
 </div>
 
@@ -167,8 +103,8 @@
 
 {{#section 'scripts'}}
 <script>
-    (function () {
-        const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
+    document.addEventListener('DOMContentLoaded', function () {
+        const CSRF = document.querySelector('meta[name="csrf-token"]').content || window.CSRF_TOKEN || '';
 
         function formatDateVerbose(val) {
             try {
@@ -210,129 +146,240 @@
             document.getElementById('editCategoryColorText')
         );
 
-        document.querySelectorAll('.js-actions').forEach(btn => {
-            try {
-                const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
-                    boundary: 'viewport',
-                    popperConfig(config) { return Object.assign({}, config || {}, { strategy: 'fixed' }); }
+        // Initialize DataTable
+        const categoriesTable = document.getElementById('categoriesTable');
+        let dt_categories;
+
+        if (categoriesTable) {
+            dt_categories = new DataTable(categoriesTable, {
+                ajax: {
+                    url: '/api/categories',
+                    headers: { 'CSRF-Token': CSRF }
+                },
+                columns: [
+                    { data: 'name' },
+                    { data: 'description' },
+                    { data: 'color' },
+                    { data: 'updatedAt' },
+                    { data: 'id' }
+                ],
+                columnDefs: [
+                    {
+                        // Name column
+                        targets: 0,
+                        render: function (data, type, full, meta) {
+                            return `<span class="fw-medium">${data || ''}</span>`;
+                        }
+                    },
+                    {
+                        // Description column
+                        targets: 1,
+                        render: function (data, type, full, meta) {
+                            return `<span class="text-muted">${data || ''}</span>`;
+                        }
+                    },
+                    {
+                        // Color column
+                        targets: 2,
+                        render: function (data, type, full, meta) {
+                            return `<span class="badge rounded-pill" style="background-color: ${data}; color: white;">${data}</span>`;
+                        }
+                    },
+                    {
+                        // Updated column
+                        targets: 3,
+                        render: function (data, type, full, meta) {
+                            return `<span class="text-muted">${formatDateVerbose(data)}</span>`;
+                        }
+                    },
+                    {
+                        // Actions column
+                        targets: -1,
+                        title: 'Actions',
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, full, meta) {
+                            return `
+                                <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                                    <div class="btn-group">
+                                        <button type="button"
+                                            class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                                            data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                                            <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item js-edit-category" href="javascript:void(0);" data-id="${full.id}">
+                                                    <i class="icon-base ti tabler-edit icon-sm me-2"></i>
+                                                    Edit
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger js-delete-category" href="javascript:void(0);" data-id="${full.id}">
+                                                    <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                                                    Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                order: [[0, 'asc']], // Sort by name ascending by default
+                layout: {
+                    topStart: {
+                        rowClass: 'row mx-3 my-0 justify-content-between',
+                        features: [
+                            {
+                                pageLength: {
+                                    menu: [10, 25, 50, 100],
+                                    text: 'Show_MENU_entries'
+                                }
+                            }
+                        ]
+                    },
+                    topEnd: {
+                        search: {
+                            placeholder: 'Search categories...'
+                        }
+                    },
+                    bottomStart: {
+                        rowClass: 'row mx-3 justify-content-between',
+                        features: ['info']
+                    },
+                    bottomEnd: 'paging'
+                },
+                language: {
+                    paginate: {
+                        next: '<i class="icon-base ti tabler-chevron-right scaleX-n1-rtl icon-18px"></i>',
+                        previous: '<i class="icon-base ti tabler-chevron-left scaleX-n1-rtl icon-18px"></i>',
+                        first: '<i class="icon-base ti tabler-chevrons-left scaleX-n1-rtl icon-18px"></i>',
+                        last: '<i class="icon-base ti tabler-chevrons-right scaleX-n1-rtl icon-18px"></i>'
+                    }
+                }
+            });
+
+            // Initialize dropdowns after table is drawn
+            categoriesTable.addEventListener('draw.dt', function () {
+                document.querySelectorAll('.js-actions').forEach(btn => {
+                    try {
+                        const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+                            boundary: 'viewport',
+                            popperConfig(config) { return Object.assign({}, config || {}, { strategy: 'fixed' }); }
+                        });
+                        void dd;
+                    } catch (_) { }
                 });
-                void dd;
-            } catch (_) { }
-        });
+            });
 
-        document.getElementById('categoriesTbody')?.addEventListener('click', async (e) => {
-            const row = e.target.closest('tr[data-id]');
-            const id = row?.dataset.id;
-            if (!id) return;
+            // Handle table clicks
+            categoriesTable.addEventListener('click', async (e) => {
+                const edit = e.target.closest('.js-edit-category');
+                if (edit) {
+                    const id = edit.getAttribute('data-id');
+                    if (!id) return;
 
-            const edit = e.target.closest('.js-edit-category');
-            if (edit) {
-                const modalEl = document.getElementById('editCategoryModal');
-                modalEl.dataset.id = id;
+                    // Get category data from DataTable
+                    const categoryData = dt_categories.row(`tr:has([data-id="${id}"])`).data();
+                    if (!categoryData) return;
 
-                // Populate form with current values
-                const nameCell = row.cells[0];
-                const descCell = row.cells[1];
-                const colorBadge = row.cells[2].querySelector('.badge');
+                    const modalEl = document.getElementById('editCategoryModal');
+                    modalEl.dataset.id = id;
 
-                document.getElementById('editCategoryName').value = nameCell.textContent.trim();
-                document.getElementById('editCategoryDescription').value = descCell.textContent.trim();
+                    // Populate form with current values
+                    document.getElementById('editCategoryName').value = categoryData.name || '';
+                    document.getElementById('editCategoryDescription').value = categoryData.description || '';
+                    document.getElementById('editCategoryColor').value = categoryData.color || '#6c757d';
+                    document.getElementById('editCategoryColorText').value = categoryData.color || '#6c757d';
 
-                const currentColor = colorBadge.style.backgroundColor || '#6c757d';
-                document.getElementById('editCategoryColor').value = currentColor;
-                document.getElementById('editCategoryColorText').value = currentColor;
+                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    m.show();
+                    return;
+                }
 
-                const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-                m.show();
-                return;
-            }
+                const del = e.target.closest('.js-delete-category');
+                if (del) {
+                    const id = del.getAttribute('data-id');
+                    if (!id) return;
 
-            const del = e.target.closest('.js-delete-category');
-            if (del) {
-                if (!confirm('Delete this category? This action cannot be undone.')) return;
+                    if (!confirm('Delete this category? This action cannot be undone.')) return;
+                    try {
+                        const res = await fetch('/api/categories/' + id, {
+                            method: 'DELETE',
+                            headers: { 'CSRF-Token': CSRF }
+                        });
+                        const result = await res.json();
+                        if (!res.ok) throw new Error(result?.error || 'Delete failed');
+                        dt_categories.ajax.reload();
+                    } catch (err) {
+                        alert(err?.message || 'Could not delete category');
+                    }
+                    return;
+                }
+            });
+
+            // Create category form
+            document.getElementById('createCategoryForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('newCategoryName').value.trim();
+                const description = document.getElementById('newCategoryDescription').value.trim();
+                const color = document.getElementById('newCategoryColor').value;
+
+                if (!name) {
+                    alert('Category name is required');
+                    return;
+                }
+
                 try {
-                    const res = await fetch('/api/categories/' + id, {
-                        method: 'DELETE',
-                        headers: { 'CSRF-Token': CSRF }
+                    const res = await fetch('/api/categories', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        body: JSON.stringify({ name, description, color })
                     });
                     const result = await res.json();
-                    if (!res.ok) throw new Error(result?.error || 'Delete failed');
-                    row.remove();
+                    if (!res.ok) throw new Error(result?.error || 'Create failed');
+                    dt_categories.ajax.reload();
+                    bootstrap.Modal.getInstance(document.getElementById('createCategoryModal'))?.hide();
                 } catch (err) {
-                    alert(err?.message || 'Could not delete category');
+                    alert(err?.message || 'Could not create category');
                 }
-                return;
-            }
-        });
+            });
 
-        // Create category form
-        document.getElementById('createCategoryForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('newCategoryName').value.trim();
-            const description = document.getElementById('newCategoryDescription').value.trim();
-            const color = document.getElementById('newCategoryColor').value;
+            // Edit category form
+            document.getElementById('editCategoryForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const modalEl = document.getElementById('editCategoryModal');
+                const id = modalEl?.dataset.id;
+                if (!id) return;
 
-            if (!name) {
-                alert('Category name is required');
-                return;
-            }
+                const name = document.getElementById('editCategoryName').value.trim();
+                const description = document.getElementById('editCategoryDescription').value.trim();
+                const color = document.getElementById('editCategoryColor').value;
+                const isActive = document.getElementById('editCategoryActive').checked;
 
-            try {
-                const res = await fetch('/api/categories', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-                    body: JSON.stringify({ name, description, color })
-                });
-                const result = await res.json();
-                if (!res.ok) throw new Error(result?.error || 'Create failed');
-                location.reload();
-            } catch (err) {
-                alert(err?.message || 'Could not create category');
-            }
-        });
-
-        // Edit category form
-        document.getElementById('editCategoryForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const modalEl = document.getElementById('editCategoryModal');
-            const id = modalEl?.dataset.id;
-            if (!id) return;
-
-            const name = document.getElementById('editCategoryName').value.trim();
-            const description = document.getElementById('editCategoryDescription').value.trim();
-            const color = document.getElementById('editCategoryColor').value;
-            const isActive = document.getElementById('editCategoryActive').checked;
-
-            if (!name) {
-                alert('Category name is required');
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/categories/' + id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-                    body: JSON.stringify({ name, description, color, isActive })
-                });
-                const result = await res.json();
-                if (!res.ok) throw new Error(result?.error || 'Update failed');
-
-                // Update the row in place
-                const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-                if (row) {
-                    row.cells[0].textContent = name;
-                    row.cells[1].textContent = description;
-                    const colorBadge = row.cells[2].querySelector('.badge');
-                    colorBadge.style.backgroundColor = color;
-                    colorBadge.textContent = color;
-                    row.cells[3].innerHTML = `<span class="text-muted">${formatDateVerbose(new Date())}</span>`;
+                if (!name) {
+                    alert('Category name is required');
+                    return;
                 }
 
-                bootstrap.Modal.getInstance(modalEl)?.hide();
-            } catch (err) {
-                alert(err?.message || 'Could not update category');
-            }
-        });
-    })();
+                try {
+                    const res = await fetch('/api/categories/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        body: JSON.stringify({ name, description, color, isActive })
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result?.error || 'Update failed');
+
+                    dt_categories.ajax.reload();
+                    bootstrap.Modal.getInstance(modalEl)?.hide();
+                } catch (err) {
+                    alert(err?.message || 'Could not update category');
+                }
+            });
+        }
+    });
 </script>
 {{/section}}

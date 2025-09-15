@@ -11,7 +11,9 @@ export async function listCategories(req, res) {
         const categories = await Category.findAll({
             order: [['name', 'ASC']]
         });
-        res.json({ ok: true, categories });
+
+        // Return in DataTables expected format
+        res.json({ data: categories });
     } catch (err) {
         console.error('List categories error:', err);
         res.status(500).json({ error: 'Server error' });

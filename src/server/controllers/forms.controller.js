@@ -325,7 +325,9 @@ export async function listForms(_req, res) {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
     }));
-    res.json({ ok: true, forms });
+
+    // Return in DataTables expected format
+    res.json({ data: forms });
   } catch (err) {
     console.error('List forms error:', err);
     res.status(500).json({ error: 'Server error' });

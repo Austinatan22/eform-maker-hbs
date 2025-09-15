@@ -50,10 +50,17 @@ router.get('/admin/users', ensureAuth, requireAdmin, async (_req, res) => {
 });
 
 // --- API: list users ---
-router.get('/api/users', ensureAuth, requireAdmin, async (_req, res) => {
-  const rows = await User.findAll({ order: [['updatedAt', 'DESC']] });
-  const users = rows.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role, updatedAt: u.updatedAt }));
-  res.json({ ok: true, users });
+router.get('/api/users', ensureAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = await User.findAll({ order: [['updatedAt', 'DESC']] });
+    const users = rows.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role, updatedAt: u.updatedAt }));
+
+    // Return in DataTables expected format
+    res.json({ data: users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
 
 // --- API: create user ---

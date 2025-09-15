@@ -7,91 +7,17 @@
     </button>
   </div>
 
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
-        <colgroup>
-          <col style="width: 40%">
-          <col style="width: 20%">
-          <col style="width: 20%">
-          <col class="col-actions">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Category</th>
-            <th>Updated</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </thead>
-        <tfoot class="table-border-bottom-0">
-          <tr>
-            <th class="rounded-start-bottom">Title</th>
-            <th>Category</th>
-            <th>Updated</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </tfoot>
-        <tbody class="table-border-bottom-0">
-          {{#if forms.length}}
-          {{#each forms}}
-          <tr data-id="{{this.id}}">
-            <td class="fw-medium js-title">{{this.title}}</td>
-            <td>
-              {{#if this.category}}
-              <span class="badge rounded-pill js-cat-badge"
-                style="background-color: {{this.category.color}}; color: white;"
-                data-cat="{{this.category.id}}">{{this.category.name}}</span>
-              {{else}}
-              <span class="badge rounded-pill js-cat-badge bg-label-secondary">Uncategorized</span>
-              {{/if}}
-            </td>
-            <td><span class="text-muted">{{this.updatedAt}}</span></td>
-            <td class="col-actions">
-              <div class="d-inline-flex align-items-center gap-1 justify-content-start">
-                <button type="button" class="btn btn-sm btn-outline-primary js-act-edit">
-                  <i class="icon-base ti tabler-edit icon-sm me-1"></i>
-                  Edit
-                </button>
-                <div class="btn-group">
-                  <button type="button"
-                    class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
-                    data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
-                    <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                      <a class="dropdown-item js-act-rename" href="javascript:void(0);">
-                        <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
-                        Info
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item js-act-test-hosted" href="javascript:void(0);">
-                        <i class="icon-base ti tabler-external-link icon-sm me-2"></i>
-                        Test Hosted Form
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item text-danger js-delete" href="javascript:void(0);">
-                        <i class="icon-base ti tabler-trash icon-sm me-2"></i>
-                        Delete
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </td>
-          </tr>
-          {{/each}}
-          {{else}}
-          <tr>
-            <td colspan="4" class="text-center text-muted py-4">No forms yet.</td>
-          </tr>
-          {{/if}}
-        </tbody>
-      </table>
-    </div>
+  <div class="card-datatable table-responsive pt-0">
+    <table class="datatables-forms table" id="formsTable">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+    </table>
   </div>
 </div>
 
@@ -224,8 +150,9 @@
 
 {{#section 'scripts'}}
 <script>
-  (function () {
-    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || window.CSRF_TOKEN || '';
+  document.addEventListener('DOMContentLoaded', function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]').content || window.CSRF_TOKEN || '';
+
     function catBadgeClass(cat) {
       switch ((cat || '').toLowerCase()) {
         case 'quiz': return 'bg-label-info';
@@ -241,366 +168,487 @@
       return 'Survey';
     }
 
-    // Category badges are now rendered server-side, no need to initialize them
-
-    // Initialize kebab action dropdowns with fixed strategy
-    document.querySelectorAll('.js-actions').forEach(btn => {
+    function formatDateVerbose(val) {
       try {
-        const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
-          boundary: 'viewport',
-          popperConfig(config) {
-            return Object.assign({}, config || {}, { strategy: 'fixed' });
+        const d = new Date(val);
+        if (isNaN(d)) return String(val || '');
+        const DD = String(d.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+        const MMM = months[d.getMonth()] || '';
+        const YYYY = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+      } catch (_) { return String(val || ''); }
+    }
+
+    // Initialize DataTable
+    const formsTable = document.getElementById('formsTable');
+    let dt_forms;
+
+    if (formsTable) {
+      dt_forms = new DataTable(formsTable, {
+        ajax: {
+          url: '/api/forms',
+          headers: { 'CSRF-Token': CSRF }
+        },
+        columns: [
+          { data: 'title' },
+          { data: 'category' },
+          { data: 'updatedAt' },
+          { data: 'id' }
+        ],
+        columnDefs: [
+          {
+            // Title column
+            targets: 0,
+            render: function (data, type, full, meta) {
+              return `<span class="fw-medium js-title">${data || ''}</span>`;
+            }
+          },
+          {
+            // Category column
+            targets: 1,
+            render: function (data, type, full, meta) {
+              if (data && data.id) {
+                return `<span class="badge rounded-pill js-cat-badge" style="background-color: ${data.color}; color: white;" data-cat="${data.id}">${data.name}</span>`;
+              }
+              return '<span class="badge rounded-pill js-cat-badge bg-label-secondary">Uncategorized</span>';
+            }
+          },
+          {
+            // Updated column
+            targets: 2,
+            render: function (data, type, full, meta) {
+              return `<span class="text-muted">${formatDateVerbose(data)}</span>`;
+            }
+          },
+          {
+            // Actions column
+            targets: -1,
+            title: 'Actions',
+            orderable: false,
+            searchable: false,
+            render: function (data, type, full, meta) {
+              return `
+                <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                  <button type="button" class="btn btn-sm btn-outline-primary js-act-edit" data-id="${full.id}">
+                    <i class="icon-base ti tabler-edit icon-sm me-1"></i>
+                    Edit
+                  </button>
+                  <div class="btn-group">
+                    <button type="button"
+                      class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                      data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                      <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <a class="dropdown-item js-act-rename" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-info-circle icon-sm me-2"></i>
+                          Info
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item js-act-test-hosted" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-external-link icon-sm me-2"></i>
+                          Test Hosted Form
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item text-danger js-delete" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                          Delete
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              `;
+            }
           }
-        });
-        void dd;
-      } catch (_) { /* ignore */ }
-    });
-
-    // Create Form wizard logic
-    (function initCreateFormWizard() {
-      const modalEl = document.getElementById('createFormModal');
-      const wiz = document.getElementById('createFormWizard');
-      if (!modalEl || !wiz) return;
-
-      const stepChoose = wiz.querySelector('[data-step="choose"]');
-      const stepBlank = wiz.querySelector('[data-step="blank"]');
-      const stepTpl = wiz.querySelector('[data-step="templates"]');
-      const btnBack = wiz.querySelector('.js-wiz-back');
-      const btnNext = wiz.querySelector('.js-wiz-next');
-      const titleEl = wiz.querySelector('.js-wiz-title');
-      const inputTitle = wiz.querySelector('#blankTitle');
-      const selCat = wiz.querySelector('#blankCategory');
-
-      let mode = 'choose'; // 'choose' | 'blank' (details) | 'templates'
-      let fromTemplates = false;
-      let selectedFields = [];
-
-      const TEMPLATES = {
-        newsletter: {
-          name: 'Newsletter Signup',
-          categoryId: 'cat-survey',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
-          ]
+        ],
+        order: [[2, 'desc']], // Sort by updated date descending by default
+        layout: {
+          topStart: {
+            rowClass: 'row mx-3 my-0 justify-content-between',
+            features: [
+              {
+                pageLength: {
+                  menu: [10, 25, 50, 100],
+                  text: 'Show_MENU_entries'
+                }
+              }
+            ]
+          },
+          topEnd: {
+            search: {
+              placeholder: 'Search forms...'
+            }
+          },
+          bottomStart: {
+            rowClass: 'row mx-3 justify-content-between',
+            features: ['info']
+          },
+          bottomEnd: 'paging'
         },
-        complaints: {
-          name: 'Complaints',
-          categoryId: 'cat-feedback',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-            { type: 'dropdown', label: 'Issue Type', name: 'issueType', options: 'Billing,Bug,Feature Request,Other', required: true },
-            { type: 'paragraph', label: 'Describe the issue', name: 'details', placeholder: 'Tell us what went wrong...', required: true }
-          ]
-        },
-        profile: {
-          name: 'Profile',
-          categoryId: 'cat-survey',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-            { type: 'phone', label: 'Phone Number', name: 'phone', placeholder: '' }
-          ]
-        },
-        rsvp: {
-          name: 'Event RSVP',
-          categoryId: 'cat-registration',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-            { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
-            { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
-          ]
-        },
-        contact: {
-          name: 'Contact Us',
-          categoryId: 'cat-contact',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-            { type: 'phone', label: 'Phone Number', name: 'phone' },
-            { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
-            { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
-          ]
-        },
-        support: {
-          name: 'Support Ticket',
-          categoryId: 'cat-feedback',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-            { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
-            { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
-            { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
-          ]
-        },
-        job: {
-          name: 'Job Application',
-          categoryId: 'cat-registration',
-          fields: [
-            { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-            { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-            { type: 'phone', label: 'Phone Number', name: 'phone' },
-            { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
-            { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
-            { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
-          ]
-        },
-        nps: {
-          name: 'NPS Survey',
-          categoryId: 'cat-survey',
-          fields: [
-            { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
-            { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
-          ]
-        }
-      };
-
-      function show(step) {
-        mode = step;
-        stepChoose.classList.toggle('d-none', step !== 'choose');
-        stepBlank.classList.toggle('d-none', step !== 'blank');
-        stepTpl.classList.toggle('d-none', step !== 'templates');
-        btnBack.classList.toggle('d-none', step === 'choose');
-        // Hide Next on first step; users pick a tile instead
-        btnNext.classList.toggle('d-none', step === 'choose');
-        btnNext.textContent = 'Create';
-        titleEl.textContent = 'Create a Form';
-      }
-
-      wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => {
-        // If user opts for blank after exploring templates, reset any prefilled values
-        fromTemplates = false;
-        selectedFields = [];
-        if (inputTitle) inputTitle.value = '';
-        show('blank');
-      });
-      wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
-      // Template tile click -> select radio and set primary label style
-      wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
-        const tile = e.target.closest('.template-tile');
-        if (!tile) return;
-        // Reset all tiles to outline-secondary and remove active/primary
-        wiz.querySelectorAll('.template-tile').forEach(el => {
-          el.classList.remove('active', 'btn-primary', 'btn-label-primary');
-          el.classList.add('btn-outline-secondary');
-        });
-        // Activate selected tile with primary label color (not filled)
-        tile.classList.add('active', 'btn-label-primary');
-        tile.classList.remove('btn-outline-secondary', 'btn-primary');
-        const input = tile.querySelector('input[type=radio][name=templateChoice]');
-        if (input) { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }
-      });
-
-      btnBack?.addEventListener('click', () => {
-        if (mode === 'blank' && fromTemplates) {
-          show('templates');
-        } else {
-          show('choose');
+        language: {
+          paginate: {
+            next: '<i class="icon-base ti tabler-chevron-right scaleX-n1-rtl icon-18px"></i>',
+            previous: '<i class="icon-base ti tabler-chevron-left scaleX-n1-rtl icon-18px"></i>',
+            first: '<i class="icon-base ti tabler-chevrons-left scaleX-n1-rtl icon-18px"></i>',
+            last: '<i class="icon-base ti tabler-chevrons-right scaleX-n1-rtl icon-18px"></i>'
+          }
         }
       });
 
-      btnNext?.addEventListener('click', async () => {
-        try {
-          if (mode === 'blank') {
-            const title = (inputTitle?.value || '').trim();
-            if (!title) { inputTitle?.focus(); return; }
-            const categoryId = selCat?.value || '';
-            const res = await fetch('/api/forms', {
-              method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-              body: JSON.stringify({ title, categoryId, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
+      // Initialize dropdowns after table is drawn
+      formsTable.addEventListener('draw.dt', function () {
+        document.querySelectorAll('.js-actions').forEach(btn => {
+          try {
+            const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+              boundary: 'viewport',
+              popperConfig(config) {
+                return Object.assign({}, config || {}, { strategy: 'fixed' });
+              }
             });
-            const out = await res.json();
-            if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
-            bootstrap.Modal.getInstance(modalEl)?.hide();
-            window.location.assign('/builder/' + out.form.id);
-            return;
-          }
+            void dd;
+          } catch (_) { /* ignore */ }
+        });
+      });
 
-          if (mode === 'templates') {
-            const selected = wiz.querySelector('input[name="templateChoice"]:checked');
-            if (!selected) return;
-            const key = selected.value;
-            const tpl = TEMPLATES[key];
-            // Move to details step with prefilled fields
-            selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
-            fromTemplates = true;
-            if (inputTitle) inputTitle.value = tpl.name || '';
-            if (selCat) selCat.value = tpl.categoryId || '';
-            show('blank');
-            return;
-          }
+      // Create Form wizard logic
+      (function initCreateFormWizard() {
+        const modalEl = document.getElementById('createFormModal');
+        const wiz = document.getElementById('createFormWizard');
+        if (!modalEl || !wiz) return;
 
-          // From choose -> go to blank as default
+        const stepChoose = wiz.querySelector('[data-step="choose"]');
+        const stepBlank = wiz.querySelector('[data-step="blank"]');
+        const stepTpl = wiz.querySelector('[data-step="templates"]');
+        const btnBack = wiz.querySelector('.js-wiz-back');
+        const btnNext = wiz.querySelector('.js-wiz-next');
+        const titleEl = wiz.querySelector('.js-wiz-title');
+        const inputTitle = wiz.querySelector('#blankTitle');
+        const selCat = wiz.querySelector('#blankCategory');
+
+        let mode = 'choose'; // 'choose' | 'blank' (details) | 'templates'
+        let fromTemplates = false;
+        let selectedFields = [];
+
+        const TEMPLATES = {
+          newsletter: {
+            name: 'Newsletter Signup',
+            categoryId: 'cat-survey',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
+            ]
+          },
+          complaints: {
+            name: 'Complaints',
+            categoryId: 'cat-feedback',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+              { type: 'dropdown', label: 'Issue Type', name: 'issueType', options: 'Billing,Bug,Feature Request,Other', required: true },
+              { type: 'paragraph', label: 'Describe the issue', name: 'details', placeholder: 'Tell us what went wrong...', required: true }
+            ]
+          },
+          profile: {
+            name: 'Profile',
+            categoryId: 'cat-survey',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+              { type: 'phone', label: 'Phone Number', name: 'phone', placeholder: '' }
+            ]
+          },
+          rsvp: {
+            name: 'Event RSVP',
+            categoryId: 'cat-registration',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
+              { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
+              { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
+            ]
+          },
+          contact: {
+            name: 'Contact Us',
+            categoryId: 'cat-contact',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+              { type: 'phone', label: 'Phone Number', name: 'phone' },
+              { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
+              { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
+            ]
+          },
+          support: {
+            name: 'Support Ticket',
+            categoryId: 'cat-feedback',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+              { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
+              { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
+              { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
+            ]
+          },
+          job: {
+            name: 'Job Application',
+            categoryId: 'cat-registration',
+            fields: [
+              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
+              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
+              { type: 'phone', label: 'Phone Number', name: 'phone' },
+              { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
+              { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
+              { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
+            ]
+          },
+          nps: {
+            name: 'NPS Survey',
+            categoryId: 'cat-survey',
+            fields: [
+              { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
+              { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
+            ]
+          }
+        };
+
+        function show(step) {
+          mode = step;
+          stepChoose.classList.toggle('d-none', step !== 'choose');
+          stepBlank.classList.toggle('d-none', step !== 'blank');
+          stepTpl.classList.toggle('d-none', step !== 'templates');
+          btnBack.classList.toggle('d-none', step === 'choose');
+          // Hide Next on first step; users pick a tile instead
+          btnNext.classList.toggle('d-none', step === 'choose');
+          btnNext.textContent = 'Create';
+          titleEl.textContent = 'Create a Form';
+        }
+
+        wiz.querySelector('.js-choose-blank')?.addEventListener('click', () => {
+          // If user opts for blank after exploring templates, reset any prefilled values
+          fromTemplates = false;
+          selectedFields = [];
+          if (inputTitle) inputTitle.value = '';
           show('blank');
+        });
+        wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
+        // Template tile click -> select radio and set primary label style
+        wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
+          const tile = e.target.closest('.template-tile');
+          if (!tile) return;
+          // Reset all tiles to outline-secondary and remove active/primary
+          wiz.querySelectorAll('.template-tile').forEach(el => {
+            el.classList.remove('active', 'btn-primary', 'btn-label-primary');
+            el.classList.add('btn-outline-secondary');
+          });
+          // Activate selected tile with primary label color (not filled)
+          tile.classList.add('active', 'btn-label-primary');
+          tile.classList.remove('btn-outline-secondary', 'btn-primary');
+          const input = tile.querySelector('input[type=radio][name=templateChoice]');
+          if (input) { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }
+        });
+
+        btnBack?.addEventListener('click', () => {
+          if (mode === 'blank' && fromTemplates) {
+            show('templates');
+          } else {
+            show('choose');
+          }
+        });
+
+        btnNext?.addEventListener('click', async () => {
+          try {
+            if (mode === 'blank') {
+              const title = (inputTitle?.value || '').trim();
+              if (!title) { inputTitle?.focus(); return; }
+              const categoryId = selCat?.value || '';
+              const res = await fetch('/api/forms', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                body: JSON.stringify({ title, categoryId, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
+              });
+              const out = await res.json();
+              if (!res.ok || !out?.form?.id) throw new Error(out?.error || 'Create failed');
+              dt_forms.ajax.reload();
+              bootstrap.Modal.getInstance(modalEl)?.hide();
+              window.location.assign('/builder/' + out.form.id);
+              return;
+            }
+
+            if (mode === 'templates') {
+              const selected = wiz.querySelector('input[name="templateChoice"]:checked');
+              if (!selected) return;
+              const key = selected.value;
+              const tpl = TEMPLATES[key];
+              // Move to details step with prefilled fields
+              selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
+              fromTemplates = true;
+              if (inputTitle) inputTitle.value = tpl.name || '';
+              if (selCat) selCat.value = tpl.categoryId || '';
+              show('blank');
+              return;
+            }
+
+            // From choose -> go to blank as default
+            show('blank');
+          } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Could not create form.');
+          }
+        });
+
+        // Reset wizard on open
+        modalEl.addEventListener('show.bs.modal', () => {
+          // Clear selected template visual state
+          wiz.querySelectorAll('.template-tile').forEach(el => {
+            el.classList.remove('active', 'btn-primary', 'btn-label-primary');
+            el.classList.add('btn-outline-secondary');
+          });
+          wiz.querySelector('input[name="templateChoice"]:checked')?.closest('label')?.classList.remove('active');
+          const checked = wiz.querySelector('input[name="templateChoice"]:checked');
+          if (checked) checked.checked = false;
+          inputTitle && (inputTitle.value = '');
+          selCat && (selCat.value = '');
+          selectedFields = [];
+          fromTemplates = false;
+          show('choose');
+        });
+      })();
+
+      // Handle table clicks
+      formsTable.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-delete');
+        if (btn) {
+          const id = btn.getAttribute('data-id');
+          if (!id) return;
+
+          // Get form data from DataTable
+          const formData = dt_forms.row(`tr:has([data-id="${id}"])`).data();
+          if (!formData) return;
+
+          const modalEl = document.getElementById('confirmDeleteModal');
+          modalEl.dataset.id = id;
+          modalEl.querySelector('.js-del-title').textContent = formData.title || 'this form';
+          const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+          m.show();
+          return;
+        }
+
+        // Edit action
+        const actEdit = e.target.closest('.js-act-edit');
+        if (actEdit) {
+          const id = actEdit.getAttribute('data-id');
+          if (!id) return;
+          window.location.assign('/builder/' + id);
+          return;
+        }
+
+        // Rename action
+        const actRename = e.target.closest('.js-act-rename');
+        if (actRename) {
+          const id = actRename.getAttribute('data-id');
+          if (!id) return;
+
+          // Get form data from DataTable
+          const formData = dt_forms.row(`tr:has([data-id="${id}"])`).data();
+          if (!formData) return;
+
+          const modalEl = document.getElementById('renameFormModal');
+          modalEl.dataset.id = id;
+          const input = modalEl.querySelector('#renameFormInput');
+          input.value = formData.title || '';
+          // Prefill category from the form data
+          const currentCat = formData.categoryId || '';
+          const sel = modalEl.querySelector('#renameFormCategory');
+          if (sel) sel.value = currentCat;
+          const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+          m.show();
+          return;
+        }
+
+        // Test hosted form action
+        const actTestHosted = e.target.closest('.js-act-test-hosted');
+        if (actTestHosted) {
+          const id = actTestHosted.getAttribute('data-id');
+          if (!id) return;
+          // Open the hosted form in a new tab
+          window.open('/f/' + id, '_blank');
+          return;
+        }
+      });
+
+      // Delete modal confirm
+      document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+        const modalEl = document.getElementById('confirmDeleteModal');
+        const id = modalEl?.dataset.id;
+        if (!id) return;
+        const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+        const btn = document.getElementById('confirmDeleteBtn');
+        const originalText = btn?.textContent;
+
+        try {
+          // Show loading state
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+          }
+
+          const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+          if (!res.ok) throw new Error('Delete failed');
+
+          dt_forms.ajax.reload();
+          bootstrap.Modal.getInstance(modalEl)?.hide();
         } catch (err) {
           console.error(err);
-          alert(err?.message || 'Could not create form.');
-        }
-      });
-
-      // Reset wizard on open
-      modalEl.addEventListener('show.bs.modal', () => {
-        // Clear selected template visual state
-        wiz.querySelectorAll('.template-tile').forEach(el => {
-          el.classList.remove('active', 'btn-primary', 'btn-label-primary');
-          el.classList.add('btn-outline-secondary');
-        });
-        wiz.querySelector('input[name="templateChoice"]:checked')?.closest('label')?.classList.remove('active');
-        const checked = wiz.querySelector('input[name="templateChoice"]:checked');
-        if (checked) checked.checked = false;
-        inputTitle && (inputTitle.value = '');
-        selCat && (selCat.value = '');
-        selectedFields = [];
-        fromTemplates = false;
-        show('choose');
-      });
-    })();
-
-    // Row actions (delete, edit, rename)
-    document.querySelector('table')?.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.js-delete');
-      if (btn) {
-        const row = btn.closest('tr');
-        const id = row?.dataset.id;
-        if (!id) return;
-        const title = (row.querySelector('.js-title')?.textContent || '').trim();
-        const modalEl = document.getElementById('confirmDeleteModal');
-        modalEl.dataset.id = id;
-        modalEl.querySelector('.js-del-title').textContent = title || 'this form';
-        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-        m.show();
-        return;
-      }
-      // Category changes are done in Rename modal
-
-      // Edit action
-      const actEdit = e.target.closest('.js-act-edit');
-      if (actEdit) {
-        const row = actEdit.closest('tr');
-        const id = row?.dataset.id;
-        if (!id) return;
-        window.location.assign('/builder/' + id);
-        return;
-      }
-
-      // Rename action
-      const actRename = e.target.closest('.js-act-rename');
-      if (actRename) {
-        const row = actRename.closest('tr');
-        const id = row?.dataset.id;
-        if (!id) return;
-        const titleCell = row.querySelector('.js-title');
-        const current = (titleCell?.textContent || '').trim();
-        const modalEl = document.getElementById('renameFormModal');
-        modalEl.dataset.id = id;
-        const input = modalEl.querySelector('#renameFormInput');
-        input.value = current;
-        // Prefill category from the badge in the row
-        const currentCat = row.querySelector('.js-cat-badge')?.getAttribute('data-cat') || '';
-        const sel = modalEl.querySelector('#renameFormCategory');
-        if (sel) sel.value = currentCat;
-        const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-        m.show();
-        return;
-      }
-
-      // Test hosted form action
-      const actTestHosted = e.target.closest('.js-act-test-hosted');
-      if (actTestHosted) {
-        const row = actTestHosted.closest('tr');
-        const id = row?.dataset.id;
-        if (!id) return;
-        // Open the hosted form in a new tab
-        window.open('/f/' + id, '_blank');
-        return;
-      }
-    });
-
-    // Delete modal confirm
-    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
-      const modalEl = document.getElementById('confirmDeleteModal');
-      const id = modalEl?.dataset.id;
-      if (!id) return;
-      const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-      const btn = document.getElementById('confirmDeleteBtn');
-      const originalText = btn?.textContent;
-
-      try {
-        // Show loading state
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = 'Deleting...';
-        }
-
-        const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
-        if (!res.ok) throw new Error('Delete failed');
-
-        row?.remove();
-        bootstrap.Modal.getInstance(modalEl)?.hide();
-      } catch (err) {
-        console.error(err);
-        alert('Could not delete form.');
-      } finally {
-        // Restore button state
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      }
-    });
-
-    // Rename modal submit
-    document.getElementById('renameFormForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const modalEl = document.getElementById('renameFormModal');
-      const id = modalEl?.dataset.id;
-      if (!id) return;
-      const input = document.getElementById('renameFormInput');
-      const newTitle = String(input.value || '').trim();
-      if (!newTitle) return;
-      const catSelect = document.getElementById('renameFormCategory');
-      const newCategoryId = catSelect?.value || '';
-      const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
-      const titleCell = row?.querySelector('.js-title');
-      try {
-        const res = await fetch('/api/forms/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-          body: JSON.stringify({ title: newTitle, categoryId: newCategoryId })
-        });
-        const out = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (res.status === 409) throw new Error('Title already exists.');
-          throw new Error(out?.error || 'Update failed');
-        }
-        if (titleCell) titleCell.textContent = newTitle;
-        // Update badge in the row
-        const badge = row?.querySelector('.js-cat-badge');
-        if (badge && out.form) {
-          if (out.form.category) {
-            badge.setAttribute('data-cat', out.form.category.id);
-            badge.textContent = out.form.category.name;
-            badge.style.backgroundColor = out.form.category.color;
-            badge.style.color = 'white';
-            badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning', 'bg-label-secondary');
-          } else {
-            badge.setAttribute('data-cat', '');
-            badge.textContent = 'Uncategorized';
-            badge.style.backgroundColor = '';
-            badge.style.color = '';
-            badge.classList.remove('bg-label-primary', 'bg-label-info', 'bg-label-warning');
-            badge.classList.add('bg-label-secondary');
+          alert('Could not delete form.');
+        } finally {
+          // Restore button state
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
           }
         }
-        bootstrap.Modal.getInstance(modalEl)?.hide();
-      } catch (err) {
-        console.error(err);
-        alert(err?.message || 'Could not rename form');
-      }
-    });
-  })();
+      });
+
+      // Rename modal submit
+      document.getElementById('renameFormForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const modalEl = document.getElementById('renameFormModal');
+        const id = modalEl?.dataset.id;
+        if (!id) return;
+        const input = document.getElementById('renameFormInput');
+        const newTitle = String(input.value || '').trim();
+        if (!newTitle) return;
+        const catSelect = document.getElementById('renameFormCategory');
+        const newCategoryId = catSelect?.value || '';
+        const row = document.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+        const titleCell = row?.querySelector('.js-title');
+        try {
+          const res = await fetch('/api/forms/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            body: JSON.stringify({ title: newTitle, categoryId: newCategoryId })
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            if (res.status === 409) throw new Error('Title already exists.');
+            throw new Error(out?.error || 'Update failed');
+          }
+          dt_forms.ajax.reload();
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+        } catch (err) {
+          console.error(err);
+          alert(err?.message || 'Could not rename form');
+        }
+      });
+    }
+  });
 </script>
 {{/section}}
 
