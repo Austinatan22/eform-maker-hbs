@@ -36,15 +36,34 @@ router.post('/login', loginLimiter, async (req, res) => {
     const lockoutStatus = await isUserLockedOut(e);
     if (lockoutStatus.locked) {
       const lockoutTime = new Date(lockoutStatus.lockedUntil).toLocaleString();
-      await logAudit(req, { entity: 'auth', action: 'login_blocked', entityId: null, meta: { email: e, reason: 'account_locked' } });
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_blocked',
+        entityId: null,
+        meta: {
+          email: e,
+          reason: 'account_locked',
+          lockoutUntil: lockoutTime,
+          failedAttempts: lockoutStatus.failedAttempts || 0
+        }
+      });
       return renderLogin(req, res, { error: `Account is locked until ${lockoutTime}. Too many failed login attempts.` });
     }
 
     const bcrypt = await import('bcryptjs');
     const user = await User.findOne({ where: { email: e } });
     if (!user) {
-      await recordFailedAttempt(e);
-      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: null, meta: { email: e, reason: 'user_not_found' } });
+      const attemptResult = await recordFailedAttempt(e);
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_failed',
+        entityId: null,
+        meta: {
+          email: e,
+          reason: 'user_not_found',
+          failedAttempts: attemptResult.failedAttempts || 1
+        }
+      });
       return renderLogin(req, res, { error: 'Invalid credentials' });
     }
 
@@ -64,7 +83,20 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Successful login - clear failed attempts
     await clearFailedAttempts(e);
     req.session.user = { id: user.id, email: user.email, role: user.role };
-    await logAudit(req, { entity: 'auth', action: 'login', entityId: user.id, meta: { email: user.email } });
+
+    // Enhanced successful login audit
+    await logAudit(req, {
+      entity: 'auth',
+      action: 'login',
+      entityId: user.id,
+      meta: {
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        sessionId: req.sessionID,
+        loginTime: new Date().toISOString()
+      }
+    });
     res.redirect('/forms');
   } catch (err) {
     console.error('login error:', err);
@@ -77,7 +109,17 @@ router.post('/logout', (req, res) => {
     const userId = req.session?.user?.id || null;
     req.session?.destroy(async () => {
       res.clearCookie('sid');
-      try { await logAudit(req, { entity: 'auth', action: 'logout', entityId: userId, meta: {} }); } catch { }
+      try {
+        await logAudit(req, {
+          entity: 'auth',
+          action: 'logout',
+          entityId: userId,
+          meta: {
+            logoutTime: new Date().toISOString(),
+            sessionId: req.sessionID
+          }
+        });
+      } catch { }
       res.redirect('/login');
     });
   } catch {

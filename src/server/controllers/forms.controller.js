@@ -134,16 +134,32 @@ export async function createOrUpdateForm(req, res) {
       const reqUser = req.session?.user || req.user || null;
       const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
       const { form, rows } = await createFormWithFields(normalizedTitle, clean, category, createdBy);
-      await logAudit(req, { entity: 'form', action: 'create', entityId: form.id, meta: { title: form.title, category } });
+      await logAudit(req, {
+        entity: 'form',
+        action: 'create',
+        entityId: form.id,
+        meta: {
+          title: form.title,
+          category,
+          fieldCount: clean.length,
+          fields: clean.map(f => ({ type: f.type, label: f.label, required: f.required }))
+        }
+      });
       return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
     } else {
       // Enforce uniqueness on update (when using POST /api/forms with id)
       if (await isTitleTaken(normalizedTitle, String(id))) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
+
+      // Get the current form state before update for audit logging
+      const currentForm = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
+      if (!currentForm) return res.status(404).json({ error: 'Not found' });
+
       // Ownership restrictions removed - editors can now edit any form
       const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
+
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
       const fieldsOut = (withFields.fields || []).sort((a, b) => a.position - b.position).map(f => ({
         id: f.id, type: f.type, label: f.label, name: f.name,
@@ -151,7 +167,62 @@ export async function createOrUpdateForm(req, res) {
         required: f.required, doNotStore: f.doNotStore,
         options: f.options
       }));
-      await logAudit(req, { entity: 'form', action: 'update', entityId: withFields.id, meta: { title: withFields.title, category: withFields.category } });
+
+      // Enhanced audit logging with before/after states
+      const changes = {};
+      if (currentForm.title !== withFields.title) {
+        changes.title = { from: currentForm.title, to: withFields.title };
+      }
+      if (currentForm.category !== withFields.category) {
+        changes.category = { from: currentForm.category, to: withFields.category };
+      }
+
+      // Check for field changes
+      const currentFields = (currentForm.fields || []).sort((a, b) => a.position - b.position);
+      const newFields = fieldsOut;
+
+      if (currentFields.length !== newFields.length) {
+        changes.fieldCount = { from: currentFields.length, to: newFields.length };
+      }
+
+      // Check for individual field changes
+      const fieldChanges = [];
+      const maxLength = Math.max(currentFields.length, newFields.length);
+      for (let i = 0; i < maxLength; i++) {
+        const currentField = currentFields[i];
+        const newField = newFields[i];
+
+        if (!currentField && newField) {
+          fieldChanges.push({ action: 'added', field: { label: newField.label, type: newField.type } });
+        } else if (currentField && !newField) {
+          fieldChanges.push({ action: 'removed', field: { label: currentField.label, type: currentField.type } });
+        } else if (currentField && newField) {
+          const fieldChange = {};
+          if (currentField.label !== newField.label) fieldChange.label = { from: currentField.label, to: newField.label };
+          if (currentField.type !== newField.type) fieldChange.type = { from: currentField.type, to: newField.type };
+          if (currentField.required !== newField.required) fieldChange.required = { from: currentField.required, to: newField.required };
+          if (currentField.options !== newField.options) fieldChange.options = { from: currentField.options, to: newField.options };
+
+          if (Object.keys(fieldChange).length > 0) {
+            fieldChanges.push({ action: 'modified', field: { label: currentField.label }, changes: fieldChange });
+          }
+        }
+      }
+
+      if (fieldChanges.length > 0) {
+        changes.fields = fieldChanges;
+      }
+
+      await logAudit(req, {
+        entity: 'form',
+        action: 'update',
+        entityId: withFields.id,
+        meta: {
+          title: withFields.title,
+          category: withFields.category,
+          changes: Object.keys(changes).length > 0 ? changes : 'No changes detected'
+        }
+      });
       return res.json({ ok: true, form: { id: withFields.id, title: withFields.title, category: withFields.category, fields: fieldsOut } });
     }
   } catch (err) {
@@ -331,7 +402,17 @@ export async function deleteForm(req, res) {
     });
 
     // Log audit after successful deletion (outside transaction)
-    await logAudit(req, { entity: 'form', action: 'delete', entityId: req.params.id, meta: { title: formTitle } });
+    await logAudit(req, {
+      entity: 'form',
+      action: 'delete',
+      entityId: req.params.id,
+      meta: {
+        title: formTitle,
+        category: form.category,
+        fieldCount: form.fields?.length || 0,
+        deletedAt: new Date().toISOString()
+      }
+    });
     res.json({ ok: true });
   } catch (err) {
     console.error('Delete form error:', err);

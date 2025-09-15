@@ -221,21 +221,16 @@
 
                 // Meta JSON
                 const metaRaw = btn.getAttribute('data-meta-json') || '';
-                console.log('DEBUG: metaRaw from attribute:', metaRaw);
-                console.log('DEBUG: metaRaw length:', metaRaw.length);
 
                 let meta;
                 if (metaRaw) {
                     try {
                         // Decode the URI component first
                         const decodedMeta = decodeURIComponent(metaRaw);
-                        console.log('DEBUG: decoded meta:', decodedMeta);
 
                         // Then parse as JSON
                         meta = JSON.parse(decodedMeta);
-                        console.log('DEBUG: parsed meta:', meta);
                     } catch (e) {
-                        console.log('DEBUG: parse error:', e.message);
                         meta = metaRaw;
                     }
                 } else {
@@ -243,7 +238,6 @@
                 }
 
                 const prettyMeta = pretty(meta);
-                console.log('DEBUG: final pretty meta:', prettyMeta);
                 modalEl.querySelector('.js-json').textContent = prettyMeta;
 
                 const m = bootstrap.Modal.getOrCreateInstance(modalEl);
