@@ -2,7 +2,8 @@
   <label class="form-label">
     {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
   </label>
-  <input class="form-control" type="file" name="{{name}}" {{#if required}}required{{/if}}>
+  <input class="form-control" type="file" name="{{name}}" {{#if required}}required{{/if}}
+    accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx">
   {{#if placeholder}}<small class="text-muted">{{placeholder}}</small>{{/if}}
+  <small class="text-muted">Accepted formats: Images, PDF, Text, Word, Excel files (max 10MB)</small>
 </div>
-

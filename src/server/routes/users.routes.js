@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { logAudit } from '../services/audit.service.js';
+import { validatePassword } from '../services/password.service.js';
 
 const router = express.Router();
 
@@ -61,7 +62,12 @@ router.post('/api/users', ensureAuth, requireAdmin, async (req, res) => {
     const { email = '', password = '', role = 'editor', username = '' } = req.body || {};
     const e = String(email).trim().toLowerCase();
     if (!e || !e.includes('@')) return res.status(400).json({ error: 'Valid email required' });
-    if (String(password).length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    // Validate password against policy
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: 'Password does not meet requirements', details: passwordValidation.errors });
+    }
     const r = ['admin', 'editor', 'viewer'].includes(String(role)) ? String(role) : 'editor';
     const exists = await User.findOne({ where: { email: e } });
     if (exists) return res.status(409).json({ error: 'Email already in use' });
@@ -127,7 +133,13 @@ router.put('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
     const changingPassword = req.body?.password != null;
     if (changingPassword) {
       const p = String(req.body.password);
-      if (p.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+      // Validate password against policy
+      const passwordValidation = validatePassword(p);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: 'Password does not meet requirements', details: passwordValidation.errors });
+      }
+
       const bcrypt = await import('bcryptjs');
       patch.passwordHash = bcrypt.hashSync(p, 10);
       changes.password = { from: '[HIDDEN]', to: '[RESET]' };

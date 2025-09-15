@@ -8,6 +8,8 @@ import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
 import { createSubmission, deleteSubmissionsByFormId } from '../services/submissions.service.js';
+import { getFileUrl } from '../middleware/upload.js';
+import { formValidation, formFieldValidation, sanitize, runValidation } from '../services/validation.service.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
@@ -58,21 +60,59 @@ export async function health(_req, res) {
 export async function createOrUpdateForm(req, res) {
   const { id, title = '', fields = [], category: rawCategory } = req.body || {};
 
+  // Enhanced form validation
+  const formValidationResult = runValidation({ title, category: rawCategory, fields }, {
+    title: formValidation.title,
+    category: formValidation.category,
+    fields: formValidation.fields
+  });
+
+  if (!formValidationResult.valid) {
+    return res.status(400).json({
+      error: 'Form validation failed',
+      details: formValidationResult.errors
+    });
+  }
+
   const CATEGORIES = new Set(['survey', 'quiz', 'feedback']);
   const category = CATEGORIES.has(String(rawCategory || '').toLowerCase())
     ? String(rawCategory).toLowerCase()
     : 'survey';
 
-  if (!title.trim()) return res.status(400).json({ error: 'Form title is required.' });
-  const normalizedTitle = normalizeTitle(title);
-  if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
+  const normalizedTitle = normalizeTitle(sanitize.html(title));
 
+  // Enhanced field validation
   const clean = sanitizeFields(fields);
-  for (const f of clean) {
-    if (!isValidField(f)) {
-      return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
+  const fieldErrors = [];
+
+  for (let i = 0; i < clean.length; i++) {
+    const field = clean[i];
+
+    // Validate each field property
+    const labelError = formFieldValidation.label(field.label);
+    if (labelError) fieldErrors.push(`Field ${i + 1}: ${labelError}`);
+
+    const nameError = formFieldValidation.name(field.name);
+    if (nameError) fieldErrors.push(`Field ${i + 1}: ${nameError}`);
+
+    const placeholderError = formFieldValidation.placeholder(field.placeholder);
+    if (placeholderError) fieldErrors.push(`Field ${i + 1}: ${placeholderError}`);
+
+    const optionsError = formFieldValidation.options(field.options, field.type);
+    if (optionsError) fieldErrors.push(`Field ${i + 1}: ${optionsError}`);
+
+    if (!isValidField(field)) {
+      fieldErrors.push(`Field ${i + 1}: Invalid field definition`);
     }
   }
+
+  if (fieldErrors.length > 0) {
+    return res.status(400).json({
+      error: 'Field validation failed',
+      details: fieldErrors
+    });
+  }
+
   // Ensure field names are unique within the form
   const seen = new Set();
   for (const f of clean) {
@@ -101,15 +141,7 @@ export async function createOrUpdateForm(req, res) {
       if (await isTitleTaken(normalizedTitle, String(id))) {
         return res.status(409).json({ error: 'Form title already exists. Choose another.' });
       }
-      // Owner-or-admin enforcement when auth enabled
-      if (process.env.AUTH_ENABLED === '1') {
-        const f = await Form.findByPk(id);
-        const reqUser = req.session?.user || req.user || null;
-        const role = reqUser?.role || 'viewer';
-        const isOwner = f && reqUser && f.createdBy && f.createdBy === reqUser.id;
-        const isAdmin = role === 'admin';
-        if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
-      }
+      // Ownership restrictions removed - editors can now edit any form
       const out = await updateFormWithFields(id, normalizedTitle, clean, category);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
       const withFields = await Form.findByPk(id, { include: [{ model: FormField, as: 'fields' }] });
@@ -180,14 +212,7 @@ export async function updateForm(req, res) {
   try {
     const form = await Form.findByPk(req.params.id);
     if (!form) return res.status(404).json({ error: 'Not found' });
-    // Owner-or-admin enforcement when auth enabled
-    if (process.env.AUTH_ENABLED === '1') {
-      const reqUser = req.session?.user || req.user || null;
-      const role = reqUser?.role || 'viewer';
-      const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
-      const isAdmin = role === 'admin';
-      if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
-    }
+    // Ownership restrictions removed - editors can now edit any form
 
     if (title !== undefined) {
       if (!String(title).trim()) {
@@ -294,14 +319,7 @@ export async function deleteForm(req, res) {
       // Store title for audit logging outside transaction
       formTitle = form.title;
 
-      // Owner-or-admin enforcement when auth enabled
-      if (process.env.AUTH_ENABLED === '1') {
-        const reqUser = req.session?.user || req.user || null;
-        const role = reqUser?.role || 'viewer';
-        const isOwner = reqUser && form.createdBy && form.createdBy === reqUser.id;
-        const isAdmin = role === 'admin';
-        if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
-      }
+      // Ownership restrictions removed - editors can now delete any form
 
       // Delete in order of dependencies for better performance
       await FormField.destroy({ where: { formId: form.id }, transaction: t });
@@ -318,6 +336,41 @@ export async function deleteForm(req, res) {
   } catch (err) {
     console.error('Delete form error:', err);
     res.status(500).json({ error: 'Could not delete form' });
+  }
+}
+
+export async function uploadFile(req, res) {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const uploadedFiles = req.files.map(file => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype,
+      url: getFileUrl(file.filename, req)
+    }));
+
+    // Log file upload
+    await logAudit(req, {
+      entity: 'file',
+      action: 'upload',
+      entityId: null,
+      meta: {
+        files: uploadedFiles.map(f => ({ name: f.originalName, size: f.size }))
+      }
+    });
+
+    res.json({
+      ok: true,
+      files: uploadedFiles,
+      message: `${uploadedFiles.length} file(s) uploaded successfully`
+    });
+  } catch (err) {
+    console.error('File upload error:', err);
+    res.status(500).json({ error: 'File upload failed' });
   }
 }
 

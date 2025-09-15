@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { logAudit } from '../services/audit.service.js';
+import { isUserLockedOut, recordFailedAttempt, clearFailedAttempts, validatePassword } from '../services/password.service.js';
 
 const router = express.Router();
 
@@ -30,17 +31,38 @@ router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email = '', password = '' } = req.body || {};
     const e = String(email).trim().toLowerCase();
+
+    // Check if user is locked out
+    const lockoutStatus = await isUserLockedOut(e);
+    if (lockoutStatus.locked) {
+      const lockoutTime = new Date(lockoutStatus.lockedUntil).toLocaleString();
+      await logAudit(req, { entity: 'auth', action: 'login_blocked', entityId: null, meta: { email: e, reason: 'account_locked' } });
+      return renderLogin(req, res, { error: `Account is locked until ${lockoutTime}. Too many failed login attempts.` });
+    }
+
     const bcrypt = await import('bcryptjs');
     const user = await User.findOne({ where: { email: e } });
     if (!user) {
-      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: null, meta: { email: e } });
+      await recordFailedAttempt(e);
+      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: null, meta: { email: e, reason: 'user_not_found' } });
       return renderLogin(req, res, { error: 'Invalid credentials' });
     }
+
     const ok = bcrypt.compareSync(String(password), user.passwordHash);
     if (!ok) {
-      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: user.id, meta: { email: e } });
+      const attemptResult = await recordFailedAttempt(e, user.id);
+      await logAudit(req, { entity: 'auth', action: 'login_failed', entityId: user.id, meta: { email: e, reason: 'invalid_password', failedAttempts: attemptResult.failedAttempts } });
+
+      if (attemptResult.locked) {
+        const lockoutTime = new Date(attemptResult.lockedUntil).toLocaleString();
+        return renderLogin(req, res, { error: `Account locked until ${lockoutTime}. Too many failed login attempts.` });
+      }
+
       return renderLogin(req, res, { error: 'Invalid credentials' });
     }
+
+    // Successful login - clear failed attempts
+    await clearFailedAttempts(e);
     req.session.user = { id: user.id, email: user.email, role: user.role };
     await logAudit(req, { entity: 'auth', action: 'login', entityId: user.id, meta: { email: user.email } });
     res.redirect('/forms');
@@ -55,7 +77,7 @@ router.post('/logout', (req, res) => {
     const userId = req.session?.user?.id || null;
     req.session?.destroy(async () => {
       res.clearCookie('sid');
-      try { await logAudit(req, { entity: 'auth', action: 'logout', entityId: userId, meta: {} }); } catch {}
+      try { await logAudit(req, { entity: 'auth', action: 'logout', entityId: userId, meta: {} }); } catch { }
       res.redirect('/login');
     });
   } catch {
@@ -88,7 +110,7 @@ async function invalidateRefresh(token) {
   try {
     const hash = hashToken(token);
     await RefreshToken.destroy({ where: { tokenHash: hash } });
-  } catch {}
+  } catch { }
 }
 
 // ---------------- JSON API (JWT) -----------------
@@ -140,7 +162,7 @@ router.post('/api/auth/logout', async (req, res) => {
   try {
     const cookieToken = req.cookies?.rt || req.body?.refreshToken;
     if (cookieToken) await invalidateRefresh(cookieToken);
-  } catch {}
+  } catch { }
   res.clearCookie?.('rt');
   res.json({ ok: true });
 });

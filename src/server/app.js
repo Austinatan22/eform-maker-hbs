@@ -18,6 +18,7 @@ import csurf from 'csurf';
 import { RefreshToken } from './models/RefreshToken.js';
 import { AuditLog } from './models/AuditLog.js';
 import { User } from './models/User.js';
+import { UserLockout } from './models/UserLockout.js';
 import { FormSubmission } from './models/FormSubmission.js';
 import { Form } from './models/Form.js';
 import { FormField } from './models/FormField.js';
@@ -179,6 +180,10 @@ app.use(authRouter);
 app.use(usersRouter);
 app.use(logsRouter);
 app.use(formsRouter);
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(ROOT, 'uploads')));
+
 app.get('/', (_req, res) => res.redirect('/forms'));
 
 // Handlebars

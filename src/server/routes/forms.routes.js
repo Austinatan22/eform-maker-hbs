@@ -3,6 +3,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
+import { upload, handleUploadError, getFileUrl } from '../middleware/upload.js';
 import {
   health,
   createOrUpdateForm,
@@ -15,7 +16,8 @@ import {
   listFormsPage,
   checkTitleUnique,
   publicSubmit,
-  deleteForm
+  deleteForm,
+  uploadFile
 } from '../controllers/forms.controller.js';
 
 const router = express.Router();
@@ -58,6 +60,9 @@ router.get('/api/forms/check-title', checkTitleUnique);
 router.get('/api/forms/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), readForm);
 router.put('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), updateForm);
 router.delete('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), deleteForm);
+
+// File upload
+router.post('/api/upload', ensureAuth, requireRole('admin', 'editor'), upload.array('files', 5), uploadFile, handleUploadError);
 
 // Hosted form
 router.get('/f/:id', hostedForm);
