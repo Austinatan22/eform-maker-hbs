@@ -65,10 +65,15 @@
         let dt_logs;
 
         if (logsTable) {
+            console.log('Initializing DataTable for logs...');
             dt_logs = new DataTable(logsTable, {
                 ajax: {
                     url: '/api/logs',
-                    headers: { 'CSRF-Token': CSRF }
+                    headers: { 'CSRF-Token': CSRF },
+                    error: function (xhr, error, thrown) {
+                        console.error('DataTable AJAX error:', error, thrown);
+                        console.error('Response:', xhr.responseText);
+                    }
                 },
                 columns: [
                     { data: 'createdAt' },
@@ -237,13 +242,85 @@
                     meta = null;
                 }
 
-                // Display summary as bullet points if available
+                // Display summary as bullet points generated from changes
                 const summaryEl = modalEl.querySelector('.js-summary');
                 const jsonEl = modalEl.querySelector('.js-json');
 
-                if (meta && meta.summary) {
-                    // Split summary by semicolons and create bullet points
-                    const summaryPoints = meta.summary.split(';').map(point => point.trim()).filter(point => point);
+                // Generate bullet points from meta data
+                const summaryPoints = [];
+
+                // Handle changes object (for updates)
+                if (meta && meta.changes && typeof meta.changes === 'object') {
+                    Object.keys(meta.changes).forEach(key => {
+                        const change = meta.changes[key];
+
+                        if (key === 'title' && change.from && change.to) {
+                            summaryPoints.push(`Title changed from "${change.from}" to "${change.to}"`);
+                        } else if (key === 'category' && change.from && change.to) {
+                            summaryPoints.push(`Category changed from "${change.from}" to "${change.to}"`);
+                        } else if (key === 'fieldCount' && change.from !== undefined && change.to !== undefined) {
+                            summaryPoints.push(`Field count changed from ${change.from} to ${change.to}`);
+                        } else if (key === 'fields' && Array.isArray(change)) {
+                            change.forEach(fieldChange => {
+                                if (fieldChange.action === 'added') {
+                                    summaryPoints.push(`Added field: "${fieldChange.field.label}" (${fieldChange.field.type})`);
+                                } else if (fieldChange.action === 'removed') {
+                                    summaryPoints.push(`Removed field: "${fieldChange.field.label}" (${fieldChange.field.type})`);
+                                } else if (fieldChange.action === 'modified') {
+                                    const fieldChanges = [];
+                                    if (fieldChange.changes.label) {
+                                        fieldChanges.push(`label from "${fieldChange.changes.label.from}" to "${fieldChange.changes.label.to}"`);
+                                    }
+                                    if (fieldChange.changes.type) {
+                                        fieldChanges.push(`type from "${fieldChange.changes.type.from}" to "${fieldChange.changes.type.to}"`);
+                                    }
+                                    if (fieldChange.changes.required) {
+                                        fieldChanges.push(`required from ${fieldChange.changes.required.from} to ${fieldChange.changes.required.to}`);
+                                    }
+                                    if (fieldChange.changes.options) {
+                                        fieldChanges.push(`options changed`);
+                                    }
+                                    if (fieldChanges.length > 0) {
+                                        summaryPoints.push(`Modified field "${fieldChange.field.label}": ${fieldChanges.join(', ')}`);
+                                    }
+                                }
+                            });
+                        } else if (key === 'password') {
+                            summaryPoints.push('Password was reset');
+                        } else if (key === 'role' && change.from && change.to) {
+                            summaryPoints.push(`Role changed from "${change.from}" to "${change.to}"`);
+                        } else if (key === 'username' && change.from && change.to) {
+                            summaryPoints.push(`Username changed from "${change.from}" to "${change.to}"`);
+                        }
+                    });
+                }
+
+                // Handle other actions that don't have changes objects
+                const actionType = btn.getAttribute('data-action') || '';
+                if (actionType === 'create') {
+                    if (meta && meta.fieldCount !== undefined) {
+                        summaryPoints.push(`Created form "${meta.title || 'Untitled'}" (${meta.category || 'survey'}) with ${meta.fieldCount} fields`);
+                    } else if (meta && meta.email && meta.role) {
+                        summaryPoints.push(`Created user "${meta.email}" (${meta.role}) with username "${meta.username || 'N/A'}"`);
+                    }
+                } else if (actionType === 'delete') {
+                    if (meta && meta.fieldCount !== undefined) {
+                        summaryPoints.push(`Deleted form "${meta.title || 'Untitled'}" (${meta.category || 'survey'}) with ${meta.fieldCount} fields`);
+                    } else if (meta && meta.email) {
+                        summaryPoints.push(`Deleted user "${meta.email}" (${meta.role || 'unknown'})`);
+                    }
+                } else if (actionType === 'login') {
+                    summaryPoints.push(`Successful login for ${meta?.email || 'unknown'} (${meta?.role || 'unknown'})`);
+                } else if (actionType === 'logout') {
+                    summaryPoints.push(`User logout (session: ${meta?.sessionId || 'unknown'})`);
+                } else if (actionType === 'login_failed') {
+                    const reason = meta?.reason === 'user_not_found' ? 'user not found' : 'invalid password';
+                    summaryPoints.push(`Failed login attempt for ${meta?.email || 'unknown'} - ${reason} (${meta?.failedAttempts || 0} failed attempts)`);
+                } else if (actionType === 'login_blocked') {
+                    summaryPoints.push(`Login blocked for ${meta?.email || 'unknown'} - account locked (${meta?.failedAttempts || 0} failed attempts)`);
+                }
+
+                if (summaryPoints.length > 0) {
                     summaryEl.innerHTML = summaryPoints.map(point => `<li>${point}</li>`).join('');
                     summaryEl.style.display = 'block';
                 } else {

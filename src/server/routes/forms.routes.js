@@ -57,9 +57,10 @@ router.post('/api/forms', ensureAuth, requireRole('admin', 'editor'), createOrUp
 router.get('/api/forms', ensureAuth, requireRole('admin', 'editor', 'viewer'), listForms);
 // Place specific route before dynamic :id to avoid conflicts
 router.get('/api/forms/check-title', checkTitleUnique);
-router.get('/api/forms/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), readForm);
+// PUT and DELETE routes must come before GET to avoid conflicts
 router.put('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), updateForm);
 router.delete('/api/forms/:id', ensureAuth, requireRole('admin', 'editor'), deleteForm);
+router.get('/api/forms/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), readForm);
 
 // File upload
 router.post('/api/upload', ensureAuth, requireRole('admin', 'editor'), upload.array('files', 5), uploadFile, handleUploadError);

@@ -44,8 +44,7 @@ router.post('/login', loginLimiter, async (req, res) => {
           email: e,
           reason: 'account_locked',
           lockoutUntil: lockoutTime,
-          failedAttempts: lockoutStatus.failedAttempts || 0,
-          summary: `Login blocked for ${e} - account locked (${lockoutStatus.failedAttempts || 0} failed attempts)`
+          failedAttempts: lockoutStatus.failedAttempts || 0
         }
       });
       return renderLogin(req, res, { error: `Account is locked until ${lockoutTime}. Too many failed login attempts.` });
@@ -62,8 +61,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         meta: {
           email: e,
           reason: 'user_not_found',
-          failedAttempts: attemptResult.failedAttempts || 1,
-          summary: `Failed login attempt for ${e} - user not found (${attemptResult.failedAttempts || 1} failed attempts)`
+          failedAttempts: attemptResult.failedAttempts || 1
         }
       });
       return renderLogin(req, res, { error: 'Invalid credentials' });
@@ -79,8 +77,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         meta: {
           email: e,
           reason: 'invalid_password',
-          failedAttempts: attemptResult.failedAttempts,
-          summary: `Failed login attempt for ${e} - invalid password (${attemptResult.failedAttempts} failed attempts)`
+          failedAttempts: attemptResult.failedAttempts
         }
       });
 
@@ -106,8 +103,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         username: user.username,
         role: user.role,
         sessionId: req.sessionID,
-        loginTime: new Date().toISOString(),
-        summary: `Successful login for ${user.email} (${user.role})`
+        loginTime: new Date().toISOString()
       }
     });
     res.redirect('/forms');
@@ -129,8 +125,7 @@ router.post('/logout', (req, res) => {
           entityId: userId,
           meta: {
             logoutTime: new Date().toISOString(),
-            sessionId: req.sessionID,
-            summary: `User logout (session: ${req.sessionID})`
+            sessionId: req.sessionID
           }
         });
       } catch { }

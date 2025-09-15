@@ -619,7 +619,8 @@
             const data = localData ? {
               ...serverData,
               ...localData,
-              // Always use server category since builder doesn't have category UI
+              // Always use server title and category since they can be updated outside builder
+              title: serverData.title,
               category: serverData.category
             } : serverData;
             this.loadFormData(data);

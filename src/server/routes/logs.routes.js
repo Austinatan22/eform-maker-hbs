@@ -23,9 +23,9 @@ function ensureAuth(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized' });
 }
 
-function requireAdmin(_req, res, next) {
+function requireAdmin(req, res, next) {
     if (process.env.AUTH_ENABLED !== '1') return next();
-    const role = (res.locals.user && res.locals.user.role) || null;
+    const role = (req.session?.user?.role) || (req.user?.role) || null;
     if (role === 'admin') return next();
     return res.status(403).json({ error: 'Forbidden' });
 }
@@ -69,6 +69,7 @@ router.get('/admin/logs', ensureAuth, requireAdmin, async (_req, res) => {
 // API: list logs (DataTables format)
 router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
     try {
+        console.log('API /api/logs called');
         const where = {};
 
         // Apply filters
@@ -82,6 +83,8 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
             order: [['createdAt', 'DESC']],
             limit: 1000 // Reasonable limit for client-side pagination
         });
+
+        console.log(`Found ${rows.length} audit logs`);
 
         // Attach user email/username for convenience
         const userIds = [...new Set(rows.map(r => r.userId).filter(Boolean))];
