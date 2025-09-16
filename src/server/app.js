@@ -118,7 +118,7 @@ app.use((req, res, next) => {
       icon: 'ti tabler-file-text',
       children: [
         { label: 'Forms', href: '/forms', icon: 'ti tabler-file-text' },
-        { label: 'Categories', href: '/admin/categories', icon: 'ti tabler-tags' }
+        { label: 'Categories', href: '/categories', icon: 'ti tabler-tags' }
       ]
     }
   ];

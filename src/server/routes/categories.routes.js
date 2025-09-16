@@ -36,7 +36,7 @@ function requireAdmin(req, res, next) {
 }
 
 // --- HTML page: Admin Categories ---
-router.get('/admin/categories', ensureAuth, requireAdmin, categoriesPage);
+router.get('/categories', ensureAuth, requireAdmin, categoriesPage);
 
 // --- API: list categories ---
 router.get('/api/categories', ensureAuth, requireAdmin, listCategories);

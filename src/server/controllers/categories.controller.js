@@ -230,7 +230,7 @@ export async function categoriesPage(req, res) {
 
         res.render('admin-categories', {
             title: 'Categories',
-            currentPath: '/admin/categories',
+            currentPath: '/categories',
             categories: categoriesData
         });
     } catch (err) {
