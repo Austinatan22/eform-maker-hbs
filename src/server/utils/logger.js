@@ -18,32 +18,52 @@ class Logger {
         const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
 
         if (args.length > 0) {
-            return `${prefix} ${message}`, ...args;
+            return [`${prefix} ${message}`, ...args];
         }
         return `${prefix} ${message}`;
     }
 
     error(message, ...args) {
         if (this._shouldLog('error')) {
-            console.error(this._formatMessage('error', message, ...args));
+            const formatted = this._formatMessage('error', message, ...args);
+            if (Array.isArray(formatted)) {
+                console.error(...formatted);
+            } else {
+                console.error(formatted);
+            }
         }
     }
 
     warn(message, ...args) {
         if (this._shouldLog('warn')) {
-            console.warn(this._formatMessage('warn', message, ...args));
+            const formatted = this._formatMessage('warn', message, ...args);
+            if (Array.isArray(formatted)) {
+                console.warn(...formatted);
+            } else {
+                console.warn(formatted);
+            }
         }
     }
 
     info(message, ...args) {
         if (this._shouldLog('info')) {
-            console.info(this._formatMessage('info', message, ...args));
+            const formatted = this._formatMessage('info', message, ...args);
+            if (Array.isArray(formatted)) {
+                console.info(...formatted);
+            } else {
+                console.info(formatted);
+            }
         }
     }
 
     debug(message, ...args) {
         if (this._shouldLog('debug')) {
-            console.debug(this._formatMessage('debug', message, ...args));
+            const formatted = this._formatMessage('debug', message, ...args);
+            if (Array.isArray(formatted)) {
+                console.debug(...formatted);
+            } else {
+                console.debug(formatted);
+            }
         }
     }
 

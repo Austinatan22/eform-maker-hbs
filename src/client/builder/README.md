@@ -1,19 +1,25 @@
-This directory will house the modular Builder UI code.
+This directory contains the modular Builder UI code using native ES modules.
 
-Goal
-- Split the current `public/js/builder.js` into small focused modules (utils, templates, state, dnd, api, main).
-- Bundle them back into a single browser file at `public/js/builder.js` for the app to serve.
+Architecture
+- Each module is a focused ES module with clear exports/imports
+- No build step required - browsers load modules directly
+- Better debugging with individual file source maps
+- Tree shaking support for optimal loading
 
-Suggested modules
+Modules
 - utils.js: debounce, uuid, string sanitizers
+- ui.js: DOM helpers, flash effects, tabs
 - templates.js: Handlebars preload + render helpers
-- state.js: defaults, option types, localStorage persistence
-- dnd.js: drag-and-drop helpers
-- api.js: fetch wrappers for save/check-title
-- main.js: Builder class wiring everything together
-- boot.js: DOMContentLoaded bootstrap
+- helpers.js: Field validation helpers
+- constants.js: Configuration and defaults
+- state.js: localStorage persistence
+- dnd.js: drag-and-drop utilities
+- api.js: Server communication
+- main.js: Main Builder class
+- index.js: Entry point with exports
 
-Build
-- Use `npm run build:builder` to concatenate the module files into `public/js/builder.js`.
-- Initially, the build falls back to the legacy file to avoid regressions while we migrate code incrementally.
+Usage
+- Import directly in HTML: `<script type="module" src="/src/client/builder/index.js"></script>`
+- Server serves modules from `/src/client/builder/` route
+- No build step needed for development
 
