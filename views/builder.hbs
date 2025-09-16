@@ -210,12 +210,18 @@
 {{/section}}
 
 {{#section 'scripts'}}
-{{#if preloadB64}}
+{{#if preloadData}}
 <script>
   try {
-    // Safer embedding: store Base64-decoded JSON directly
-    localStorage.setItem('eform-maker-hbs', atob('{{preloadB64}}'));
-  } catch (e) { }
+    // Create JSON string directly in template
+    const jsonString = '{"id":"{{preloadData.id}}","title":"{{preloadData.title}}","category":"{{preloadData.category}}","fields":[{{#each preloadData.fields}}{"id":"{{id}}","type":"{{type}}","label":"{{label}}","placeholder":"{{placeholder}}","required":{{required}},"doNotStore":{{doNotStore}},"options":"{{options}}"}{{#unless @last}},{{/unless}}{{/each}}]}';
+
+    const preloadData = JSON.parse(jsonString);
+
+    localStorage.setItem('eform-maker-hbs', jsonString);
+  } catch (e) {
+    console.error('Preload error:', e);
+  }
 </script>
 {{/if}}
 

@@ -489,7 +489,7 @@ async function ensureSchema() {
 }
 
 // Start
-const port = process.env.PORT || 5173;
+const port = process.env.PORT || 3000;
 (async () => {
   try {
     // Initialize main application database

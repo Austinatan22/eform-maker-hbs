@@ -612,12 +612,20 @@ export async function publicSubmit(req, res) {
 export async function deleteForm(req, res) {
   try {
     let formTitle = null;
+    let formCategory = null;
+    let fieldCount = 0;
+
     await sequelize.transaction(async (t) => {
-      const form = await Form.findByPk(req.params.id, { transaction: t });
+      const form = await Form.findByPk(req.params.id, {
+        include: [{ model: FormField, as: 'fields' }],
+        transaction: t
+      });
       if (!form) return res.status(404).json({ error: 'Not found' });
 
-      // Store title for audit logging outside transaction
+      // Store form data for audit logging outside transaction
       formTitle = form.title;
+      formCategory = form.category;
+      fieldCount = form.fields?.length || 0;
 
       // Ownership restrictions removed - editors can now delete any form
 
@@ -637,8 +645,8 @@ export async function deleteForm(req, res) {
       entityId: req.params.id,
       meta: {
         title: formTitle,
-        category: form.category,
-        fieldCount: form.fields?.length || 0,
+        category: formCategory,
+        fieldCount: fieldCount,
         deletedAt: new Date().toISOString()
       }
     });
@@ -718,14 +726,13 @@ export async function builderPage(req, res) {
         options: f.options
       }));
 
-    const preload = JSON.stringify({ id: formPlain.id, title: formPlain.title || '', category: formPlain.category || 'survey', fields });
-    const preloadB64 = Buffer.from(preload, 'utf8').toString('base64');
+    const preload = { id: formPlain.id, title: formPlain.title || '', category: formPlain.category || 'survey', fields };
 
     res.render('builder', {
       title: `Editing: ${formPlain.title || '(Untitled)'}`,
       currentPath: '/builder',
       form: formPlain,
-      preloadB64
+      preloadData: preload // Pass the object directly
     });
   } catch (err) {
     logger.error('Open builder error:', err);

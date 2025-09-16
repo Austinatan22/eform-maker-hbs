@@ -4,7 +4,7 @@ import { flash, showTab } from './ui.js';
 import { preloadTemplates, renderFieldHTML } from './templates.js';
 import { parseOptions, needsOptions, whenIntlReady } from './helpers.js';
 import { OPTION_TYPES, CLEAN_KEYS, PARTIAL_FOR, FIELDS_DEFAULTS } from './constants.js';
-import { readLocal, writeLocal } from './state.js';
+import { readLocal, writeLocal, clearLocal } from './state.js';
 import {
     getPlaceholder,
     placePlaceholder,
@@ -48,6 +48,7 @@ export class Builder {
         this.$ = { preview: null };
         this.persist = debounce(this.persist.bind(this), 140);
         this.dnd = { draggingId: null, fromIndex: -1 };
+        this.isNewForm = false; // Track if this is a new form (draft mode)
     }
 
     bindDom() {
@@ -69,6 +70,7 @@ export class Builder {
         this.$.formTitle = q(SELECTORS.formTitle);
         this.$.formTitleDisplay = q(SELECTORS.formTitleDisplay);
         this.$.btnSave = q(SELECTORS.btnSave);
+
     }
 
     buildCard(field, idx) {
@@ -112,7 +114,10 @@ export class Builder {
         if (!host) return;
         host.innerHTML = '';
         const frag = document.createDocumentFragment();
-        this.fields.forEach((f, i) => frag.appendChild(this.buildCard(f, i)));
+        this.fields.forEach((f, i) => {
+            const card = this.buildCard(f, i);
+            frag.appendChild(card);
+        });
         host.appendChild(frag);
         try { whenIntlReady(() => this.initPhoneInputs()); } catch { }
         try {
@@ -273,8 +278,41 @@ export class Builder {
     }
 
     restore() {
-        const data = readLocal(this.formId);
-        if (!data) return;
+        // For existing forms, always try to load from preloaded data first
+        // For new forms, load from localStorage for draft functionality
+        let data = null;
+
+
+        if (this.isNewForm) {
+            // For new forms, try form-specific key first, then general key
+            data = readLocal(this.formId);
+            if (!data) {
+                data = readLocal(null); // This will use the general key 'eform-maker-hbs'
+            }
+        } else {
+            // For existing forms, always use preloaded data from general key
+            data = readLocal(null); // This will use the general key 'eform-maker-hbs'
+            // If no preload data found for existing form, wait a bit and try again
+            if (!data) {
+                setTimeout(() => {
+                    const retryData = readLocal(null);
+                    if (retryData) {
+                        this.loadFormData(retryData);
+                    }
+                }, 200);
+                return;
+            }
+        }
+
+        if (!data) {
+            return;
+        }
+
+        this.loadFormData(data);
+    }
+
+    loadFormData(data) {
+
         if (data.id) this.formId = data.id;
         if (Array.isArray(data.fields)) {
             const existingNames = new Set();
@@ -315,11 +353,18 @@ export class Builder {
             this.$.formTitle.value = data.title;
             if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = data.title;
         }
+
+        // Re-render the preview with the loaded data
+        this.renderPreview();
     }
 
     persist() {
-        const title = this.$.formTitle?.value || '';
-        writeLocal({ id: this.formId || null, title, fields: this.fields }, this.formId);
+        // Only persist to localStorage for new forms (draft mode) or when explicitly saving
+        // This prevents unwanted auto-save behavior for existing forms
+        if (this.isNewForm || !this.formId) {
+            const title = this.$.formTitle?.value || '';
+            writeLocal({ id: this.formId || null, title, fields: this.fields }, this.formId);
+        }
     }
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
@@ -679,8 +724,15 @@ export class Builder {
         // capture deep-link id (/builder/:id) if present
         try {
             const m = location.pathname.match(/\/builder\/([^/]+)/);
-            if (m && m[1]) this.formId = m[1];
-        } catch { }
+            if (m && m[1]) {
+                this.formId = m[1];
+                this.isNewForm = false; // Editing existing form
+            } else {
+                this.isNewForm = true; // Creating new form
+            }
+        } catch {
+            this.isNewForm = true; // Default to new form if path parsing fails
+        }
         this.restore();
         this.renderPreview();
         this.bindEvents();
@@ -808,8 +860,15 @@ export class Builder {
             }
             const newId = body?.form?.id || body?.id || null;
             if (newId) {
+                const wasNewForm = this.isNewForm; // Store the original state
                 this.formId = newId;
-                this.persist();
+                this.isNewForm = false; // Form is now saved, no longer a draft
+                // For new forms, clear localStorage since they're now saved to database
+                // For existing forms, don't clear preload data as it's needed for proper loading
+                if (wasNewForm) {
+                    clearLocal(this.formId);
+                    clearLocal(null); // Clear the general preload key
+                }
             }
             // Mark the builder as clean after a successful save so navigation doesn't warn
             this.clearDirty();
