@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
 import { upload, handleUploadError, getFileUrl } from '../middleware/upload.js';
+import { logger } from '../utils/logger.js';
 import {
   health,
   createOrUpdateForm,
@@ -99,7 +100,7 @@ router.get('/test-hosted-forms', async (req, res) => {
       baseUrl
     });
   } catch (err) {
-    console.error('Test hosted forms error:', err);
+    logger.error('Test hosted forms error:', err);
     res.status(500).send('Server error');
   }
 });

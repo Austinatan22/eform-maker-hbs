@@ -843,7 +843,7 @@ export class Builder {
         const field = this.fields.find(f => f.id === card?.dataset?.fid);
 
         const iti = window.intlTelInput(input, {
-            initialCountry: field?.countryIso2 || 'id',
+            initialCountry: 'id',
             preferredCountries: ['id', 'us'],
             utilsScript: window.INTL_UTILS_URL || "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js"
         });
@@ -855,10 +855,7 @@ export class Builder {
         }
 
         input.addEventListener('countrychange', () => {
-            try {
-                const iso2 = iti.getSelectedCountryData()?.iso2;
-                if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
-            } catch { }
+            // Country selection handling removed - countryIso2 field no longer used
         });
     }
 

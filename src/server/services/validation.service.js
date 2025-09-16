@@ -211,7 +211,7 @@ export const formFieldValidation = {
 
     options: (value, fieldType) => {
         // Only validate options for fields that need them
-        const needsOptions = ['dropdown', 'radio', 'checkbox'];
+        const needsOptions = ['dropdown', 'multipleChoice', 'checkboxes'];
         if (!needsOptions.includes(fieldType)) return null;
 
         if (!value || !value.trim()) {

@@ -5,8 +5,7 @@
   "scripts": {
     "start": "cross-env AUTH_ENABLED=1 node src/server/app.js",
     "dev": "cross-env AUTH_ENABLED=1 nodemon src/server/app.js",
-    "test": "node tests/run-tests.js",
-    "migrate:rm-country": "node scripts/migrate-remove-countryiso2.js"
+    "test": "node tests/run-tests.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

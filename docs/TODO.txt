@@ -60,10 +60,10 @@ Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
 - [ ] Rules table: `rule_id`, `condition`, `action` (conditional logic not implemented)
 - [x] Submissions table (FormSubmission model implemented)
 - [x] Submission answers table (normalized) â€" stored as JSON in FormSubmission.payloadJson with proper service layer
-- [x] Drafts table: `draft_id`, `form_id`, `user_id`, `draft_data`, `last_saved_at` (Draft model implemented with full functionality)
-- [x] Versioning storage & rollback support (FormVersion model with complete version management)
+- [ ] Drafts table: `draft_id`, `form_id`, `user_id`, `draft_data`, `last_saved_at` (not implemented)
+- [ ] Versioning storage & rollback support (not implemented)
 - [x] Indexes (form_id/submission_id) implemented where needed
-- [x] Cleanup job: delete expired drafts (>30 days) (cleanup script implemented)
+- [ ] Cleanup job: delete expired drafts (>30 days) (not implemented)
 
 ## File Uploads
 
@@ -92,7 +92,7 @@ Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
 1) ✅ Fix RBAC middleware syntax error in forms.routes.js line 40 (COMPLETED)
 2) ✅ File upload backend handling with storage (COMPLETED - multer middleware, validation, storage)
 3) ✅ Enhanced password policy and account lockout (COMPLETED - comprehensive policy with 5-attempt lockout)
-4) ✅ Form versioning and draft functionality (COMPLETED - full implementation with auto-save, version history, rollback)
+4) ❌ Form versioning and draft functionality (REMOVED - unused code cleaned up)
 5) Add export API endpoints for form submissions (JSON/CSV download)
 6) Add rate limiting to other POST APIs (form writes, submissions)
 7) Implement password reset flow (token email + change password)
@@ -116,7 +116,7 @@ Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
 - Full audit logging system with admin interface
 - Security headers, CORS, CSRF protection
 - Rate limiting for authentication endpoints
-- Form versioning and draft functionality (complete implementation with auto-save, version history, rollback)
+- Form versioning and draft functionality (removed - unused code)
 
 **PARTIALLY IMPLEMENTED:**
 - Export functionality (submissions service exists, but no export API endpoints)

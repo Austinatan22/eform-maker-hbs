@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { logAudit } from '../services/audit.service.js';
 import { isUserLockedOut, recordFailedAttempt, clearFailedAttempts, validatePassword } from '../services/password.service.js';
+import { logger } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -108,7 +109,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     });
     res.redirect('/forms');
   } catch (err) {
-    console.error('login error:', err);
+    logger.error('Login error:', err);
     renderLogin(req, res, { error: 'Server error' });
   }
 });
@@ -184,7 +185,7 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
     });
     res.json({ accessToken, expiresIn: ACCESS_TTL_SEC, user: { id: user.id, email: user.email, role: user.role }, refreshExpiresAt: expiresAt });
   } catch (err) {
-    console.error('api login error:', err);
+    logger.error('API login error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -204,7 +205,7 @@ router.post('/api/auth/refresh', async (req, res) => {
     const accessToken = signAccess(user);
     res.json({ accessToken, expiresIn: ACCESS_TTL_SEC });
   } catch (err) {
-    console.error('refresh error:', err);
+    logger.error('Refresh error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

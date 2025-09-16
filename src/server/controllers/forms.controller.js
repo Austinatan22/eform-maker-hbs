@@ -11,59 +11,13 @@ import { createSubmission, deleteSubmissionsByFormId } from '../services/submiss
 import { getFileUrl } from '../middleware/upload.js';
 import { formValidation, formFieldValidation, sanitize, runValidation, validate } from '../services/validation.service.js';
 import { logger } from '../utils/logger.js';
+import { sanitizeFields, validateFields, ensureUniqueFieldNames } from '../utils/field-validation.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
-const rid = () => crypto.randomBytes(9).toString('base64url');
+// Unused rid function removed
 
-// Helper functions for field validation and sanitization
-function sanitizeFields(fields = []) {
-  return fields.map(field => {
-    const cleaned = { ...field };
-
-    // Sanitize text fields
-    if (cleaned.label) cleaned.label = sanitize.html(cleaned.label);
-    if (cleaned.placeholder) cleaned.placeholder = sanitize.html(cleaned.placeholder);
-    if (cleaned.name) cleaned.name = sanitize.database(cleaned.name);
-
-    // Handle options for dropdown/radio/checkbox fields
-    const needsOptions = ['dropdown', 'multipleChoice', 'checkboxes'];
-    if (needsOptions.includes(cleaned.type)) {
-      if (Array.isArray(cleaned.options)) {
-        cleaned.options = cleaned.options.map(opt => sanitize.html(String(opt))).join(', ');
-      } else {
-        cleaned.options = String(cleaned.options || '').split(',')
-          .map(opt => sanitize.html(opt.trim()))
-          .filter(Boolean)
-          .join(', ');
-      }
-    } else {
-      delete cleaned.options;
-    }
-
-    // Remove auto-generated fields
-    delete cleaned.autoName;
-
-    return cleaned;
-  });
-}
-
-function isValidField(field) {
-  if (!field) return false;
-
-  // Check required fields
-  const labelError = formFieldValidation.label(field.label);
-  if (labelError) return false;
-
-  const nameError = formFieldValidation.name(field.name);
-  if (nameError) return false;
-
-  // Check options for fields that need them
-  const optionsError = formFieldValidation.options(field.options, field.type);
-  if (optionsError) return false;
-
-  return true;
-}
+// Field validation functions moved to shared utility
 
 function formatDate(date) {
   if (!date) return '';
@@ -138,30 +92,8 @@ export async function createOrUpdateForm(req, res) {
 
   const normalizedTitle = normalizeTitle(sanitize.html(title));
 
-  // Enhanced field validation
-  const clean = sanitizeFields(fields);
-  const fieldErrors = [];
-
-  for (let i = 0; i < clean.length; i++) {
-    const field = clean[i];
-
-    // Validate each field property
-    const labelError = formFieldValidation.label(field.label);
-    if (labelError) fieldErrors.push(`Field ${i + 1}: ${labelError}`);
-
-    const nameError = formFieldValidation.name(field.name);
-    if (nameError) fieldErrors.push(`Field ${i + 1}: ${nameError}`);
-
-    const placeholderError = formFieldValidation.placeholder(field.placeholder);
-    if (placeholderError) fieldErrors.push(`Field ${i + 1}: ${placeholderError}`);
-
-    const optionsError = formFieldValidation.options(field.options, field.type);
-    if (optionsError) fieldErrors.push(`Field ${i + 1}: ${optionsError}`);
-
-    if (!isValidField(field)) {
-      fieldErrors.push(`Field ${i + 1}: Invalid field definition`);
-    }
-  }
+  // Enhanced field validation using shared utility
+  const { clean, fieldErrors } = validateFields(fields);
 
   if (fieldErrors.length > 0) {
     return res.status(400).json({
@@ -171,13 +103,10 @@ export async function createOrUpdateForm(req, res) {
   }
 
   // Ensure field names are unique within the form
-  const seen = new Set();
-  for (const f of clean) {
-    const key = String(f.name || '');
-    if (seen.has(key)) {
-      return res.status(400).json({ error: 'Field names must be unique within a form.' });
-    }
-    seen.add(key);
+  try {
+    ensureUniqueFieldNames(clean);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
   }
 
   try {
@@ -371,7 +300,7 @@ export async function listForms(_req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options, countryIso2: f.countryIso2
+        options: f.options
       })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
@@ -470,21 +399,23 @@ export async function updateForm(req, res) {
 
     if (fields !== undefined) {
       if (!Array.isArray(fields)) return res.status(400).json({ error: 'fields must be an array' });
-      const clean = sanitizeFields(fields);
-      for (const f of clean) {
-        if (!isValidField(f)) {
-          return res.status(400).json({ error: 'Invalid field definition: label and name are required; option-based fields need options.' });
-        }
+
+      const { clean, fieldErrors } = validateFields(fields);
+
+      if (fieldErrors.length > 0) {
+        return res.status(400).json({
+          error: 'Field validation failed',
+          details: fieldErrors
+        });
       }
+
       // Ensure field names are unique within the form
-      const seen = new Set();
-      for (const f of clean) {
-        const key = String(f.name || '');
-        if (seen.has(key)) {
-          return res.status(400).json({ error: 'Field names must be unique within a form.' });
-        }
-        seen.add(key);
+      try {
+        ensureUniqueFieldNames(clean);
+      } catch (error) {
+        return res.status(400).json({ error: error.message });
       }
+
       await updateFormWithFields(form.id, undefined, clean);
     }
 
