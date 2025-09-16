@@ -20,6 +20,7 @@
     btnEditSave: '#editSave',
     btnEditCancel: '#editCancel',
     formTitle: '#formTitle',
+    formTitleDisplay: '#formTitleDisplay',
     btnSave: '#saveBtn'
   };
 
@@ -52,6 +53,7 @@
       this.$.btnEditSave = q(SELECTORS.btnEditSave);
       this.$.btnEditCancel = q(SELECTORS.btnEditCancel);
       this.$.formTitle = q(SELECTORS.formTitle);
+      this.$.formTitleDisplay = q(SELECTORS.formTitleDisplay);
       this.$.btnSave = q(SELECTORS.btnSave);
     }
 
@@ -296,7 +298,10 @@
           };
         });
       }
-      if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
+      if (data.title && this.$.formTitle) {
+        this.$.formTitle.value = data.title;
+        if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = data.title;
+      }
     }
 
     persist() {
@@ -614,8 +619,43 @@
       }));
       // Title input: persist and live-uniqueness check (debounced)
       this.$.formTitle?.addEventListener('input', () => {
+        if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = this.$.formTitle.value;
         this.persist();
         this.checkTitleUnique?.();
+      });
+
+      // Make form title display clickable to edit
+      this.$.formTitleDisplay?.addEventListener('click', (e) => {
+        if (this.$.formTitle) {
+          this.$.formTitle.style.display = 'block';
+          this.$.formTitleDisplay.style.display = 'none';
+          this.$.formTitle.focus();
+          this.$.formTitle.select();
+        }
+      });
+
+      // Handle Enter key to finish editing
+      this.$.formTitle?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.$.formTitle.blur();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          // Restore original value if user presses Escape
+          if (this.$.formTitleDisplay) {
+            this.$.formTitle.value = this.$.formTitleDisplay.textContent;
+          }
+          this.$.formTitle.blur();
+        }
+      });
+
+      // Hide input when focus is lost
+      this.$.formTitle?.addEventListener('blur', () => {
+        if (this.$.formTitle && this.$.formTitleDisplay) {
+          this.$.formTitle.style.display = 'none';
+          this.$.formTitleDisplay.style.display = 'block';
+        }
       });
 
       // Save to DB

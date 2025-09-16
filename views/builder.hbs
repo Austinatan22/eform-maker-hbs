@@ -184,11 +184,16 @@
   <div class="col-12 col-lg-8">
     <div class="card">
       <div
-        class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-sm-between align-items-sm-center flex-column flex-sm-row z-2 border-bottom">
-        <h5 class="card-title mb-sm-0 me-sm-2">Preview</h5>
-        <div class="action-btns d-flex align-items-start w-100 w-sm-auto gap-2">
-          <input id="formTitle" type="text" class="form-control form-control" value="{{form.title}}"
-            placeholder="Form Title" />
+        class="card-header sticky-lg-top bg-label-secondary d-flex justify-content-between align-items-center flex-column flex-sm-row z-2 border-bottom">
+        <div class="flex-grow-1 me-3" style="min-width: 0;">
+          <h5 class="card-title mb-0" id="formTitleDisplay"
+            style="cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s ease;"
+            onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+            {{form.title}}</h5>
+          <input id="formTitle" type="text" class="form-control" value="{{form.title}}" placeholder="Form Title"
+            style="display: none; width: 100%;" />
+        </div>
+        <div class="action-btns d-flex align-items-center gap-2 flex-shrink-0">
           <button id="saveBtn" class="btn btn-success">Save</button>
         </div>
       </div>

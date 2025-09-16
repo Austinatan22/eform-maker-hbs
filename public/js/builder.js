@@ -6,10 +6,10 @@
 
 // ---- 00-utils.js ----
 // src/client/builder/00-utils.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.uuid = function uuid() {
+  NS.uuid = function uuid(){
     const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
     const n = 8; // random part length
     const buf = new Uint8Array(n);
@@ -23,11 +23,11 @@
     return 'field_' + rand;
   };
 
-  NS.debounce = function debounce(fn, ms = 160) {
-    let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); };
+  NS.debounce = function debounce(fn, ms=160){
+    let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), ms); };
   };
 
-  NS.toSafeSnake = function toSafeSnake(s) {
+  NS.toSafeSnake = function toSafeSnake(s){
     return String(s || '')
       .trim()
       .replace(/[\s\-]+/g, '_')
@@ -37,41 +37,41 @@
       .toLowerCase();
   };
 
-  NS.toSafeUpperSnake = function toSafeUpperSnake(s) {
+  NS.toSafeUpperSnake = function toSafeUpperSnake(s){
     return NS.toSafeSnake(s).toUpperCase();
   };
 })();
 
 // ---- 05-ui.js ----
 // src/client/builder/05-ui.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   const UI = {};
 
   // Flash an element by toggling a CSS class briefly
-  UI.flash = function flash(el, className = 'drop-flash', ms = 450) {
+  UI.flash = function flash(el, className = 'drop-flash', ms = 450){
     if (!el) return;
     try {
       el.classList.add(className);
       setTimeout(() => el.classList.remove(className), ms);
-    } catch (_) { }
+    } catch (_) {}
   };
 
   // Bootstrap Tab helpers (safe if BS not loaded)
-  UI.getTab = function getTab(btn) {
+  UI.getTab = function getTab(btn){
     const Tab = window.bootstrap?.Tab || (window.bootstrap && window.bootstrap.Tab);
     return Tab ? Tab.getOrCreateInstance(btn) : null;
   };
-  UI.showTab = function showTab(btn) {
+  UI.showTab = function showTab(btn){
     if (!btn) return;
     const inst = UI.getTab(btn);
     inst ? inst.show() : btn.click?.();
   };
 
   // Quick query helpers
-  UI.qs = function qs(sel, root) { return (root || document).querySelector(sel); };
-  UI.qsa = function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
+  UI.qs = function qs(sel, root){ return (root || document).querySelector(sel); };
+  UI.qsa = function qsa(sel, root){ return Array.from((root || document).querySelectorAll(sel)); };
 
   NS.UI = UI;
 })();
@@ -79,27 +79,27 @@
 
 // ---- 10-templates.js ----
 // src/client/builder/10-templates.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Compiled Handlebars partials keyed by partial name
   NS.TEMPLATES = Object.create(null);
 
   // Preload and compile field partial templates once
-  NS.preloadTemplates = async function preloadTemplates() {
+  NS.preloadTemplates = async function preloadTemplates(){
     const map = NS.PARTIAL_FOR || {};
     const names = [...new Set(Object.values(map))];
     const fetches = names.map(async (n) => {
       const res = await fetch(`/tpl/fields/${n}.hbs`, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`Load template failed: ${n}`);
-      const src = await res.text();
+      const src  = await res.text();
       NS.TEMPLATES[n] = Handlebars.compile(src);
     });
     await Promise.all(fetches);
   };
 
   // Render one field to HTML using a precompiled partial
-  NS.renderFieldHTML = function renderFieldHTML(field, idx) {
+  NS.renderFieldHTML = function renderFieldHTML(field, idx){
     const partialName = (NS.PARTIAL_FOR && NS.PARTIAL_FOR[field.type]) || 'text';
     const tmpl = NS.TEMPLATES[partialName];
     if (!tmpl) return '';
@@ -108,9 +108,9 @@
       .map(s => s.trim())
       .filter(Boolean);
     return tmpl({
-      name: field.name || field.id || `f_${idx}`,
-      label: field.label || '',
-      required: !!field.required,
+      name:        field.name || field.id || `f_${idx}`,
+      label:       field.label || '',
+      required:    !!field.required,
       placeholder: field.placeholder || '',
       options
     });
@@ -120,21 +120,21 @@
 
 // ---- 15-helpers.js ----
 // src/client/builder/15-helpers.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  NS.parseOptions = function parseOptions(str = '') {
+  NS.parseOptions = function parseOptions(str = ''){
     return String(str)
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
   };
 
-  NS.needsOptions = function needsOptions(type) {
+  NS.needsOptions = function needsOptions(type){
     return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
   };
 
-  NS.whenIntlReady = function whenIntlReady(cb, tries = 40) {
+  NS.whenIntlReady = function whenIntlReady(cb, tries = 40){
     if (window.intlTelInput) return cb();
     if (tries <= 0) return;
     setTimeout(() => NS.whenIntlReady(cb, tries - 1), 50);
@@ -257,11 +257,11 @@
 
 // ---- 30-dnd.js ----
 // src/client/builder/30-dnd.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
   // Singleton placeholder element used during drag and drop
-  NS.getPlaceholder = function getPlaceholder() {
+  NS.getPlaceholder = function getPlaceholder(){
     if (!NS._placeholderEl) {
       const el = document.createElement('div');
       el.className = 'dnd-insert';
@@ -270,15 +270,15 @@
     return NS._placeholderEl;
   };
 
-  NS.placePlaceholder = function placePlaceholder(targetEl, before = true) {
+  NS.placePlaceholder = function placePlaceholder(targetEl, before = true){
     const ph = NS.getPlaceholder();
     if (!targetEl || !targetEl.parentNode) return;
     before ? targetEl.parentNode.insertBefore(ph, targetEl)
-      : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
+           : targetEl.parentNode.insertBefore(ph, targetEl.nextSibling);
   };
 
   // Compute insertion index based on pointer Y relative to children midlines
-  NS.computeIndexByY = function computeIndexByY(previewEl, clientY) {
+  NS.computeIndexByY = function computeIndexByY(previewEl, clientY){
     if (!previewEl) return 0;
     const kids = Array.from(previewEl.children).filter(el => el !== NS.getPlaceholder());
     for (let i = 0; i < kids.length; i++) {
@@ -290,7 +290,7 @@
   };
 
   // Place placeholder at a given child index within preview
-  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index) {
+  NS.placePlaceholderAtIndex = function placePlaceholderAtIndex(previewEl, index){
     const ph = NS.getPlaceholder();
     if (!previewEl) return;
     const kids = Array.from(previewEl.children).filter(el => el !== ph);
@@ -306,14 +306,14 @@
     previewEl.insertBefore(ph, kids[index]);
   };
 
-  NS.removePlaceholder = function removePlaceholder() {
+  NS.removePlaceholder = function removePlaceholder(){
     const ph = NS.getPlaceholder();
     if (ph.parentNode) ph.parentNode.removeChild(ph);
   };
 
   // Given the preview container and the index the item was dragged from,
   // compute the logical target index, accounting for the placeholder position
-  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex) {
+  NS.computeDropTarget = function computeDropTarget(previewEl, fromIndex){
     const kids = Array.from(previewEl.children);
     let rawTo = kids.indexOf(NS.getPlaceholder());
     if (rawTo < 0) rawTo = kids.length;
@@ -326,7 +326,7 @@
   };
 
   // Immutable move within an array
-  NS.move = function move(arr, from, to) {
+  NS.move = function move(arr, from, to){
     if (from === to || from < 0 || to < 0 || from >= arr.length || to > arr.length) return arr;
     const copy = arr.slice();
     const [item] = copy.splice(from, 1);
@@ -404,6 +404,7 @@
     btnEditSave: '#editSave',
     btnEditCancel: '#editCancel',
     formTitle: '#formTitle',
+    formTitleDisplay: '#formTitleDisplay',
     btnSave: '#saveBtn'
   };
 
@@ -436,6 +437,7 @@
       this.$.btnEditSave = q(SELECTORS.btnEditSave);
       this.$.btnEditCancel = q(SELECTORS.btnEditCancel);
       this.$.formTitle = q(SELECTORS.formTitle);
+      this.$.formTitleDisplay = q(SELECTORS.formTitleDisplay);
       this.$.btnSave = q(SELECTORS.btnSave);
     }
 
@@ -680,7 +682,10 @@
           };
         });
       }
-      if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
+      if (data.title && this.$.formTitle) {
+        this.$.formTitle.value = data.title;
+        if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = data.title;
+      }
     }
 
     persist() {
@@ -998,8 +1003,43 @@
       }));
       // Title input: persist and live-uniqueness check (debounced)
       this.$.formTitle?.addEventListener('input', () => {
+        if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = this.$.formTitle.value;
         this.persist();
         this.checkTitleUnique?.();
+      });
+
+      // Make form title display clickable to edit
+      this.$.formTitleDisplay?.addEventListener('click', (e) => {
+        if (this.$.formTitle) {
+          this.$.formTitle.style.display = 'block';
+          this.$.formTitleDisplay.style.display = 'none';
+          this.$.formTitle.focus();
+          this.$.formTitle.select();
+        }
+      });
+
+      // Handle Enter key to finish editing
+      this.$.formTitle?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.$.formTitle.blur();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          // Restore original value if user presses Escape
+          if (this.$.formTitleDisplay) {
+            this.$.formTitle.value = this.$.formTitleDisplay.textContent;
+          }
+          this.$.formTitle.blur();
+        }
+      });
+
+      // Hide input when focus is lost
+      this.$.formTitle?.addEventListener('blur', () => {
+        if (this.$.formTitle && this.$.formTitleDisplay) {
+          this.$.formTitle.style.display = 'none';
+          this.$.formTitleDisplay.style.display = 'block';
+        }
       });
 
       // Save to DB
@@ -1359,10 +1399,10 @@
 
 // ---- 99-boot.js ----
 // src/client/builder/99-boot.js
-(function () {
+(function(){
   const NS = (window.BuilderApp = window.BuilderApp || {});
 
-  function boot() {
+  function boot(){
     // Only boot modular Builder if explicitly requested
     if (!window.BUILDER_USE_MODULAR) return;
     try { NS.startBuilder?.(); } catch (e) { console.error('Modular Builder failed to start:', e); }
