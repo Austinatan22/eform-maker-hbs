@@ -118,8 +118,31 @@
       if (!card) return;
       const body = card.querySelector('.field-body');
       if (body && NS.renderFieldHTML) {
+        // Check if this is a rich text field to preserve Quill instance
+        const field = this.fields[idx];
+        const isRichText = field.type === 'richText';
+        let existingQuill = null;
+        let existingContent = '';
+
+        if (isRichText) {
+          // Preserve existing Quill instance and content
+          const existingEditor = body.querySelector('.rich-text-editor');
+          if (existingEditor && existingEditor._quill) {
+            existingQuill = existingEditor._quill;
+            existingContent = existingQuill.root.innerHTML;
+          }
+        }
+
         body.innerHTML = NS.renderFieldHTML(this.fields[idx], idx);
         try { this._applyPreviewDefaults(body); } catch { }
+
+        if (isRichText && existingQuill && existingContent) {
+          // Immediately restore the Quill content to prevent visual flash
+          const newEditor = body.querySelector('.rich-text-editor .quill-editor');
+          if (newEditor) {
+            newEditor.innerHTML = existingContent;
+          }
+        }
       }
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch { }
       try {
