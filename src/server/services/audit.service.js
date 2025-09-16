@@ -1,6 +1,7 @@
 // src/server/services/audit.service.js
 import crypto from 'crypto';
 import { AuditLog } from '../models/AuditLog.js';
+import { logger } from '../utils/logger.js';
 
 export async function logAudit(req, { entity, action, entityId = null, meta = null }) {
   try {
@@ -13,8 +14,7 @@ export async function logAudit(req, { entity, action, entityId = null, meta = nu
     await AuditLog.create({ id, entity, action, entityId, userId, ip, ua, metaJson });
   } catch (e) {
     // Non-fatal: do not block primary flow if auditing fails
-    // eslint-disable-next-line no-console
-    console.warn?.('Audit log failed:', e?.message || e);
+    logger.warn('Audit log failed:', e?.message || e);
   }
 }
 

@@ -285,7 +285,7 @@ export const formValidation = {
     fields: (value) => {
         const required = validate.required(value, 'Form fields');
         if (required) return required;
-        return validate.array(value, 1, 100, 'Form fields');
+        return validate.array(value, 0, 100, 'Form fields');
     }
 };
 

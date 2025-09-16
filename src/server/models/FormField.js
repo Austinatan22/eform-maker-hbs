@@ -17,7 +17,8 @@ export const FormField = sequelize.define('FormField', {
   type: {
     type: DataTypes.ENUM(
       'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
-      'checkboxes', 'number', 'name', 'email', 'phone', 'password', 'richText'
+      'checkboxes', 'number', 'name', 'email', 'phone', 'password',
+      'date', 'time', 'datetime', 'url', 'file', 'richText'
     ),
     allowNull: false
   },
@@ -34,6 +35,8 @@ export const FormField = sequelize.define('FormField', {
   // Options (for dropdown/multipleChoice/checkboxes)
   options: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }, // comma-separated
 
+  // Phone field specific
+  countryIso2: { type: DataTypes.STRING(2), allowNull: true, defaultValue: null }, // ISO 2-letter country code
 
   // Ordering within form
   position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },

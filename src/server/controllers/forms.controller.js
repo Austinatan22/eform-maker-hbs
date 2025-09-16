@@ -5,16 +5,65 @@ import { Form } from '../models/Form.js';
 import { FormSubmission } from '../models/FormSubmission.js';
 import { FormField } from '../models/FormField.js';
 import { Category } from '../models/Category.js';
-import { isValidField, sanitizeFields } from '../validators/forms.validator.js';
 import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
 import { createSubmission, deleteSubmissionsByFormId } from '../services/submissions.service.js';
 import { getFileUrl } from '../middleware/upload.js';
-import { formValidation, formFieldValidation, sanitize, runValidation } from '../services/validation.service.js';
+import { formValidation, formFieldValidation, sanitize, runValidation, validate } from '../services/validation.service.js';
+import { logger } from '../utils/logger.js';
 
 // ---------------------- Helpers (render mapping) ----------------------
 
 const rid = () => crypto.randomBytes(9).toString('base64url');
+
+// Helper functions for field validation and sanitization
+function sanitizeFields(fields = []) {
+  return fields.map(field => {
+    const cleaned = { ...field };
+
+    // Sanitize text fields
+    if (cleaned.label) cleaned.label = sanitize.html(cleaned.label);
+    if (cleaned.placeholder) cleaned.placeholder = sanitize.html(cleaned.placeholder);
+    if (cleaned.name) cleaned.name = sanitize.database(cleaned.name);
+
+    // Handle options for dropdown/radio/checkbox fields
+    const needsOptions = ['dropdown', 'multipleChoice', 'checkboxes'];
+    if (needsOptions.includes(cleaned.type)) {
+      if (Array.isArray(cleaned.options)) {
+        cleaned.options = cleaned.options.map(opt => sanitize.html(String(opt))).join(', ');
+      } else {
+        cleaned.options = String(cleaned.options || '').split(',')
+          .map(opt => sanitize.html(opt.trim()))
+          .filter(Boolean)
+          .join(', ');
+      }
+    } else {
+      delete cleaned.options;
+    }
+
+    // Remove auto-generated fields
+    delete cleaned.autoName;
+
+    return cleaned;
+  });
+}
+
+function isValidField(field) {
+  if (!field) return false;
+
+  // Check required fields
+  const labelError = formFieldValidation.label(field.label);
+  if (labelError) return false;
+
+  const nameError = formFieldValidation.name(field.name);
+  if (nameError) return false;
+
+  // Check options for fields that need them
+  const optionsError = formFieldValidation.options(field.options, field.type);
+  if (optionsError) return false;
+
+  return true;
+}
 
 function formatDate(date) {
   if (!date) return '';
@@ -294,7 +343,7 @@ export async function createOrUpdateForm(req, res) {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ error: 'Uniqueness constraint failed.' });
     }
-    console.error('Create/update form error:', err);
+    logger.error('Create/update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -331,7 +380,7 @@ export async function listForms(_req, res) {
     // Return in DataTables expected format
     res.json({ data: forms });
   } catch (err) {
-    console.error('List forms error:', err);
+    logger.error('List forms error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -367,7 +416,7 @@ export async function readForm(req, res) {
       }
     });
   } catch (err) {
-    console.error('Read form error:', err);
+    logger.error('Read form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -584,7 +633,7 @@ export async function updateForm(req, res) {
     if (err?.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ error: 'Form title already exists. Choose another.' });
     }
-    console.error('Update form error:', err);
+    logger.error('Update form error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -597,7 +646,7 @@ export async function checkTitleUnique(req, res) {
     const taken = await isTitleTaken(title, excludeId);
     res.json({ unique: !taken });
   } catch (err) {
-    console.error('check-title error:', err);
+    logger.error('check-title error:', err);
     res.status(500).json({ unique: false, error: 'Server error' });
   }
 }
@@ -624,7 +673,7 @@ export async function publicSubmit(req, res) {
 
     res.json({ ok: true });
   } catch (err) {
-    console.error('Public submit error:', err);
+    logger.error('Public submit error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -664,7 +713,7 @@ export async function deleteForm(req, res) {
     });
     res.json({ ok: true });
   } catch (err) {
-    console.error('Delete form error:', err);
+    logger.error('Delete form error:', err);
     res.status(500).json({ error: 'Could not delete form' });
   }
 }
@@ -699,7 +748,7 @@ export async function uploadFile(req, res) {
       message: `${uploadedFiles.length} file(s) uploaded successfully`
     });
   } catch (err) {
-    console.error('File upload error:', err);
+    logger.error('File upload error:', err);
     res.status(500).json({ error: 'File upload failed' });
   }
 }
@@ -718,7 +767,7 @@ export async function hostedForm(req, res) {
     }));
     res.render('hosted-form', { layout: false, formId: form.id, title: form.title || 'Form', fields: vmFields });
   } catch (err) {
-    console.error('Render hosted form error:', err);
+    logger.error('Render hosted form error:', err);
     res.status(500).send('Server error');
   }
 }
@@ -748,7 +797,7 @@ export async function builderPage(req, res) {
       preloadB64
     });
   } catch (err) {
-    console.error('Open builder error:', err);
+    logger.error('Open builder error:', err);
     res.status(500).send('Server error');
   }
 }
@@ -761,7 +810,7 @@ export async function builderNewPage(_req, res) {
       currentPath: '/builder'
     });
   } catch (err) {
-    console.error('Open new builder error:', err);
+    logger.error('Open new builder error:', err);
     res.status(500).send('Server error');
   }
 }
@@ -800,7 +849,7 @@ export async function listFormsPage(_req, res) {
 
     res.render('forms', { title: 'Forms', currentPath: '/forms', forms, categories: categoriesData });
   } catch (err) {
-    console.error('List page error:', err);
+    logger.error('List page error:', err);
     res.status(500).send('Server error');
   }
 }

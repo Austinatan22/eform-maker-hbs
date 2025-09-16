@@ -15,7 +15,9 @@ import categoriesRouter from './routes/categories.routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import csurf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
+import crypto from 'crypto';
+import { logger } from './utils/logger.js';
 import { RefreshToken } from './models/RefreshToken.js';
 import { AuditLog } from './models/AuditLog.js';
 import { User } from './models/User.js';
@@ -141,18 +143,41 @@ app.use((req, res, next) => {
 // ---- CSRF protection (session-based) ----
 // Protect state-changing routes; skip public submission endpoint
 {
-  const csrfProtection = csurf({ cookie: false });
+  const { doubleCsrfProtection, generateToken } = doubleCsrf({
+    getSecret: (req) => req.session?.csrfSecret || 'fallback-secret',
+    cookieName: '_csrf',
+    cookieOptions: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false // set true behind HTTPS/proxy
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getTokenFromRequest: (req) => {
+      return req.body?._csrf ||
+        req.query?._csrf ||
+        req.headers['x-csrf-token'] ||
+        req.headers['x-xsrf-token'];
+    }
+  });
+
   // Apply CSRF to all session HTML routes so GETs get a token and mutating methods are validated.
   app.use((req, res, next) => {
     // Allow public submissions without CSRF (from hosted forms or external clients)
     if (req.path.startsWith('/public/forms/')) return next();
     // Skip JSON API routes; CSRF is intended for session-based HTML posts
     if (req.path.startsWith('/api/')) return next();
-    return csrfProtection(req, res, next);
+    return doubleCsrfProtection(req, res, next);
   });
+
   // Make token available to views on all HTML routes
   app.use((req, res, next) => {
-    try { if (typeof req.csrfToken === 'function') res.locals.csrfToken = req.csrfToken(); } catch { }
+    try {
+      if (req.session && !req.session.csrfSecret) {
+        req.session.csrfSecret = crypto.randomBytes(32).toString('hex');
+      }
+      res.locals.csrfToken = generateToken(req);
+    } catch { }
     next();
   });
 }
@@ -323,10 +348,10 @@ async function ensureSchema() {
       const [tables] = await sequelize.query("SELECT name FROM sqlite_master WHERE type='table' AND name='form_submissions'");
       if (tables.length > 0) {
         await sequelize.query("DROP TABLE form_submissions");
-        console.log('Removed old form_submissions table from main database');
+        logger.info('Removed old form_submissions table from main database');
       }
     } catch (e) {
-      console.warn('Could not remove old form_submissions table:', e.message || e);
+      logger.warn('Could not remove old form_submissions table:', e.message || e);
     }
 
     // Sync main application models
@@ -353,12 +378,12 @@ async function ensureSchema() {
         type: DataTypes.STRING(64),
         allowNull: true
       });
-      console.log('Added missing column forms.categoryId');
+      logger.info('Added missing column forms.categoryId');
     }
 
     // If old category column exists, we can optionally migrate data or remove it
     if (hasOldCategory && !hasCategoryId) {
-      console.log('Old category column found. You may want to migrate data to categoryId column.');
+      logger.info('Old category column found. You may want to migrate data to categoryId column.');
     }
 
     const hasCreatedBy = Array.isArray(cols) && cols.some(c => String(c.name).toLowerCase() === 'createdby');
@@ -367,7 +392,7 @@ async function ensureSchema() {
         type: DataTypes.STRING(64),
         allowNull: true
       });
-      console.log('Added missing column forms.createdBy');
+      logger.info('Added missing column forms.createdBy');
     }
 
     // Ensure unique index on forms.title (case-insensitive)
@@ -381,14 +406,14 @@ async function ensureSchema() {
         );
         const hasDups = Array.isArray(dups) && dups.length > 0;
         if (hasDups) {
-          console.warn('Cannot create unique index on forms.title: duplicates exist (case-insensitive). Please resolve and restart.');
+          logger.warn('Cannot create unique index on forms.title: duplicates exist (case-insensitive). Please resolve and restart.');
         } else {
           await sequelize.query("CREATE UNIQUE INDEX IF NOT EXISTS forms_title_nocase_unique ON forms(title COLLATE NOCASE)");
-          console.log('Ensured unique index forms_title_nocase_unique');
+          logger.info('Ensured unique index forms_title_nocase_unique');
         }
       }
     } catch (e) {
-      console.warn('Index ensure failed (forms.title unique):', e.message || e);
+      logger.warn('Index ensure failed (forms.title unique):', e.message || e);
     }
 
     // Ensure indexes on form_fields (including unique(formId,name))
@@ -397,7 +422,7 @@ async function ensureSchema() {
       const have = new Set((Array.isArray(idx) ? idx : []).map(r => String(r.name || '').toLowerCase()));
       if (!have.has('idx_form_fields_formid')) {
         await sequelize.query("CREATE INDEX IF NOT EXISTS idx_form_fields_formId ON form_fields(formId)");
-        console.log('Ensured index idx_form_fields_formId');
+        logger.info('Ensured index idx_form_fields_formId');
       }
       if (!have.has('uq_form_fields_formid_name')) {
         // Check duplicates before creating unique index
@@ -406,14 +431,14 @@ async function ensureSchema() {
         );
         const hasDups = Array.isArray(dups) && dups.length > 0;
         if (hasDups) {
-          console.warn('Cannot create unique index on form_fields(formId,name): duplicates exist. Please resolve and restart.');
+          logger.warn('Cannot create unique index on form_fields(formId,name): duplicates exist. Please resolve and restart.');
         } else {
           await sequelize.query("CREATE UNIQUE INDEX IF NOT EXISTS uq_form_fields_formId_name ON form_fields(formId, name)");
-          console.log('Ensured unique index uq_form_fields_formId_name');
+          logger.info('Ensured unique index uq_form_fields_formId_name');
         }
       }
     } catch (e) {
-      console.warn('Index ensure failed (form_fields):', e.message || e);
+      logger.warn('Index ensure failed (form_fields):', e.message || e);
     }
 
     // Ensure submissions database and its schema
@@ -427,15 +452,15 @@ async function ensureSchema() {
       const have = new Set((Array.isArray(idx) ? idx : []).map(r => String(r.name || '').toLowerCase()));
       if (!have.has('idx_form_submissions_formid')) {
         await submissionsSequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId ON form_submissions(formId)");
-        console.log('Ensured index idx_form_submissions_formId in submissions database');
+        logger.info('Ensured index idx_form_submissions_formId in submissions database');
       }
       // Add composite index for better deletion performance
       if (!have.has('idx_form_submissions_formid_created')) {
         await submissionsSequelize.query("CREATE INDEX IF NOT EXISTS idx_form_submissions_formId_created ON form_submissions(formId, createdAt)");
-        console.log('Ensured composite index idx_form_submissions_formId_created in submissions database');
+        logger.info('Ensured composite index idx_form_submissions_formId_created in submissions database');
       }
     } catch (e) {
-      console.warn('Submissions database initialization failed:', e.message || e);
+      logger.warn('Submissions database initialization failed:', e.message || e);
     }
 
     // Ensure users table & seed admin (dev) and add username column if missing
@@ -449,10 +474,10 @@ async function ensureSchema() {
             type: DataTypes.STRING(64),
             allowNull: true
           });
-          console.log('Added missing column users.username');
+          logger.info('Added missing column users.username');
         }
       } catch (e) {
-        console.warn('Users.username ensure failed:', e.message || e);
+        logger.warn('Users.username ensure failed:', e.message || e);
       }
 
       const [rows] = await sequelize.query("SELECT COUNT(*) as c FROM users");
@@ -463,15 +488,15 @@ async function ensureSchema() {
         const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
         const hash = bcrypt.hashSync(adminPass, 10);
         await User.create({ id: 'u-admin', email: adminEmail, username: 'admin', passwordHash: hash, role: 'admin' });
-        console.log(`Seeded admin user: ${adminEmail} / ${adminPass}`);
+        logger.info(`Seeded admin user: ${adminEmail} / ${adminPass}`);
       }
     } catch (e) {
-      console.warn('User schema/seed issue:', e.message || e);
+      logger.warn('User schema/seed issue:', e.message || e);
     }
 
     // RefreshToken and AuditLog tables are already synced above
   } catch (e) {
-    console.warn('Schema ensure failed (category):', e.message || e);
+    logger.warn('Schema ensure failed (category):', e.message || e);
   }
 }
 
@@ -489,10 +514,10 @@ const port = process.env.PORT || 5173;
 
     await ensureSchema();
     app.listen(port, () => {
-      console.log(`Listening on http://localhost:${port}`);
+      logger.info(`Listening on http://localhost:${port}`);
     });
   } catch (err) {
-    console.error('DB boot error:', err);
+    logger.error('DB boot error:', err);
     process.exit(1);
   }
 })();
