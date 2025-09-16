@@ -17,7 +17,7 @@ export const FormField = sequelize.define('FormField', {
   type: {
     type: DataTypes.ENUM(
       'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
-      'checkboxes', 'number', 'name', 'email', 'phone', 'richText'
+      'checkboxes', 'number', 'name', 'email', 'phone', 'password', 'richText'
     ),
     allowNull: false
   },

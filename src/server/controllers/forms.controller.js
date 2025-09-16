@@ -35,6 +35,7 @@ const PARTIAL_FOR = {
   name: 'fields/name',
   email: 'fields/email',
   phone: 'fields/phone',
+  password: 'fields/password',
   date: 'fields/date',
   time: 'fields/time',
   datetime: 'fields/datetime',

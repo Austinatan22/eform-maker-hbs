@@ -167,6 +167,7 @@
     name: 'name',
     email: 'email',
     phone: 'phone',
+    password: 'password',
     date: 'date',
     time: 'time',
     datetime: 'datetime',
@@ -187,6 +188,7 @@
       name: 'Full Name',
       email: 'Email',
       phone: 'Phone Number',
+      password: 'Password',
       datetime: 'Datetime',
       date: 'Date',
       time: 'Time',
@@ -205,6 +207,7 @@
       name: '',
       email: 'email@example.com',
       phone: 'Phone number',
+      password: 'Enter password',
       datetime: '',
       date: '',
       time: '',
@@ -411,8 +414,6 @@
       this.selectedId = null;
       this._bootstrapped = false;
       this.isDirty = false;
-      this.category = 'survey'; // Default category
-      this._serverDataLoaded = false; // Track if we've loaded from server
       this.$ = { preview: null };
       this.persist = NS.debounce ? NS.debounce(this.persist.bind(this), 140) : this.persist.bind(this);
       this.dnd = { draggingId: null, fromIndex: -1 };
@@ -639,41 +640,9 @@
       this.select(copy.id);
     }
 
-    async restore() {
-      // First try to load from localStorage (for unsaved changes)
-      const localData = NS.readLocal?.(this.formId);
-
-      // If we have a formId and haven't loaded from server yet, try to load from server
-      if (this.formId && !this._serverDataLoaded) {
-        try {
-          const { res, body } = await NS.API?.getForm(this.formId);
-          if (res.ok && body?.form) {
-            const serverData = body.form;
-            // Use server data as base, but preserve local changes if they exist
-            const data = localData ? {
-              ...serverData,
-              ...localData,
-              // Always use server title and category since they can be updated outside builder
-              title: serverData.title,
-              category: serverData.category
-            } : serverData;
-            this.loadFormData(data);
-            this._serverDataLoaded = true;
-            return;
-          }
-        } catch (e) {
-          console.warn('Failed to load form from server:', e);
-        }
-        this._serverDataLoaded = true; // Mark as attempted even if failed
-      }
-
-      // Fallback to localStorage only
-      if (localData) {
-        this.loadFormData(localData);
-      }
-    }
-
-    loadFormData(data) {
+    restore() {
+      const data = NS.readLocal?.(this.formId);
+      if (!data) return;
       if (data.id) this.formId = data.id;
       if (Array.isArray(data.fields)) {
         const existingNames = new Set();
@@ -712,12 +681,11 @@
         });
       }
       if (data.title && this.$.formTitle) this.$.formTitle.value = data.title;
-      if (data.category) this.category = data.category;
     }
 
     persist() {
       const title = this.$.formTitle?.value || '';
-      NS.writeLocal?.({ id: this.formId || null, title, category: this.category, fields: this.fields }, this.formId);
+      NS.writeLocal?.({ id: this.formId || null, title, fields: this.fields }, this.formId);
     }
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
@@ -1048,7 +1016,7 @@
         const m = location.pathname.match(/\/builder\/([^/]+)/);
         if (m && m[1]) this.formId = m[1];
       } catch { }
-      await this.restore();
+      this.restore();
       this.renderPreview();
       this.bindEvents();
       this.initSortable?.();
@@ -1166,7 +1134,6 @@
       const payload = {
         id: this.formId || undefined,
         title,
-        category: this.category,
         fields: this.fields.map(f => this.cleanField(f))
       };
 
@@ -1292,16 +1259,8 @@
       const finalTextarea = hiddenTextarea || textareaByName || anyTextarea;
       if (!finalTextarea) return;
 
-      console.log('Rich text: Using textarea:', {
-        name: finalTextarea.name,
-        style: finalTextarea.style.display
-      });
 
-      // Check if Quill is available
-      if (!window.Quill) {
-        console.log('Rich text: Quill not available');
-        return;
-      }
+      if (!window.Quill) return;
 
       try {
         // Create Quill instance
