@@ -438,7 +438,10 @@ export async function updateForm(req, res) {
       await updateFormWithFields(form.id, undefined, clean);
     }
 
-    await form.save();
+    // Save the form if title or category changed (fields are handled by updateFormWithFields)
+    if (title !== undefined || categoryId !== undefined) {
+      await form.save();
+    }
 
     const withFields = await Form.findByPk(form.id, {
       include: [

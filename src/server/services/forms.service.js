@@ -86,6 +86,10 @@ export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull, c
         position: idx
       }));
       await FormField.bulkCreate(rows, { transaction: t });
+      // Update the form's updated_at timestamp when fields change
+      // Force update by marking the form as changed
+      form.changed('updatedAt', true);
+      await form.save({ transaction: t });
     }
 
     return { form };
