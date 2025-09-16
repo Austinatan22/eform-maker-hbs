@@ -26,7 +26,8 @@
     time: 'time',
     datetime: 'datetime',
     url: 'url',
-    file: 'file'
+    file: 'file',
+    richText: 'rich-text'
   };
 
   // Defaults
@@ -45,7 +46,8 @@
       date: 'Date',
       time: 'Time',
       url: 'URL',
-      file: 'File Upload'
+      file: 'File Upload',
+      richText: 'Rich Text Editor'
     }[t] || (t || '')),
     options: (t) => NS.OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
     placeholder: (t) => ({
@@ -62,7 +64,8 @@
       date: '',
       time: '',
       url: 'https://example.com',
-      file: ''
+      file: '',
+      richText: 'Type something...'
     }[t] || '')
   };
 })();

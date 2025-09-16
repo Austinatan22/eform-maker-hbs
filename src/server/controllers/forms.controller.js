@@ -39,7 +39,8 @@ const PARTIAL_FOR = {
   time: 'fields/time',
   datetime: 'fields/datetime',
   url: 'fields/url',
-  file: 'fields/file'
+  file: 'fields/file',
+  richText: 'fields/rich-text'
 };
 
 const toVM = (f, idx) => ({

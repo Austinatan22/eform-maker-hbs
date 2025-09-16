@@ -99,6 +99,10 @@
       this.fields.forEach((f, i) => frag.appendChild(this.buildCard(f, i)));
       host.appendChild(frag);
       try { NS.whenIntlReady?.(() => this.initPhoneInputs()); } catch { }
+      try {
+        // Delay Quill initialization to ensure DOM is ready
+        setTimeout(() => this.initRichTextEditors(), 100);
+      } catch { }
     }
 
     appendOne(field, idx) {
@@ -118,6 +122,10 @@
         try { this._applyPreviewDefaults(body); } catch { }
       }
       try { NS.whenIntlReady?.(() => this.initPhoneInputsIn(card)); } catch { }
+      try {
+        // Delay Quill initialization to ensure DOM is ready
+        setTimeout(() => this.initRichTextEditorsIn(card), 100);
+      } catch { }
     }
 
     // Set sample values on date/time inputs in the preview so segment-click editing works
@@ -784,6 +792,104 @@
           if (field && iso2) { field.countryIso2 = iso2; this.persist(); }
         } catch { }
       });
+    }
+
+    // ---- Rich Text Editors (Quill) ----
+    initRichTextEditorsIn(rootEl) {
+      if (!window.Quill) {
+        console.log('Rich text: Quill not available globally');
+        return;
+      }
+      if (!rootEl) {
+        console.log('Rich text: No root element provided');
+        return;
+      }
+      const nodes = rootEl.querySelectorAll?.('.rich-text-editor') || [];
+      console.log(`Rich text: Found ${nodes.length} rich text editors in root element`);
+      nodes.forEach((editor, index) => {
+        console.log(`Rich text: Initializing editor ${index + 1}`);
+        this._initOneRichText(editor);
+      });
+    }
+
+    initRichTextEditors() {
+      if (!window.Quill) {
+        console.log('Rich text: Quill not available globally in initRichTextEditors');
+        return;
+      }
+      const nodes = this.$.preview?.querySelectorAll('.rich-text-editor') || [];
+      console.log(`Rich text: Found ${nodes.length} rich text editors in preview`);
+      nodes.forEach((editor, index) => {
+        console.log(`Rich text: Initializing editor ${index + 1} in preview`);
+        this._initOneRichText(editor);
+      });
+    }
+
+    _initOneRichText(editorEl) {
+      const card = editorEl.closest('[data-fid]');
+      const field = this.fields.find(f => f.id === card?.dataset?.fid);
+      if (!field) {
+        console.log('Rich text: No field found for editor');
+        return;
+      }
+
+      // Destroy existing Quill instance if any
+      const existingQuill = editorEl._quill;
+      if (existingQuill) {
+        existingQuill.destroy();
+        delete editorEl._quill;
+      }
+
+      const editorContainer = editorEl.querySelector('.quill-editor');
+      const toolbar = editorEl.querySelector('.quill-toolbar');
+      const hiddenTextarea = editorEl.querySelector('textarea[name]');
+
+      const textareaByName = editorEl.querySelector(`textarea[name="${field.name}"]`);
+      const anyTextarea = editorEl.querySelector('textarea');
+
+      if (!editorContainer) return;
+
+      const finalTextarea = hiddenTextarea || textareaByName || anyTextarea;
+      if (!finalTextarea) return;
+
+
+      if (!window.Quill) return;
+
+      try {
+        // Create Quill instance
+        const quill = new window.Quill(editorContainer, {
+          theme: 'snow',
+          modules: {
+            toolbar: toolbar
+          },
+          placeholder: field.placeholder || 'Type something...'
+        });
+
+        // Store reference
+        editorEl._quill = quill;
+
+        // Sync with hidden textarea for form submission
+        quill.on('text-change', () => {
+          const content = quill.root.innerHTML;
+          finalTextarea.value = content;
+
+          // Update field data
+          if (field) {
+            field.value = content;
+            this.persist();
+          }
+        });
+
+        // Set initial content if field has value
+        if (field.value) {
+          quill.root.innerHTML = field.value;
+          finalTextarea.value = field.value;
+        }
+
+        console.log('Rich text editor initialized successfully');
+      } catch (error) {
+        console.error('Rich text initialization error:', error);
+      }
     }
 
     initSortable() {
