@@ -1,4 +1,5 @@
-// Minimal integration tests without external frameworks
+// Legacy integration tests - kept for backward compatibility
+// For new tests, use the Jest-based integration tests in tests/integration/
 // Runs the app on a test port with a temp SQLite file and asserts endpoints
 
 import { spawn } from 'child_process';
