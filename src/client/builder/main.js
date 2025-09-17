@@ -49,6 +49,7 @@ export class Builder {
         this.persist = debounce(this.persist.bind(this), 140);
         this.dnd = { draggingId: null, fromIndex: -1 };
         this.isNewForm = false; // Track if this is a new form (draft mode)
+        this.isTemplate = false; // Track if this is template mode
     }
 
     bindDom() {
@@ -278,10 +279,9 @@ export class Builder {
     }
 
     restore() {
-        // For existing forms, always try to load from preloaded data first
+        // For existing forms/templates, always try to load from preloaded data first
         // For new forms, load from localStorage for draft functionality
         let data = null;
-
 
         if (this.isNewForm) {
             // For new forms, try form-specific key first, then general key
@@ -290,9 +290,9 @@ export class Builder {
                 data = readLocal(null); // This will use the general key 'eform-maker-hbs'
             }
         } else {
-            // For existing forms, always use preloaded data from general key
+            // For existing forms/templates, always use preloaded data from general key
             data = readLocal(null); // This will use the general key 'eform-maker-hbs'
-            // If no preload data found for existing form, wait a bit and try again
+            // If no preload data found for existing form/template, wait a bit and try again
             if (!data) {
                 setTimeout(() => {
                     const retryData = readLocal(null);
@@ -312,8 +312,18 @@ export class Builder {
     }
 
     loadFormData(data) {
-
         if (data.id) this.formId = data.id;
+
+        // Handle both form and template data structures
+        const title = data.title || data.name || '';
+        if (title) {
+            if (this.$.formTitle) this.$.formTitle.value = title;
+            if (this.$.formTitleDisplay) this.$.formTitleDisplay.textContent = title;
+            // Update page title for templates
+            if (this.isTemplate) {
+                document.title = `Editing Template: ${title}`;
+            }
+        }
         if (Array.isArray(data.fields)) {
             const existingNames = new Set();
             const uniqueName = (raw) => {
@@ -526,7 +536,10 @@ export class Builder {
                 const el2 = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
                 flash(el2);
             }
-            if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
+            if (this.$.btnSave) {
+                this.$.btnSave.disabled = false;
+                this.$.btnSave.textContent = 'Save';
+            }
         }
         removePlaceholder();
     }
@@ -572,7 +585,10 @@ export class Builder {
                 const el2 = this.$.preview?.querySelector(`[data-fid="${this.dnd.draggingId}"]`);
                 flash(el2);
             }
-            if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
+            if (this.$.btnSave) {
+                this.$.btnSave.disabled = false;
+                this.$.btnSave.textContent = 'Save';
+            }
         }
         removePlaceholder();
     }
@@ -721,16 +737,25 @@ export class Builder {
         // Preload templates; then bind and do a minimal render
         try { await preloadTemplates(PARTIAL_FOR); } catch (e) { console.warn('preloadTemplates failed:', e); }
         this.bindDom();
-        // capture deep-link id (/builder/:id) if present
+        // capture deep-link id (/builder/:id or /builder/template/:id) if present
         try {
-            const m = location.pathname.match(/\/builder\/([^/]+)/);
-            if (m && m[1]) {
-                this.formId = m[1];
+            const templateMatch = location.pathname.match(/\/builder\/template\/([^/]+)/);
+            const formMatch = location.pathname.match(/\/builder\/([^/]+)/);
+
+            if (templateMatch && templateMatch[1]) {
+                this.formId = templateMatch[1];
+                this.isTemplate = true;
+                this.isNewForm = false; // Editing existing template
+            } else if (formMatch && formMatch[1]) {
+                this.formId = formMatch[1];
+                this.isTemplate = false;
                 this.isNewForm = false; // Editing existing form
             } else {
+                this.isTemplate = false;
                 this.isNewForm = true; // Creating new form
             }
         } catch {
+            this.isTemplate = false;
             this.isNewForm = true; // Default to new form if path parsing fails
         }
         this.restore();
@@ -810,18 +835,27 @@ export class Builder {
     async handleSaveToDB(e) {
         e?.preventDefault?.();
         const title = (this.$.formTitle?.value || '').trim();
-        if (!title) { alert('Form must have a title before saving.'); this.$.formTitle?.focus(); return; }
+        if (!title) {
+            const entityType = this.isTemplate ? 'template' : 'form';
+            alert(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} must have a title before saving.`);
+            this.$.formTitle?.focus();
+            return;
+        }
 
         // Soft uniqueness check (both create and update)
         try {
-            const { body } = await API.checkTitleUnique(title, this.formId || undefined);
+            const checkMethod = this.isTemplate ? API.checkTemplateNameUnique : API.checkTitleUnique;
+            const { body } = await checkMethod(title, this.formId || undefined);
             if (!body?.unique) {
                 // Mark invalid and stop
                 this.$.formTitle?.reportValidity?.();
                 this.$.formTitle?.focus();
                 return;
             }
-        } catch { }
+        } catch (error) {
+            console.warn('Title uniqueness check failed:', error);
+            // Continue with save attempt - server will handle validation
+        }
 
         // Field validation
         for (const f of this.fields) {
@@ -846,19 +880,23 @@ export class Builder {
 
         const payload = {
             id: this.formId || undefined,
-            title,
+            name: title, // Templates use 'name' instead of 'title'
             fields: this.fields.map(f => this.cleanField(f))
         };
 
-        if (this.$.btnSave) { this.$.btnSave.disabled = true; this.$.btnSave.textContent = 'Saving…'; }
+        if (this.$.btnSave) {
+            this.$.btnSave.disabled = true;
+            this.$.btnSave.textContent = this.isTemplate ? 'Saving Template…' : 'Saving…';
+        }
         try {
-            const { res, body } = await API.saveForm(payload);
+            const saveMethod = this.isTemplate ? API.saveTemplate : API.saveForm;
+            const { res, body } = await saveMethod(payload);
             if (!res?.ok) {
-                const msg = (body && body.error) ? body.error : 'Failed to save form.';
+                const msg = (body && body.error) ? body.error : `Failed to save ${this.isTemplate ? 'template' : 'form'}.`;
                 alert(msg);
                 return;
             }
-            const newId = body?.form?.id || body?.id || null;
+            const newId = body?.template?.id || body?.form?.id || body?.id || null;
             if (newId) {
                 const wasNewForm = this.isNewForm; // Store the original state
                 this.formId = newId;
@@ -872,12 +910,26 @@ export class Builder {
             }
             // Mark the builder as clean after a successful save so navigation doesn't warn
             this.clearDirty();
-            if (this.$.btnSave) { this.$.btnSave.textContent = 'Saved'; setTimeout(() => { this.$.btnSave.textContent = 'Save'; }, 900); }
+            if (this.$.btnSave) {
+                this.$.btnSave.textContent = this.isTemplate ? 'Template Saved' : 'Saved';
+                setTimeout(() => {
+                    this.$.btnSave.textContent = 'Save';
+                    // For templates, redirect to templates page after successful save
+                    if (this.isTemplate) {
+                        setTimeout(() => {
+                            window.location.href = '/templates';
+                        }, 1000);
+                    }
+                }, 900);
+            }
         } catch (err) {
-            console.error('Failed saving form:', err);
-            alert('Failed to save form. See console for details.');
+            console.error(`Failed saving ${this.isTemplate ? 'template' : 'form'}:`, err);
+            alert(`Failed to save ${this.isTemplate ? 'template' : 'form'}. See console for details.`);
         } finally {
-            if (this.$.btnSave) this.$.btnSave.disabled = false;
+            if (this.$.btnSave) {
+                this.$.btnSave.disabled = false;
+                this.$.btnSave.textContent = 'Save';
+            }
         }
     }
 
@@ -1055,7 +1107,10 @@ export class Builder {
                         const el = this.$.preview?.querySelector(`[data-fid="${id}"]`);
                         flash(el);
                     }
-                    if (this.$.btnSave) { this.$.btnSave.disabled = false; this.$.btnSave.textContent = 'Save'; }
+                    if (this.$.btnSave) {
+                        this.$.btnSave.disabled = false;
+                        this.$.btnSave.textContent = 'Save';
+                    }
                 }
             });
             this._sortableReady = true;

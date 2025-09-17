@@ -741,6 +741,39 @@ export async function builderNewPage(_req, res) {
   }
 }
 
+export async function builderTemplatePage(req, res) {
+  try {
+    const { Template } = await import('../models/Template.js');
+    const template = await Template.findByPk(req.params.id, {
+      include: [
+        { model: Category, as: 'category' }
+      ]
+    });
+
+    if (!template) {
+      return res.status(404).send('Template not found');
+    }
+
+    const templateData = {
+      id: template.id,
+      title: template.name,
+      category: template.category?.name || 'survey',
+      fields: template.fields || []
+    };
+
+    res.render('builder', {
+      title: `Editing Template: ${template.name}`,
+      currentPath: '/builder',
+      template: templateData,
+      preloadData: templateData,
+      isTemplate: true
+    });
+  } catch (err) {
+    logger.error('Open template builder error:', err);
+    res.status(500).send('Server error');
+  }
+}
+
 // Optional UI endpoints (not required by tests, but handy)
 export async function listFormsPage(_req, res) {
   try {

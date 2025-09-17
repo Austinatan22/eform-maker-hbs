@@ -12,6 +12,7 @@ import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
 import logsRouter from './routes/logs.routes.js';
 import categoriesRouter from './routes/categories.routes.js';
+import templatesRouter from './routes/templates.routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -26,6 +27,7 @@ import { FormSubmission } from './models/FormSubmission.js';
 import { Form } from './models/Form.js';
 import { FormField } from './models/FormField.js';
 import { Category } from './models/Category.js';
+import { Template } from './models/Template.js';
 
 // Paths / __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -131,6 +133,7 @@ app.use((req, res, next) => {
       icon: 'ti tabler-file-text',
       children: [
         { label: 'Forms', href: '/forms', icon: 'ti tabler-file-text' },
+        { label: 'Templates', href: '/templates', icon: 'ti tabler-template' },
         { label: 'Categories', href: '/categories', icon: 'ti tabler-tags' }
       ]
     }
@@ -196,6 +199,7 @@ app.use(authRouter);
 app.use(usersRouter);
 app.use(logsRouter);
 app.use(formsRouter);
+app.use(templatesRouter);
 app.use(categoriesRouter);
 
 // Serve uploaded files
@@ -349,11 +353,15 @@ async function ensureSchema() {
     await RefreshToken.sync();
     await AuditLog.sync();
     await Category.sync();
+    await Template.sync();
     await UserLockout.sync();
 
     // Define model associations
     Form.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
     Category.hasMany(Form, { foreignKey: 'categoryId', as: 'forms' });
+
+    Template.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+    Category.hasMany(Template, { foreignKey: 'categoryId', as: 'templates' });
 
     // If starting on a fresh DB, sync creates the column from the model.
     // For existing DBs, add the column if it doesn't exist (SQLite only).

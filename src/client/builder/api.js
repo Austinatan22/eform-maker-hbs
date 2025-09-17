@@ -37,5 +37,23 @@ export const API = {
     },
     async deleteForm(id) {
         return fetchJson(`/api/forms/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+    // Template API methods
+    async checkTemplateNameUnique(name, excludeId) {
+        const qs = toQuery({ name, excludeId });
+        return fetchJson(`/api/templates/check-name?${qs}`, { cache: 'no-store' });
+    },
+    async saveTemplate(payload) {
+        return fetchJson('/api/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    },
+    async getTemplate(id) {
+        return fetchJson(`/api/templates/${encodeURIComponent(id)}`, { cache: 'no-store' });
+    },
+    async deleteTemplate(id) {
+        return fetchJson(`/api/templates/${encodeURIComponent(id)}`, { method: 'DELETE' });
     }
 };

@@ -72,70 +72,12 @@
 
         <div class="js-step d-none" data-step="templates">
           <p class="text-muted">Pick a template</p>
-          <div class="row row-cols-2 g-2">
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="newsletter">
-                <i class="icon-base ti tabler-mail me-2 icon-20px"></i>
-                <span class="fw-medium">Newsletter Signup</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="complaints">
-                <i class="icon-base ti tabler-alert-triangle me-2 icon-20px"></i>
-                <span class="fw-medium">Complaints</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="profile">
-                <i class="icon-base ti tabler-user me-2 icon-20px"></i>
-                <span class="fw-medium">Profile</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="rsvp">
-                <i class="icon-base ti tabler-calendar me-2 icon-20px"></i>
-                <span class="fw-medium">Event RSVP</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="contact">
-                <i class="icon-base ti tabler-phone me-2 icon-20px"></i>
-                <span class="fw-medium">Contact Us</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="support">
-                <i class="icon-base ti tabler-lifebuoy me-2 icon-20px"></i>
-                <span class="fw-medium">Support Ticket</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="job">
-                <i class="icon-base ti tabler-briefcase me-2 icon-20px"></i>
-                <span class="fw-medium">Job Application</span>
-              </label>
-            </div>
-            <div class="col">
-              <label
-                class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
-                <input class="d-none" type="radio" name="templateChoice" value="nps">
-                <i class="icon-base ti tabler-chart-pie me-2 icon-20px"></i>
-                <span class="fw-medium">NPS Survey</span>
-              </label>
+          <div class="row row-cols-2 g-2" id="templatesContainer">
+            <div class="col-12">
+              <div class="alert alert-info">
+                <i class="icon-base ti tabler-info-circle me-2"></i>
+                Loading templates...
+              </div>
             </div>
           </div>
         </div>
@@ -337,87 +279,87 @@
         let fromTemplates = false;
         let selectedFields = [];
 
-        const TEMPLATES = {
-          newsletter: {
-            name: 'Newsletter Signup',
-            categoryId: 'cat-survey',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true }
-            ]
-          },
-          complaints: {
-            name: 'Complaints',
-            categoryId: 'cat-feedback',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '' },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-              { type: 'dropdown', label: 'Issue Type', name: 'issueType', options: 'Billing,Bug,Feature Request,Other', required: true },
-              { type: 'paragraph', label: 'Describe the issue', name: 'details', placeholder: 'Tell us what went wrong...', required: true }
-            ]
-          },
-          profile: {
-            name: 'Profile',
-            categoryId: 'cat-survey',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-              { type: 'phone', label: 'Phone Number', name: 'phone', placeholder: '' }
-            ]
-          },
-          rsvp: {
-            name: 'Event RSVP',
-            categoryId: 'cat-registration',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', placeholder: '', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com' },
-              { type: 'multipleChoice', label: 'Attending?', name: 'attending', options: 'Yes,No', required: true },
-              { type: 'number', label: 'Guests', name: 'guests', placeholder: '0' }
-            ]
-          },
-          contact: {
-            name: 'Contact Us',
-            categoryId: 'cat-contact',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-              { type: 'phone', label: 'Phone Number', name: 'phone' },
-              { type: 'dropdown', label: 'Reason', name: 'reason', options: 'Sales,Support,General', required: true },
-              { type: 'paragraph', label: 'Message', name: 'message', placeholder: 'How can we help?', required: true }
-            ]
-          },
-          support: {
-            name: 'Support Ticket',
-            categoryId: 'cat-feedback',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-              { type: 'dropdown', label: 'Priority', name: 'priority', options: 'Low,Medium,High,Urgent', required: true },
-              { type: 'dropdown', label: 'Product', name: 'product', options: 'Web,Mobile,API,Other', required: true },
-              { type: 'paragraph', label: 'Issue Details', name: 'details', placeholder: 'Describe your issue...', required: true }
-            ]
-          },
-          job: {
-            name: 'Job Application',
-            categoryId: 'cat-registration',
-            fields: [
-              { type: 'name', label: 'Full Name', name: 'fullName', required: true },
-              { type: 'email', label: 'Email', name: 'email', placeholder: 'you@example.com', required: true },
-              { type: 'phone', label: 'Phone Number', name: 'phone' },
-              { type: 'dropdown', label: 'Position', name: 'position', options: 'Designer,Engineer,Product Manager,Other', required: true },
-              { type: 'dropdown', label: 'Experience Level', name: 'experience', options: 'Junior,Mid,Senior,Lead', required: true },
-              { type: 'paragraph', label: 'Cover Letter', name: 'coverLetter', placeholder: 'Tell us about yourself', required: true }
-            ]
-          },
-          nps: {
-            name: 'NPS Survey',
-            categoryId: 'cat-survey',
-            fields: [
-              { type: 'multipleChoice', label: 'How likely are you to recommend us?', name: 'nps', options: '1,2,3,4,5,6,7,8,9,10', required: true },
-              { type: 'paragraph', label: 'What is the primary reason for your score?', name: 'reason', placeholder: '(optional)' }
-            ]
+        let TEMPLATES = {};
+
+        // Load templates from API
+        async function loadTemplates(retryCount = 0) {
+          try {
+            const res = await fetch('/api/templates/active', {
+              headers: { 'CSRF-Token': CSRF }
+            });
+            const result = await res.json();
+            if (!res.ok) {
+              if (retryCount < 2) {
+                console.warn(`Template loading failed, retrying... (${retryCount + 1}/2)`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return loadTemplates(retryCount + 1);
+              }
+              throw new Error(result?.error || 'Failed to load templates');
+            }
+
+            TEMPLATES = {};
+            const container = document.getElementById('templatesContainer');
+            if (!container) return;
+
+            if (result.data && result.data.length > 0) {
+              container.innerHTML = '';
+              result.data.forEach(template => {
+                TEMPLATES[template.id] = template;
+
+                const col = document.createElement('div');
+                col.className = 'col';
+
+                const icon = getTemplateIcon(template.name);
+                col.innerHTML = `
+                  <label class="btn btn-outline-secondary d-inline-flex align-items-center justify-content-start w-100 template-tile">
+                    <input class="d-none" type="radio" name="templateChoice" value="${template.id}">
+                    <i class="icon-base ti ${icon} me-2 icon-20px"></i>
+                    <span class="fw-medium">${template.name}</span>
+                  </label>
+                `;
+                container.appendChild(col);
+              });
+            } else {
+              container.innerHTML = `
+                <div class="col-12">
+                  <div class="alert alert-warning">
+                    <i class="icon-base ti tabler-alert-triangle me-2"></i>
+                    No templates available. <a href="/templates" class="alert-link">Create a template</a> first.
+                  </div>
+                </div>
+              `;
+            }
+          } catch (err) {
+            console.error('Error loading templates:', err);
+            const container = document.getElementById('templatesContainer');
+            if (container) {
+              container.innerHTML = `
+                <div class="col-12">
+                  <div class="alert alert-danger">
+                    <i class="icon-base ti tabler-alert-circle me-2"></i>
+                    Failed to load templates. Please try again.
+                  </div>
+                </div>
+              `;
+            }
           }
-        };
+        }
+
+        // Get appropriate icon for template name
+        function getTemplateIcon(name) {
+          const lowerName = name.toLowerCase();
+          if (lowerName.includes('newsletter') || lowerName.includes('mail')) return 'tabler-mail';
+          if (lowerName.includes('complaint') || lowerName.includes('issue')) return 'tabler-alert-triangle';
+          if (lowerName.includes('profile') || lowerName.includes('user')) return 'tabler-user';
+          if (lowerName.includes('rsvp') || lowerName.includes('event')) return 'tabler-calendar';
+          if (lowerName.includes('contact')) return 'tabler-phone';
+          if (lowerName.includes('support') || lowerName.includes('ticket')) return 'tabler-lifebuoy';
+          if (lowerName.includes('job') || lowerName.includes('application')) return 'tabler-briefcase';
+          if (lowerName.includes('survey') || lowerName.includes('nps')) return 'tabler-chart-pie';
+          if (lowerName.includes('feedback')) return 'tabler-message-circle';
+          if (lowerName.includes('registration')) return 'tabler-user-plus';
+          return 'tabler-template';
+        }
 
         function show(step) {
           mode = step;
@@ -438,7 +380,15 @@
           if (inputTitle) inputTitle.value = '';
           show('blank');
         });
-        wiz.querySelector('.js-choose-template')?.addEventListener('click', () => show('templates'));
+        wiz.querySelector('.js-choose-template')?.addEventListener('click', async () => {
+          try {
+            await loadTemplates();
+            show('templates');
+          } catch (error) {
+            console.error('Failed to load templates:', error);
+            alert('Failed to load templates. Please try again.');
+          }
+        });
         // Template tile click -> select radio and set primary label style
         wiz.querySelector('[data-step="templates"]')?.addEventListener('click', (e) => {
           const tile = e.target.closest('.template-tile');
@@ -486,11 +436,20 @@
               if (!selected) return;
               const key = selected.value;
               const tpl = TEMPLATES[key];
+              if (!tpl) {
+                alert('Template not found. Please try again.');
+                return;
+              }
               // Move to details step with prefilled fields
               selectedFields = Array.isArray(tpl.fields) ? tpl.fields : [];
               fromTemplates = true;
               if (inputTitle) inputTitle.value = tpl.name || '';
-              if (selCat) selCat.value = tpl.categoryId || '';
+              if (selCat) {
+                const categoryId = tpl.categoryId || '';
+                // Validate that the category exists in the form's category list
+                const categoryExists = Array.from(selCat.options).some(option => option.value === categoryId);
+                selCat.value = categoryExists ? categoryId : '';
+              }
               show('blank');
               return;
             }

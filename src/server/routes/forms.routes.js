@@ -15,6 +15,7 @@ import {
   hostedForm,
   builderPage,
   builderNewPage,
+  builderTemplatePage,
   listFormsPage,
   checkTitleUnique,
   publicSubmit,
@@ -72,7 +73,8 @@ router.get('/f/:id', hostedForm);
 router.post('/public/forms/:id/submissions', publicSubmit);
 
 // Builder deep-link
-// Place specific route before dynamic to avoid catching '/builder/new' as :id
+// Place specific routes before dynamic to avoid conflicts
+router.get('/builder/template/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderTemplatePage);
 router.get('/builder/new', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderNewPage);
 router.get('/builder/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderPage);
 

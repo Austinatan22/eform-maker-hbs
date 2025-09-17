@@ -1,0 +1,503 @@
+{{!-- views/templates.hbs --}}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Templates</h5>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+            + Create a Template
+        </button>
+    </div>
+
+    <div class="card-datatable table-responsive pt-0">
+        <table class="datatables-templates table" id="templatesTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Fields</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+{{!-- Create Template Modal --}}
+<div class="modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form class="modal-content" id="createTemplateForm">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="templateName">Template Name</label>
+                    <input id="templateName" type="text" class="form-control" placeholder="e.g. Contact Form Template"
+                        required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="templateDescription">Description</label>
+                    <textarea id="templateDescription" class="form-control" placeholder="Optional description"
+                        rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="templateCategory">Category</label>
+                    <select id="templateCategory" class="form-select">
+                        <option value="">Uncategorized</option>
+                        {{#each categories}}
+                        <option value="{{this.id}}">{{this.name}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fields</label>
+                    <div class="alert alert-info">
+                        <i class="icon-base ti tabler-info-circle me-2"></i>
+                        You can add fields after creating the template by editing it.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Template</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{!-- Edit Template Modal --}}
+<div class="modal fade" id="editTemplateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form class="modal-content" id="editTemplateForm">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="editTemplateName">Template Name</label>
+                    <input id="editTemplateName" type="text" class="form-control"
+                        placeholder="e.g. Contact Form Template" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="editTemplateDescription">Description</label>
+                    <textarea id="editTemplateDescription" class="form-control" placeholder="Optional description"
+                        rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="editTemplateCategory">Category</label>
+                    <select id="editTemplateCategory" class="form-select">
+                        <option value="">Uncategorized</option>
+                        {{#each categories}}
+                        <option value="{{this.id}}">{{this.name}}</option>
+                        {{/each}}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editTemplateActive" checked>
+                        <label class="form-check-label" for="editTemplateActive">
+                            Active
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fields</label>
+                    <div class="alert alert-info">
+                        <i class="icon-base ti tabler-info-circle me-2"></i>
+                        To edit fields, use the "Edit in Builder" button to open the form builder.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Template</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{!-- Delete Confirm Modal --}}
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong class="js-del-title">this template</strong>? This action
+                    cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn" type="button">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{#section 'scripts'}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const CSRF = document.querySelector('meta[name="csrf-token"]').content || window.CSRF_TOKEN || '';
+
+        function formatDateVerbose(val) {
+            try {
+                const d = new Date(val);
+                if (isNaN(d)) return String(val || '');
+                const DD = String(d.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+                const MMM = months[d.getMonth()] || '';
+                const YYYY = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                const ss = String(d.getSeconds()).padStart(2, '0');
+                return `${DD} ${MMM} ${YYYY}, ${hh}:${mm}:${ss}`;
+            } catch (_) { return String(val || ''); }
+        }
+
+        // Initialize DataTable
+        const templatesTable = document.getElementById('templatesTable');
+        let dt_templates;
+
+        if (templatesTable) {
+            dt_templates = new DataTable(templatesTable, {
+                ajax: {
+                    url: '/api/templates',
+                    headers: { 'CSRF-Token': CSRF }
+                },
+                columns: [
+                    { data: 'name' },
+                    { data: 'description' },
+                    { data: 'category' },
+                    { data: 'fields' },
+                    { data: 'updatedAt' },
+                    { data: 'id' }
+                ],
+                columnDefs: [
+                    {
+                        // Name column
+                        targets: 0,
+                        render: function (data, type, full, meta) {
+                            return `<span class="fw-medium js-name">${data || ''}</span>`;
+                        }
+                    },
+                    {
+                        // Description column
+                        targets: 1,
+                        render: function (data, type, full, meta) {
+                            return `<span class="text-muted">${data || ''}</span>`;
+                        }
+                    },
+                    {
+                        // Category column
+                        targets: 2,
+                        render: function (data, type, full, meta) {
+                            if (data && data.id) {
+                                return `<span class="badge rounded-pill" style="background-color: ${data.color}; color: white;">${data.name}</span>`;
+                            }
+                            return '<span class="badge rounded-pill bg-label-secondary">Uncategorized</span>';
+                        }
+                    },
+                    {
+                        // Fields column
+                        targets: 3,
+                        render: function (data, type, full, meta) {
+                            const count = Array.isArray(data) ? data.length : 0;
+                            return `<span class="badge bg-label-info">${count} field${count !== 1 ? 's' : ''}</span>`;
+                        }
+                    },
+                    {
+                        // Updated column
+                        targets: 4,
+                        render: function (data, type, full, meta) {
+                            return `<span class="text-muted">${formatDateVerbose(data)}</span>`;
+                        }
+                    },
+                    {
+                        // Actions column
+                        targets: -1,
+                        title: 'Actions',
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, full, meta) {
+                            return `
+                <div class="d-inline-flex align-items-center gap-1 justify-content-start">
+                  <button type="button" class="btn btn-sm btn-outline-primary js-act-edit" data-id="${full.id}">
+                    <i class="icon-base ti tabler-edit icon-sm me-1"></i>
+                    Edit
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-success js-act-builder" data-id="${full.id}">
+                    <i class="icon-base ti tabler-tools icon-sm me-1"></i>
+                    Builder
+                  </button>
+                  <div class="btn-group">
+                    <button type="button"
+                      class="btn btn-sm btn-icon rounded-pill dropdown-toggle hide-arrow btn-text-secondary js-actions"
+                      data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
+                      <i class="icon-base ti tabler-dots-vertical icon-20px"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <a class="dropdown-item js-act-duplicate" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-copy icon-sm me-2"></i>
+                          Duplicate
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item text-danger js-delete" href="javascript:void(0);" data-id="${full.id}">
+                          <i class="icon-base ti tabler-trash icon-sm me-2"></i>
+                          Delete
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              `;
+                        }
+                    }
+                ],
+                order: [[4, 'desc']], // Sort by updated date descending by default
+                layout: {
+                    topStart: {
+                        rowClass: 'row mx-3 my-0 justify-content-between',
+                        features: [
+                            {
+                                pageLength: {
+                                    menu: [10, 25, 50, 100],
+                                    text: 'Show_MENU_entries'
+                                }
+                            }
+                        ]
+                    },
+                    topEnd: {
+                        search: {
+                            placeholder: 'Search templates...'
+                        }
+                    },
+                    bottomStart: {
+                        rowClass: 'row mx-3 justify-content-between',
+                        features: ['info']
+                    },
+                    bottomEnd: 'paging'
+                },
+                language: {
+                    paginate: {
+                        next: '<i class="icon-base ti tabler-chevron-right scaleX-n1-rtl icon-18px"></i>',
+                        previous: '<i class="icon-base ti tabler-chevron-left scaleX-n1-rtl icon-18px"></i>',
+                        first: '<i class="icon-base ti tabler-chevrons-left scaleX-n1-rtl icon-18px"></i>',
+                        last: '<i class="icon-base ti tabler-chevrons-right scaleX-n1-rtl icon-18px"></i>'
+                    }
+                }
+            });
+
+            // Initialize dropdowns after table is drawn
+            templatesTable.addEventListener('draw.dt', function () {
+                document.querySelectorAll('.js-actions').forEach(btn => {
+                    try {
+                        const dd = bootstrap.Dropdown.getOrCreateInstance(btn, {
+                            boundary: 'viewport',
+                            popperConfig(config) {
+                                return Object.assign({}, config || {}, { strategy: 'fixed' });
+                            }
+                        });
+                        void dd;
+                    } catch (_) { /* ignore */ }
+                });
+            });
+
+            // Handle table clicks
+            templatesTable.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.js-delete');
+                if (btn) {
+                    const id = btn.getAttribute('data-id');
+                    if (!id) return;
+
+                    // Get template data from DataTable
+                    const templateData = dt_templates.row(`tr:has([data-id="${id}"])`).data();
+                    if (!templateData) return;
+
+                    const modalEl = document.getElementById('confirmDeleteModal');
+                    modalEl.dataset.id = id;
+                    modalEl.querySelector('.js-del-title').textContent = templateData.name || 'this template';
+                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    m.show();
+                    return;
+                }
+
+                // Edit action
+                const actEdit = e.target.closest('.js-act-edit');
+                if (actEdit) {
+                    const id = actEdit.getAttribute('data-id');
+                    if (!id) return;
+
+                    // Get template data from DataTable
+                    const templateData = dt_templates.row(`tr:has([data-id="${id}"])`).data();
+                    if (!templateData) return;
+
+                    const modalEl = document.getElementById('editTemplateModal');
+                    modalEl.dataset.id = id;
+                    document.getElementById('editTemplateName').value = templateData.name || '';
+                    document.getElementById('editTemplateDescription').value = templateData.description || '';
+                    document.getElementById('editTemplateCategory').value = templateData.categoryId || '';
+                    document.getElementById('editTemplateActive').checked = templateData.isActive !== false;
+
+                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    m.show();
+                    return;
+                }
+
+                // Builder action
+                const actBuilder = e.target.closest('.js-act-builder');
+                if (actBuilder) {
+                    const id = actBuilder.getAttribute('data-id');
+                    if (!id) return;
+                    window.location.assign('/builder/template/' + id);
+                    return;
+                }
+
+                // Duplicate action
+                const actDuplicate = e.target.closest('.js-act-duplicate');
+                if (actDuplicate) {
+                    const id = actDuplicate.getAttribute('data-id');
+                    if (!id) return;
+
+                    try {
+                        const res = await fetch('/api/templates/' + id, {
+                            headers: { 'CSRF-Token': CSRF }
+                        });
+                        const result = await res.json();
+                        if (!res.ok) throw new Error(result?.error || 'Failed to get template');
+
+                        const template = result.template;
+                        const duplicateName = template.name + ' (Copy)';
+
+                        const createRes = await fetch('/api/templates', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                            body: JSON.stringify({
+                                name: duplicateName,
+                                description: template.description,
+                                fields: template.fields,
+                                categoryId: template.categoryId
+                            })
+                        });
+
+                        if (!createRes.ok) {
+                            const error = await createRes.json();
+                            throw new Error(error?.error || 'Failed to duplicate template');
+                        }
+
+                        dt_templates.ajax.reload();
+                    } catch (err) {
+                        console.error(err);
+                        alert(err?.message || 'Could not duplicate template.');
+                    }
+                    return;
+                }
+            });
+
+            // Delete modal confirm
+            document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+                const modalEl = document.getElementById('confirmDeleteModal');
+                const id = modalEl?.dataset.id;
+                if (!id) return;
+                const btn = document.getElementById('confirmDeleteBtn');
+                const originalText = btn?.textContent;
+
+                try {
+                    // Show loading state
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Deleting...';
+                    }
+
+                    const res = await fetch('/api/templates/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+                    if (!res.ok) throw new Error('Delete failed');
+
+                    dt_templates.ajax.reload();
+                    bootstrap.Modal.getInstance(modalEl)?.hide();
+                } catch (err) {
+                    console.error(err);
+                    alert('Could not delete template.');
+                } finally {
+                    // Restore button state
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }
+                }
+            });
+
+            // Create template form
+            document.getElementById('createTemplateForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('templateName').value.trim();
+                const description = document.getElementById('templateDescription').value.trim();
+                const categoryId = document.getElementById('templateCategory').value;
+
+                if (!name) {
+                    alert('Template name is required');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/templates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        body: JSON.stringify({ name, description, fields: [], categoryId })
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result?.error || 'Create failed');
+
+                    dt_templates.ajax.reload();
+                    bootstrap.Modal.getInstance(document.getElementById('createTemplateModal'))?.hide();
+
+                    // Clear form
+                    document.getElementById('templateName').value = '';
+                    document.getElementById('templateDescription').value = '';
+                    document.getElementById('templateCategory').value = '';
+                } catch (err) {
+                    alert(err?.message || 'Could not create template');
+                }
+            });
+
+            // Edit template form
+            document.getElementById('editTemplateForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const modalEl = document.getElementById('editTemplateModal');
+                const id = modalEl?.dataset.id;
+                if (!id) return;
+
+                const name = document.getElementById('editTemplateName').value.trim();
+                const description = document.getElementById('editTemplateDescription').value.trim();
+                const categoryId = document.getElementById('editTemplateCategory').value;
+                const isActive = document.getElementById('editTemplateActive').checked;
+
+                if (!name) {
+                    alert('Template name is required');
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/templates/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        body: JSON.stringify({ name, description, categoryId, isActive })
+                    });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result?.error || 'Update failed');
+
+                    dt_templates.ajax.reload();
+                    bootstrap.Modal.getInstance(modalEl)?.hide();
+                } catch (err) {
+                    alert(err?.message || 'Could not update template');
+                }
+            });
+        }
+    });
+</script>
+{{/section}}
