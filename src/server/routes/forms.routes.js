@@ -38,6 +38,9 @@ function ensureAuth(req, res, next) {
       return next();
     } catch (e) { }
   }
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   if (req.accepts('html')) return res.redirect('/login');
   return res.status(401).json({ error: 'Unauthorized' });
 }

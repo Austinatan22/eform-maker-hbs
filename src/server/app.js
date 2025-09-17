@@ -169,15 +169,16 @@ app.use((req, res, next) => {
     size: 32,
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
     getCsrfTokenFromRequest: (req) => {
-      return req.body._csrf || req.headers['x-csrf-token'] || req.query._csrf;
+      return req.body._csrf || req.headers['x-csrf-token'] || req.headers['csrf-token'] || req.query._csrf;
     }
   });
 
-  // Apply CSRF protection to all routes except public form submissions
+  // Apply CSRF protection to all routes except public form submissions and API endpoints
   app.use((req, res, next) => {
-    // Skip CSRF for public form submissions and API endpoints that don't need it
+    // Skip CSRF for public form submissions and all API endpoints
     if (req.path.startsWith('/form/') ||
-      (req.path.startsWith('/api/forms/') && req.method === 'GET') ||
+      req.path.startsWith('/public/') ||
+      req.path.startsWith('/api/') ||
       req.path === '/api/forms/submit') {
       return next();
     }
@@ -232,15 +233,22 @@ app.use((err, req, res, next) => {
   // Don't leak error details in production
   const isDevelopment = process.env.NODE_ENV !== 'production';
 
-  if (req.accepts('html')) {
-    // HTML error page
+  if (req.path.startsWith('/api/')) {
+    // JSON error response for API requests
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: isDevelopment ? err.message : 'An internal server error occurred',
+      ...(isDevelopment && { stack: err.stack })
+    });
+  } else if (req.accepts('html')) {
+    // HTML error page for non-API requests
     res.status(500).render('error', {
       title: 'Error',
       message: isDevelopment ? err.message : 'An internal server error occurred',
       stack: isDevelopment ? err.stack : undefined
     });
   } else {
-    // JSON error response
+    // JSON error response for non-HTML requests
     res.status(500).json({
       error: 'Internal Server Error',
       message: isDevelopment ? err.message : 'An internal server error occurred',
@@ -251,12 +259,17 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  if (req.accepts('html')) {
+  if (req.path.startsWith('/api/')) {
+    // JSON error response for API requests
+    res.status(404).json({ error: 'Not Found' });
+  } else if (req.accepts('html')) {
+    // HTML error page for non-API requests
     res.status(404).render('error', {
       title: 'Not Found',
       message: 'The requested page could not be found'
     });
   } else {
+    // JSON error response for non-HTML requests
     res.status(404).json({ error: 'Not Found' });
   }
 });
@@ -268,6 +281,10 @@ app.engine('hbs', engine({
   layoutsDir: LAYOUTS_DIR,
   partialsDir: PARTIALS_DIR,
   helpers: {
+    // Equality helper
+    eq(a, b) {
+      return a === b;
+    },
     logActionLabel(action) {
       const a = String(action || '').toLowerCase();
       if (a === 'create') return 'Create';
