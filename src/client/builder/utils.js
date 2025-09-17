@@ -22,13 +22,25 @@ export function debounce(fn, ms = 160) {
 }
 
 export function toSafeSnake(s) {
-    return String(s || '')
+    let result = String(s || '')
         .trim()
         .replace(/[\s\-]+/g, '_')
         .replace(/[^a-zA-Z0-9_]/g, '')
         .replace(/_+/g, '_')
         .replace(/^_+|_+$/g, '')
         .toLowerCase();
+
+    // Ensure the result starts with a letter (required by server validation)
+    if (result && /^[0-9_]/.test(result)) {
+        result = 'field_' + result;
+    }
+
+    // If result is empty or only underscores, use a default
+    if (!result || result === '_') {
+        result = 'field';
+    }
+
+    return result;
 }
 
 export function toSafeUpperSnake(s) {

@@ -12,7 +12,13 @@ export function sanitizeFields(fields = []) {
         // Sanitize text fields
         if (cleaned.label) cleaned.label = sanitize.html(cleaned.label);
         if (cleaned.placeholder) cleaned.placeholder = sanitize.html(cleaned.placeholder);
-        if (cleaned.name) cleaned.name = sanitize.database(cleaned.name);
+        if (cleaned.name) {
+            cleaned.name = sanitize.database(cleaned.name);
+            // Ensure field name starts with a letter (fallback for client-side issues)
+            if (cleaned.name && !/^[a-zA-Z]/.test(cleaned.name)) {
+                cleaned.name = 'field_' + cleaned.name;
+            }
+        }
 
         // Handle options for dropdown/radio/checkbox fields
         const needsOptions = ['dropdown', 'multipleChoice', 'checkboxes'];

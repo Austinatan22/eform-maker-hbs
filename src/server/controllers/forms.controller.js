@@ -73,6 +73,7 @@ export async function createOrUpdateForm(req, res) {
   });
 
   if (!formValidationResult.valid) {
+    logger.error('Form validation failed:', { errors: formValidationResult.errors, title, fieldsCount: fields?.length });
     return res.status(400).json({
       error: 'Form validation failed',
       details: formValidationResult.errors
@@ -96,6 +97,7 @@ export async function createOrUpdateForm(req, res) {
   const { clean, fieldErrors } = validateFields(fields);
 
   if (fieldErrors.length > 0) {
+    logger.error('Field validation failed:', { fieldErrors, fields });
     return res.status(400).json({
       error: 'Field validation failed',
       details: fieldErrors

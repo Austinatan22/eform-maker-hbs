@@ -880,9 +880,13 @@ export class Builder {
 
         const payload = {
             id: this.formId || undefined,
-            name: title, // Templates use 'name' instead of 'title'
+            ...(this.isTemplate ? { name: title } : { title: title }), // Templates use 'name', forms use 'title'
             fields: this.fields.map(f => this.cleanField(f))
         };
+
+        // Debug logging
+        console.log('Save payload:', payload);
+        console.log('isTemplate:', this.isTemplate, 'isNewForm:', this.isNewForm, 'formId:', this.formId);
 
         if (this.$.btnSave) {
             this.$.btnSave.disabled = true;
@@ -892,7 +896,16 @@ export class Builder {
             const saveMethod = this.isTemplate ? API.saveTemplate : API.saveForm;
             const { res, body } = await saveMethod(payload);
             if (!res?.ok) {
-                const msg = (body && body.error) ? body.error : `Failed to save ${this.isTemplate ? 'template' : 'form'}.`;
+                let msg = (body && body.error) ? body.error : `Failed to save ${this.isTemplate ? 'template' : 'form'}.`;
+
+                // Show detailed validation errors if available
+                if (body && body.details && Array.isArray(body.details)) {
+                    msg += '\n\nValidation errors:\n' + body.details.join('\n');
+                } else if (body && body.details && typeof body.details === 'object') {
+                    msg += '\n\nValidation errors:\n' + Object.entries(body.details).map(([key, value]) => `${key}: ${value}`).join('\n');
+                }
+
+                console.error('Save failed with details:', body);
                 alert(msg);
                 return;
             }
