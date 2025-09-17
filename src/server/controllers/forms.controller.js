@@ -126,8 +126,7 @@ export async function createOrUpdateForm(req, res) {
         entityId: form.id,
         meta: {
           title: form.title,
-          category,
-          fieldCount: clean.length,
+          category: category?.name || category || 'survey',
           fields: clean.map(f => ({ type: f.type, label: f.label, required: f.required }))
         }
       });
@@ -172,10 +171,6 @@ export async function createOrUpdateForm(req, res) {
       // Check for field changes using content-based comparison
       const currentFields = (currentForm.fields || []).sort((a, b) => a.position - b.position);
       const newFields = fieldsOut;
-
-      if (currentFields.length !== newFields.length) {
-        changes.fieldCount = { from: currentFields.length, to: newFields.length };
-      }
 
       // Check for individual field changes using content-based comparison
       const fieldChanges = [];
@@ -456,10 +451,6 @@ export async function updateForm(req, res) {
       const currentFields = (currentForm.fields || []).sort((a, b) => a.position - b.position);
       const newFields = fieldsOut;
 
-      if (currentFields.length !== newFields.length) {
-        changes.fieldCount = { from: currentFields.length, to: newFields.length };
-      }
-
       // Check for individual field changes using content-based comparison
       const fieldChanges = [];
 
@@ -613,7 +604,6 @@ export async function deleteForm(req, res) {
   try {
     let formTitle = null;
     let formCategory = null;
-    let fieldCount = 0;
 
     await sequelize.transaction(async (t) => {
       const form = await Form.findByPk(req.params.id, {
@@ -624,8 +614,7 @@ export async function deleteForm(req, res) {
 
       // Store form data for audit logging outside transaction
       formTitle = form.title;
-      formCategory = form.category;
-      fieldCount = form.fields?.length || 0;
+      formCategory = form.categoryId;
 
       // Ownership restrictions removed - editors can now delete any form
 
@@ -646,7 +635,6 @@ export async function deleteForm(req, res) {
       meta: {
         title: formTitle,
         category: formCategory,
-        fieldCount: fieldCount,
         deletedAt: new Date().toISOString()
       }
     });

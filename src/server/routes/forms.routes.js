@@ -3,6 +3,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
+import { Category } from '../models/Category.js';
 import { upload, handleUploadError, getFileUrl } from '../middleware/upload.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -82,15 +83,17 @@ router.get('/forms', ensureAuth, requireRole('admin', 'editor', 'viewer'), listF
 router.get('/test-hosted-forms', async (req, res) => {
   try {
     const forms = await Form.findAll({
-      include: [{ model: FormField, as: 'fields' }],
+      include: [
+        { model: FormField, as: 'fields' },
+        { model: Category, as: 'category' }
+      ],
       order: [['createdAt', 'DESC']]
     });
 
     const formsData = forms.map(form => ({
       id: form.id,
       title: form.title,
-      category: form.category,
-      fieldCount: form.fields?.length || 0
+      category: form.category?.name || form.categoryId || 'survey'
     }));
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;

@@ -253,8 +253,6 @@
                             summaryPoints.push(`Title changed from "${change.from}" to "${change.to}"`);
                         } else if (key === 'category' && change.from && change.to) {
                             summaryPoints.push(`Category changed from "${change.from}" to "${change.to}"`);
-                        } else if (key === 'fieldCount' && change.from !== undefined && change.to !== undefined) {
-                            summaryPoints.push(`Field count changed from ${change.from} to ${change.to}`);
                         } else if (key === 'fields' && Array.isArray(change)) {
                             change.forEach(fieldChange => {
                                 if (fieldChange.action === 'added') {
@@ -295,14 +293,16 @@
                 // Handle other actions that don't have changes objects
                 const actionType = btn.getAttribute('data-action') || '';
                 if (actionType === 'create') {
-                    if (meta && meta.fieldCount !== undefined) {
-                        summaryPoints.push(`Created form "${meta.title || 'Untitled'}" (${meta.category || 'survey'}) with ${meta.fieldCount} fields`);
+                    if (meta && meta.title) {
+                        const categoryName = meta.category?.name || meta.category || 'survey';
+                        summaryPoints.push(`Created form "${meta.title || 'Untitled'}" (${categoryName})`);
                     } else if (meta && meta.email && meta.role) {
                         summaryPoints.push(`Created user "${meta.email}" (${meta.role}) with username "${meta.username || 'N/A'}"`);
                     }
                 } else if (actionType === 'delete') {
-                    if (meta && meta.fieldCount !== undefined) {
-                        summaryPoints.push(`Deleted form "${meta.title || 'Untitled'}" (${meta.category || 'survey'}) with ${meta.fieldCount} fields`);
+                    if (meta && meta.title) {
+                        const categoryName = meta.category?.name || meta.category || 'survey';
+                        summaryPoints.push(`Deleted form "${meta.title || 'Untitled'}" (${categoryName})`);
                     } else if (meta && meta.email) {
                         summaryPoints.push(`Deleted user "${meta.email}" (${meta.role || 'unknown'})`);
                     }
