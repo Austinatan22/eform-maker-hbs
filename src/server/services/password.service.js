@@ -1,6 +1,7 @@
 // src/server/services/password.service.js
 import crypto from 'crypto';
 import { UserLockout } from '../models/UserLockout.js';
+import { logger } from '../utils/logger.js';
 
 // Password policy configuration
 const PASSWORD_POLICY = {
@@ -86,7 +87,7 @@ export async function isUserLockedOut(email) {
             failedAttempts: lockout.failedAttempts
         };
     } catch (error) {
-        console.error('Error checking user lockout:', error);
+        logger.error('Error checking user lockout:', error);
         return { locked: false };
     }
 }
@@ -126,7 +127,7 @@ export async function recordFailedAttempt(email, userId = null) {
             lockedUntil: lockout.lockedUntil
         };
     } catch (error) {
-        console.error('Error recording failed attempt:', error);
+        logger.error('Error recording failed attempt:', error);
         return { failedAttempts: 0, locked: false };
     }
 }
@@ -138,7 +139,7 @@ export async function clearFailedAttempts(email) {
     try {
         await UserLockout.destroy({ where: { email: email.toLowerCase() } });
     } catch (error) {
-        console.error('Error clearing failed attempts:', error);
+        logger.error('Error clearing failed attempts:', error);
     }
 }
 

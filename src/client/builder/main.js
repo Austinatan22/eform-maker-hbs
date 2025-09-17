@@ -1,5 +1,5 @@
 // src/client/builder/main.js
-import { uuid, debounce, toSafeSnake } from './utils.js';
+import { uuid, debounce, toSafeSnake, generateUniqueFieldName } from './utils.js';
 import { flash, showTab } from './ui.js';
 import { preloadTemplates, renderFieldHTML } from './templates.js';
 import { parseOptions, needsOptions, whenIntlReady } from './helpers.js';
@@ -213,12 +213,7 @@ export class Builder {
             if (next) this.select(next.id);
         } else {
             this.selectedId = null;
-            if (this.$.editLabel) this.$.editLabel.value = '';
-            if (this.$.editPlaceholder) this.$.editPlaceholder.value = '';
-            if (this.$.editName) this.$.editName.value = '';
-            if (this.$.editOptions) this.$.editOptions.value = '';
-            if (this.$.editRequired) this.$.editRequired.checked = false;
-            if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
+            this.clearFieldEditForm();
             showTab(this.$.tabAddBtn);
         }
     }
@@ -237,12 +232,7 @@ export class Builder {
         } else {
             this.selectedId = null;
             if (isSelected) {
-                if (this.$.editLabel) this.$.editLabel.value = '';
-                if (this.$.editPlaceholder) this.$.editPlaceholder.value = '';
-                if (this.$.editName) this.$.editName.value = '';
-                if (this.$.editOptions) this.$.editOptions.value = '';
-                if (this.$.editRequired) this.$.editRequired.checked = false;
-                if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
+                this.clearFieldEditForm();
                 showTab(this.$.tabAddBtn);
             }
         }
@@ -326,16 +316,7 @@ export class Builder {
         }
         if (Array.isArray(data.fields)) {
             const existingNames = new Set();
-            const uniqueName = (raw) => {
-                let base = String(raw || 'field').trim();
-                base = toSafeSnake(base);
-                let name = base || 'field';
-                if (!existingNames.has(name)) { existingNames.add(name); return name; }
-                let i = 1; let candidate = `${base}${i}`;
-                while (existingNames.has(candidate)) { i++; candidate = `${base}${i}`; }
-                existingNames.add(candidate);
-                return candidate;
-            };
+            const uniqueName = (raw) => generateUniqueFieldName(raw, existingNames);
             this.fields = data.fields.map((f, idx) => {
                 const type = f?.type;
                 const id = (f && f.id && String(f.id).trim()) ? String(f.id) : uuid();
@@ -379,6 +360,15 @@ export class Builder {
 
     setDirty() { if (this._bootstrapped) this.isDirty = true; }
     clearDirty() { this.isDirty = false; }
+
+    clearFieldEditForm() {
+        if (this.$.editLabel) this.$.editLabel.value = '';
+        if (this.$.editPlaceholder) this.$.editPlaceholder.value = '';
+        if (this.$.editName) this.$.editName.value = '';
+        if (this.$.editOptions) this.$.editOptions.value = '';
+        if (this.$.editRequired) this.$.editRequired.checked = false;
+        if (this.$.editDoNotStore) this.$.editDoNotStore.checked = false;
+    }
     installUnloadGuard() {
         window.addEventListener('beforeunload', (e) => {
             if (!this.isDirty) return;
@@ -391,13 +381,8 @@ export class Builder {
         // Generate a unique internal name based on label/type
         const baseRaw = label || type || 'field';
         const base = toSafeSnake(baseRaw);
-        const existing = new Set(this.fields.map(f => f.name));
-        let name = base;
-        if (existing.has(name)) {
-            let i = 1;
-            while (existing.has(`${base}${i}`)) i++;
-            name = `${base}${i}`;
-        }
+        const existing = this.fields.map(f => f.name);
+        const name = generateUniqueFieldName(base, existing);
         const field = {
             id: uuid(),
             type,
@@ -422,8 +407,8 @@ export class Builder {
         const label = (preset.label && String(preset.label).trim()) || (typeof FIELDS_DEFAULTS.label === 'function' ? FIELDS_DEFAULTS.label(type) : (type || ''));
         const baseRaw = label || type || 'field';
         const base = toSafeSnake(baseRaw);
-        const existing = new Set(this.fields.map(f => f.name));
-        let name = base; if (existing.has(name)) { let i = 1; while (existing.has(`${base}${i}`)) i++; name = `${base}${i}`; }
+        const existing = this.fields.map(f => f.name);
+        const name = generateUniqueFieldName(base, existing);
         const options = preset.options != null ? String(preset.options) : (typeof FIELDS_DEFAULTS.options === 'function' ? FIELDS_DEFAULTS.options(type) : '');
         const field = {
             id: uuid(),
@@ -735,7 +720,7 @@ export class Builder {
 
     async init() {
         // Preload templates; then bind and do a minimal render
-        try { await preloadTemplates(PARTIAL_FOR); } catch (e) { console.warn('preloadTemplates failed:', e); }
+        try { await preloadTemplates(PARTIAL_FOR); } catch (e) { /* preloadTemplates failed - handled silently */ }
         this.bindDom();
         // capture deep-link id (/builder/:id or /builder/template/:id) if present
         try {
@@ -853,7 +838,7 @@ export class Builder {
                 return;
             }
         } catch (error) {
-            console.warn('Title uniqueness check failed:', error);
+            // Title uniqueness check failed - handled silently
             // Continue with save attempt - server will handle validation
         }
 
@@ -884,9 +869,7 @@ export class Builder {
             fields: this.fields.map(f => this.cleanField(f))
         };
 
-        // Debug logging
-        console.log('Save payload:', payload);
-        console.log('isTemplate:', this.isTemplate, 'isNewForm:', this.isNewForm, 'formId:', this.formId);
+        // Save operation in progress
 
         if (this.$.btnSave) {
             this.$.btnSave.disabled = true;
@@ -905,7 +888,7 @@ export class Builder {
                     msg += '\n\nValidation errors:\n' + Object.entries(body.details).map(([key, value]) => `${key}: ${value}`).join('\n');
                 }
 
-                console.error('Save failed with details:', body);
+                // Save failed - error details handled by UI
                 alert(msg);
                 return;
             }
@@ -936,7 +919,7 @@ export class Builder {
                 }, 900);
             }
         } catch (err) {
-            console.error(`Failed saving ${this.isTemplate ? 'template' : 'form'}:`, err);
+            // Save operation failed - error handled by UI
             alert(`Failed to save ${this.isTemplate ? 'template' : 'form'}. See console for details.`);
         } finally {
             if (this.$.btnSave) {
@@ -986,30 +969,30 @@ export class Builder {
     // ---- Rich Text Editors (Quill) ----
     initRichTextEditorsIn(rootEl) {
         if (!window.Quill) {
-            console.log('Rich text: Quill not available globally');
+            // Rich text: Quill not available globally
             return;
         }
         if (!rootEl) {
-            console.log('Rich text: No root element provided');
+            // Rich text: No root element provided
             return;
         }
         const nodes = rootEl.querySelectorAll?.('.rich-text-editor') || [];
-        console.log(`Rich text: Found ${nodes.length} rich text editors in root element`);
+        // Rich text: Found ${nodes.length} rich text editors in root element
         nodes.forEach((editor, index) => {
-            console.log(`Rich text: Initializing editor ${index + 1}`);
+            // Rich text: Initializing editor ${index + 1}
             this._initOneRichText(editor);
         });
     }
 
     initRichTextEditors() {
         if (!window.Quill) {
-            console.log('Rich text: Quill not available globally in initRichTextEditors');
+            // Rich text: Quill not available globally in initRichTextEditors
             return;
         }
         const nodes = this.$.preview?.querySelectorAll('.rich-text-editor') || [];
-        console.log(`Rich text: Found ${nodes.length} rich text editors in preview`);
+        // Rich text: Found ${nodes.length} rich text editors in preview
         nodes.forEach((editor, index) => {
-            console.log(`Rich text: Initializing editor ${index + 1} in preview`);
+            // Rich text: Initializing editor ${index + 1} in preview
             this._initOneRichText(editor);
         });
     }
@@ -1018,7 +1001,7 @@ export class Builder {
         const card = editorEl.closest('[data-fid]');
         const field = this.fields.find(f => f.id === card?.dataset?.fid);
         if (!field) {
-            console.log('Rich text: No field found for editor');
+            // Rich text: No field found for editor
             return;
         }
 
@@ -1074,9 +1057,9 @@ export class Builder {
                 finalTextarea.value = field.value;
             }
 
-            console.log('Rich text editor initialized successfully');
+            // Rich text editor initialized successfully
         } catch (error) {
-            console.error('Rich text initialization error:', error);
+            // Rich text initialization error - handled silently
         }
     }
 
@@ -1128,13 +1111,56 @@ export class Builder {
             });
             this._sortableReady = true;
         } catch (e) {
-            console.warn('Sortable init failed', e);
+            // Sortable init failed - handled silently
         }
     }
 }
 
 export async function startBuilder() {
-    const b = new Builder();
-    await b.init();
-    return b;
+    try {
+        const b = new Builder();
+        await b.init();
+        return b;
+    } catch (error) {
+        // Log error for debugging
+        console.error('Failed to start Builder:', error);
+
+        // Show user-friendly error message
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        errorDiv.innerHTML = `
+            <strong>Builder Error</strong><br>
+            Failed to initialize the form builder. Please refresh the page and try again.
+            <button onclick="this.parentElement.remove()" style="
+                background: none;
+                border: none;
+                color: white;
+                float: right;
+                font-size: 18px;
+                cursor: pointer;
+                margin-left: 10px;
+            ">×</button>
+        `;
+        document.body.appendChild(errorDiv);
+
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (errorDiv.parentElement) {
+                errorDiv.remove();
+            }
+        }, 10000);
+
+        throw error; // Re-throw for caller handling
+    }
 }

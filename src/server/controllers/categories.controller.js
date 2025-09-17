@@ -4,21 +4,18 @@ import { Op } from 'sequelize';
 import { Category } from '../models/Category.js';
 import { Form } from '../models/Form.js';
 import { logAudit } from '../services/audit.service.js';
+import { logger } from '../utils/logger.js';
+import { handleError, asyncHandler, validationError } from '../utils/error-handler.js';
 
 // ---------------------- Controllers ----------------------
-export async function listCategories(req, res) {
-    try {
-        const categories = await Category.findAll({
-            order: [['name', 'ASC']]
-        });
+export const listCategories = asyncHandler(async (req, res) => {
+    const categories = await Category.findAll({
+        order: [['name', 'ASC']]
+    });
 
-        // Return in DataTables expected format
-        res.json({ data: categories });
-    } catch (err) {
-        console.error('List categories error:', err);
-        res.status(500).json({ error: 'Server error' });
-    }
-}
+    // Return in DataTables expected format
+    res.json({ data: categories });
+});
 
 export async function createCategory(req, res) {
     try {
@@ -83,7 +80,7 @@ export async function createCategory(req, res) {
 
         res.json({ ok: true, category });
     } catch (err) {
-        console.error('Create category error:', err);
+        logger.error('Create category error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 }
@@ -172,7 +169,7 @@ export async function updateCategory(req, res) {
 
         res.json({ ok: true, category });
     } catch (err) {
-        console.error('Update category error:', err);
+        logger.error('Update category error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 }
@@ -214,7 +211,7 @@ export async function deleteCategory(req, res) {
 
         res.json({ ok: true });
     } catch (err) {
-        console.error('Delete category error:', err);
+        logger.error('Delete category error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 }
@@ -241,7 +238,7 @@ export async function categoriesPage(req, res) {
             categories: categoriesData
         });
     } catch (err) {
-        console.error('Categories page error:', err);
+        logger.error('Categories page error:', err);
         res.status(500).render('error', {
             title: 'Error',
             message: 'Failed to load categories page'

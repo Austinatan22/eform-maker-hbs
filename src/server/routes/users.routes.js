@@ -5,6 +5,8 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { logAudit } from '../services/audit.service.js';
 import { validatePassword } from '../services/password.service.js';
+import { logger } from '../utils/logger.js';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 
@@ -52,13 +54,45 @@ router.get('/admin/users', ensureAuth, requireAdmin, async (_req, res) => {
 // --- API: list users ---
 router.get('/api/users', ensureAuth, requireAdmin, async (req, res) => {
   try {
-    const rows = await User.findAll({ order: [['updatedAt', 'DESC']] });
+    // DataTables server-side processing parameters
+    const draw = parseInt(req.query.draw) || 1;
+    const start = parseInt(req.query.start) || 0;
+    const length = parseInt(req.query.length) || 10;
+    const searchValue = req.query.search?.value || '';
+
+    const where = {};
+
+    // Add search functionality
+    if (searchValue) {
+      where[Op.or] = [
+        { email: { [Op.like]: `%${searchValue}%` } },
+        { username: { [Op.like]: `%${searchValue}%` } },
+        { role: { [Op.like]: `%${searchValue}%` } }
+      ];
+    }
+
+    // Get total count for pagination info
+    const totalRecords = await User.count({ where });
+
+    // Get paginated users
+    const rows = await User.findAll({
+      where,
+      order: [['updatedAt', 'DESC']],
+      limit: length,
+      offset: start
+    });
+
     const users = rows.map(u => ({ id: u.id, email: u.email, username: u.username, role: u.role, updatedAt: u.updatedAt }));
 
-    // Return in DataTables expected format
-    res.json({ data: users });
+    // Return in DataTables expected format with server-side processing
+    res.json({
+      draw: draw,
+      recordsTotal: totalRecords,
+      recordsFiltered: totalRecords,
+      data: users
+    });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -98,7 +132,7 @@ router.post('/api/users', ensureAuth, requireAdmin, async (req, res) => {
 
     res.json({ ok: true, user: { id: user.id, email: user.email, username: user.username, role: user.role } });
   } catch (err) {
-    console.error('Create user error:', err);
+    logger.error('Create user error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -176,7 +210,7 @@ router.put('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
     }
     res.json({ ok: true, user: { id: user.id, email: user.email, username: user.username, role: user.role } });
   } catch (err) {
-    console.error('Update user error:', err);
+    logger.error('Update user error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -209,7 +243,7 @@ router.delete('/api/users/:id', ensureAuth, requireAdmin, async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
-    console.error('Delete user error:', err);
+    logger.error('Delete user error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

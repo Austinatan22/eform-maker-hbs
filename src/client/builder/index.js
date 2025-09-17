@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
     // Auto-start if flag is set (for backward compatibility)
     if (window.BUILDER_USE_MODULAR) {
         startBuilder().catch(error => {
-            console.error('Failed to start Builder:', error);
+            // Failed to start Builder - error handled by UI
         });
     }
 }

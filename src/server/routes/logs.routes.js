@@ -3,6 +3,8 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { AuditLog } from '../models/AuditLog.js';
 import { User } from '../models/User.js';
+import { logger } from '../utils/logger.js';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 
@@ -44,7 +46,7 @@ router.get('/admin/logs', ensureAuth, requireAdmin, async (_req, res) => {
             try {
                 metaJson = JSON.parse(r.metaJson);
             } catch (e) {
-                console.warn('Failed to parse metaJson for log', r.id, ':', e.message);
+                logger.warn('Failed to parse metaJson for log', r.id, ':', e.message);
                 metaJson = r.metaJson; // Keep as string if parsing fails
             }
         }
@@ -76,11 +78,31 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
         if (req.query.action) where.action = String(req.query.action);
         if (req.query.userId) where.userId = String(req.query.userId);
 
-        // Get all logs (DataTables will handle pagination client-side for now)
+        // DataTables server-side processing parameters
+        const draw = parseInt(req.query.draw) || 1;
+        const start = parseInt(req.query.start) || 0;
+        const length = parseInt(req.query.length) || 10;
+        const searchValue = req.query.search?.value || '';
+
+        // Add search functionality
+        if (searchValue) {
+            where[Op.or] = [
+                { entity: { [Op.like]: `%${searchValue}%` } },
+                { action: { [Op.like]: `%${searchValue}%` } },
+                { entityId: { [Op.like]: `%${searchValue}%` } },
+                { ip: { [Op.like]: `%${searchValue}%` } }
+            ];
+        }
+
+        // Get total count for pagination info
+        const totalRecords = await AuditLog.count({ where });
+
+        // Get paginated logs
         const rows = await AuditLog.findAll({
             where,
             order: [['createdAt', 'DESC']],
-            limit: 1000 // Reasonable limit for client-side pagination
+            limit: length,
+            offset: start
         });
 
         // Attach user email/username for convenience
@@ -95,7 +117,7 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
                 try {
                     metaJson = JSON.parse(r.metaJson);
                 } catch (e) {
-                    console.warn('Failed to parse metaJson for log', r.id, ':', e.message);
+                    logger.warn('Failed to parse metaJson for log', r.id, ':', e.message);
                     metaJson = r.metaJson; // Keep as string if parsing fails
                 }
             }
@@ -115,10 +137,15 @@ router.get('/api/logs', ensureAuth, requireAdmin, async (req, res) => {
             };
         });
 
-        // Return in DataTables expected format
-        res.json({ data: logs });
+        // Return in DataTables expected format with server-side processing
+        res.json({
+            draw: draw,
+            recordsTotal: totalRecords,
+            recordsFiltered: totalRecords, // Same as total since we're not doing complex filtering
+            data: logs
+        });
     } catch (error) {
-        console.error('Error fetching logs:', error);
+        logger.error('Error fetching logs:', error);
         res.status(500).json({ error: 'Failed to fetch logs' });
     }
 });

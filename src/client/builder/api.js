@@ -10,30 +10,25 @@ function toQuery(params) {
 }
 
 async function fetchJson(url, opts) {
-    const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
-    const headers = Object.assign({}, (opts && opts.headers) || {});
-    if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
+    try {
+        const token = (window.CSRF_TOKEN || document.querySelector('meta[name="csrf-token"]')?.content || '');
+        const headers = Object.assign({}, (opts && opts.headers) || {});
+        if (token && !headers['CSRF-Token']) headers['CSRF-Token'] = token;
 
-    // Log request details for debugging
-    if (opts && opts.method === 'POST' && url.includes('/api/forms')) {
-        console.log('Sending form data:', opts.body);
+        const res = await fetch(url, Object.assign({}, opts, { headers }));
+        const ct = res.headers.get('content-type') || '';
+        const isJson = ct.includes('application/json');
+        const body = isJson ? await res.json() : await res.text();
+
+        return { res, body };
+    } catch (error) {
+        // Network or parsing error
+        console.error('API request failed:', error);
+        return {
+            res: { ok: false, status: 0, statusText: 'Network Error' },
+            body: { error: 'Network Error', message: 'Unable to connect to server' }
+        };
     }
-
-    const res = await fetch(url, Object.assign({}, opts, { headers }));
-    const ct = res.headers.get('content-type') || '';
-    const isJson = ct.includes('application/json');
-    const body = isJson ? await res.json() : await res.text();
-
-    // Log response details for debugging
-    if (!res.ok && url.includes('/api/forms')) {
-        console.error('Form save failed:', {
-            status: res.status,
-            statusText: res.statusText,
-            body: body
-        });
-    }
-
-    return { res, body };
 }
 
 export const API = {

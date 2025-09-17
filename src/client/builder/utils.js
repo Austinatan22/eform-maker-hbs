@@ -46,3 +46,29 @@ export function toSafeSnake(s) {
 export function toSafeUpperSnake(s) {
     return toSafeSnake(s).toUpperCase();
 }
+
+/**
+ * Generate a unique field name based on existing field names
+ * @param {string} baseName - The base name to use
+ * @param {Set|Array} existingNames - Set or array of existing field names
+ * @returns {string} - Unique field name
+ */
+export function generateUniqueFieldName(baseName, existingNames) {
+    const existing = new Set(existingNames);
+    const base = toSafeSnake(baseName) || 'field';
+    let name = base;
+
+    if (!existing.has(name)) {
+        existing.add(name);
+        return name;
+    }
+
+    let i = 1;
+    let candidate = `${base}${i}`;
+    while (existing.has(candidate)) {
+        i++;
+        candidate = `${base}${i}`;
+    }
+    existing.add(candidate);
+    return candidate;
+}

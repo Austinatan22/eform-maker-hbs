@@ -154,21 +154,39 @@ app.use((req, res, next) => {
   next();
 });
 
-// ---- CSRF protection (temporarily disabled for ES modules testing) ----
-// TODO: Re-enable CSRF protection once ES modules are confirmed working
+// ---- CSRF protection ----
 {
-  // Mock CSRF functions for compatibility
-  const generateToken = () => 'mock-csrf-token';
-
-  // Apply mock CSRF middleware
-  app.use((req, res, next) => {
-    // Allow all requests without CSRF validation for now
-    next();
+  const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: (req) => req.session.csrfSecret || crypto.randomBytes(32).toString('hex'),
+    getSessionIdentifier: (req) => req.sessionID,
+    cookieName: 'csrf-token',
+    cookieOptions: {
+      sameSite: 'lax',
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true
+    },
+    size: 32,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getCsrfTokenFromRequest: (req) => {
+      return req.body._csrf || req.headers['x-csrf-token'] || req.query._csrf;
+    }
   });
 
-  // Make mock token available to views
+  // Apply CSRF protection to all routes except public form submissions
   app.use((req, res, next) => {
-    res.locals.csrfToken = generateToken();
+    // Skip CSRF for public form submissions and API endpoints that don't need it
+    if (req.path.startsWith('/form/') ||
+      (req.path.startsWith('/api/forms/') && req.method === 'GET') ||
+      req.path === '/api/forms/submit') {
+      return next();
+    }
+    return doubleCsrfProtection(req, res, next);
+  });
+
+  // Make CSRF token available to views
+  app.use((req, res, next) => {
+    res.locals.csrfToken = generateCsrfToken(req, res);
     next();
   });
 }
@@ -206,6 +224,42 @@ app.use(categoriesRouter);
 app.use('/uploads', express.static(path.join(ROOT, 'uploads')));
 
 app.get('/', (_req, res) => res.redirect('/forms'));
+
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error:', err);
+
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+
+  if (req.accepts('html')) {
+    // HTML error page
+    res.status(500).render('error', {
+      title: 'Error',
+      message: isDevelopment ? err.message : 'An internal server error occurred',
+      stack: isDevelopment ? err.stack : undefined
+    });
+  } else {
+    // JSON error response
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: isDevelopment ? err.message : 'An internal server error occurred',
+      ...(isDevelopment && { stack: err.stack })
+    });
+  }
+});
+
+// 404 handler
+app.use((req, res) => {
+  if (req.accepts('html')) {
+    res.status(404).render('error', {
+      title: 'Not Found',
+      message: 'The requested page could not be found'
+    });
+  } else {
+    res.status(404).json({ error: 'Not Found' });
+  }
+});
 
 // Handlebars
 app.engine('hbs', engine({

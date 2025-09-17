@@ -9,7 +9,7 @@ import { logAudit } from '../services/audit.service.js';
 import { isTitleTaken, createFormWithFields, updateFormWithFields, normalizeTitle } from '../services/forms.service.js';
 import { createSubmission, deleteSubmissionsByFormId } from '../services/submissions.service.js';
 import { getFileUrl } from '../middleware/upload.js';
-import { formValidation, formFieldValidation, sanitize, runValidation, validate } from '../services/validation.service.js';
+import { formValidation, formFieldValidation, sanitize, runValidation } from '../services/validation.service.js';
 import { logger } from '../utils/logger.js';
 import { sanitizeFields, validateFields, ensureUniqueFieldNames } from '../utils/field-validation.js';
 
