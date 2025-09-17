@@ -84,14 +84,6 @@
                             placeholder="#6c757d" maxlength="7">
                     </div>
                 </div>
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="editCategoryActive" checked>
-                        <label class="form-check-label" for="editCategoryActive">
-                            Active
-                        </label>
-                    </div>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -357,7 +349,6 @@
                 const name = document.getElementById('editCategoryName').value.trim();
                 const description = document.getElementById('editCategoryDescription').value.trim();
                 const color = document.getElementById('editCategoryColor').value;
-                const isActive = document.getElementById('editCategoryActive').checked;
 
                 if (!name) {
                     alert('Category name is required');
@@ -368,7 +359,7 @@
                     const res = await fetch('/api/categories/' + id, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-                        body: JSON.stringify({ name, description, color, isActive })
+                        body: JSON.stringify({ name, description, color })
                     });
                     const result = await res.json();
                     if (!res.ok) throw new Error(result?.error || 'Update failed');

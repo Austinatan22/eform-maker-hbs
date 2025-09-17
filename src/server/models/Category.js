@@ -21,11 +21,6 @@ export const Category = sequelize.define('Category', {
         type: DataTypes.STRING(7), // Hex color code
         allowNull: true,
         defaultValue: '#6c757d'
-    },
-    isActive: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
     }
 }, {
     tableName: 'categories',

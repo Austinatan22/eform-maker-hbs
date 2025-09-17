@@ -1,8 +1,15 @@
 // scripts/migrate-templates.js
+import crypto from 'crypto';
 import { sequelize } from '../src/server/db.js';
 import { Template } from '../src/server/models/Template.js';
 import { Category } from '../src/server/models/Category.js';
 import { logger } from '../src/server/utils/logger.js';
+
+// ID generation helpers (matching forms pattern)
+const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const shortRand = (n = 8) => Array.from(crypto.randomBytes(n)).map(b => B62[b % 62]).join('');
+const generateTemplateId = () => `template-${shortRand(8)}`;
+const generateCategoryId = () => `category-${shortRand(8)}`;
 
 // Original templates from forms.hbs
 const ORIGINAL_TEMPLATES = {
@@ -111,40 +118,80 @@ async function migrateTemplates() {
         }
 
         // Create default categories if they don't exist
-        const defaultCategories = {
-            'cat-survey': { name: 'Survey', description: 'Survey forms', color: '#6c757d' },
-            'cat-feedback': { name: 'Feedback', description: 'Feedback and complaint forms', color: '#fd7e14' },
-            'cat-registration': { name: 'Registration', description: 'Registration and application forms', color: '#20c997' },
-            'cat-contact': { name: 'Contact', description: 'Contact and inquiry forms', color: '#0d6efd' }
-        };
+        const defaultCategories = [
+            { name: 'Survey', description: 'Survey forms', color: '#6c757d' },
+            { name: 'Feedback', description: 'Feedback and complaint forms', color: '#fd7e14' },
+            { name: 'Registration', description: 'Registration and application forms', color: '#20c997' },
+            { name: 'Contact', description: 'Contact and inquiry forms', color: '#0d6efd' }
+        ];
 
-        for (const [catId, catData] of Object.entries(defaultCategories)) {
-            const existing = await Category.findByPk(catId);
+        const categoryMap = {}; // Map old IDs to new IDs
+
+        for (const catData of defaultCategories) {
+            // Check if category with this name already exists
+            const existing = await Category.findOne({ where: { name: catData.name } });
             if (!existing) {
+                // Generate unique id with collision detection
+                let categoryId;
+                for (let tries = 0; tries < 5; tries++) {
+                    const candidate = generateCategoryId();
+                    const existingId = await Category.findByPk(candidate);
+                    if (!existingId) {
+                        categoryId = candidate;
+                        break;
+                    }
+                }
+                if (!categoryId) {
+                    throw new Error(`Could not generate unique category id for ${catData.name}`);
+                }
+
                 await Category.create({
-                    id: catId,
+                    id: categoryId,
                     name: catData.name,
                     description: catData.description,
                     color: catData.color
                 });
-                logger.info(`Created category: ${catData.name}`);
+                logger.info(`Created category: ${catData.name} with ID: ${categoryId}`);
+
+                // Map old ID to new ID for template references
+                if (catData.name === 'Survey') categoryMap['cat-survey'] = categoryId;
+                else if (catData.name === 'Feedback') categoryMap['cat-feedback'] = categoryId;
+                else if (catData.name === 'Registration') categoryMap['cat-registration'] = categoryId;
+                else if (catData.name === 'Contact') categoryMap['cat-contact'] = categoryId;
+            } else {
+                // Map old ID to existing ID
+                if (catData.name === 'Survey') categoryMap['cat-survey'] = existing.id;
+                else if (catData.name === 'Feedback') categoryMap['cat-feedback'] = existing.id;
+                else if (catData.name === 'Registration') categoryMap['cat-registration'] = existing.id;
+                else if (catData.name === 'Contact') categoryMap['cat-contact'] = existing.id;
             }
         }
 
         // Create templates
         for (const [key, templateData] of Object.entries(ORIGINAL_TEMPLATES)) {
-            const templateId = `tpl_${key}`;
+            // Generate unique id with collision detection
+            let templateId;
+            for (let tries = 0; tries < 5; tries++) {
+                const candidate = generateTemplateId();
+                const existing = await Template.findByPk(candidate);
+                if (!existing) {
+                    templateId = candidate;
+                    break;
+                }
+            }
+            if (!templateId) {
+                throw new Error(`Could not generate unique template id for ${templateData.name}`);
+            }
 
             await Template.create({
                 id: templateId,
                 name: templateData.name,
                 description: `Pre-built ${templateData.name.toLowerCase()} template`,
                 fields: templateData.fields,
-                categoryId: templateData.categoryId,
-                isActive: true
+                categoryId: categoryMap[templateData.categoryId] || null
             });
 
-            logger.info(`Created template: ${templateData.name}`);
+            logger.info(`Created template: ${templateData.name} with ID: ${templateId}`);
         }
 
         logger.info('Template migration completed successfully!');

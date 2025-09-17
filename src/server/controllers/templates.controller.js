@@ -8,7 +8,7 @@ import {
     getAllTemplates,
     getTemplateById,
     deleteTemplate,
-    getActiveTemplates,
+    getAllTemplatesForSelection,
     isTemplateNameTaken
 } from '../services/templates.service.js';
 import { validateFields, ensureUniqueFieldNames } from '../utils/field-validation.js';
@@ -145,14 +145,14 @@ export async function listTemplates(_req, res) {
 }
 
 /**
- * Get active templates (for form creation)
+ * Get templates (for form creation)
  */
 export async function listActiveTemplates(_req, res) {
     try {
-        const templates = await getActiveTemplates();
+        const templates = await getAllTemplatesForSelection();
         res.json({ data: templates });
     } catch (err) {
-        logger.error('List active templates error:', err);
+        logger.error('List templates error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 }
@@ -177,7 +177,7 @@ export async function readTemplate(req, res) {
  * Update a template
  */
 export async function updateTemplateById(req, res) {
-    const { name, description, fields, categoryId, isActive } = req.body || {};
+    const { name, description, fields, categoryId } = req.body || {};
 
     // Validate categoryId if provided
     let category = null;
@@ -210,9 +210,6 @@ export async function updateTemplateById(req, res) {
             updates.categoryId = categoryId;
         }
 
-        if (isActive !== undefined) {
-            updates.isActive = Boolean(isActive);
-        }
 
         if (fields !== undefined) {
             if (!Array.isArray(fields)) {

@@ -96,14 +96,6 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="editTemplateActive" checked>
-                        <label class="form-check-label" for="editTemplateActive">
-                            Active
-                        </label>
-                    </div>
-                </div>
-                <div class="mb-3">
                     <label class="form-label">Fields</label>
                     <div class="alert alert-info">
                         <i class="icon-base ti tabler-info-circle me-2"></i>
@@ -343,7 +335,6 @@
                     document.getElementById('editTemplateName').value = templateData.name || '';
                     document.getElementById('editTemplateDescription').value = templateData.description || '';
                     document.getElementById('editTemplateCategory').value = templateData.categoryId || '';
-                    document.getElementById('editTemplateActive').checked = templateData.isActive !== false;
 
                     const m = bootstrap.Modal.getOrCreateInstance(modalEl);
                     m.show();
@@ -475,7 +466,6 @@
                 const name = document.getElementById('editTemplateName').value.trim();
                 const description = document.getElementById('editTemplateDescription').value.trim();
                 const categoryId = document.getElementById('editTemplateCategory').value;
-                const isActive = document.getElementById('editTemplateActive').checked;
 
                 if (!name) {
                     alert('Template name is required');
@@ -486,7 +476,7 @@
                     const res = await fetch('/api/templates/' + id, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
-                        body: JSON.stringify({ name, description, categoryId, isActive })
+                        body: JSON.stringify({ name, description, categoryId })
                     });
                     const result = await res.json();
                     if (!res.ok) throw new Error(result?.error || 'Update failed');

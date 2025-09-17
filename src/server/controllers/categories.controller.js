@@ -46,7 +46,22 @@ export async function createCategory(req, res) {
             return res.status(400).json({ error: 'Invalid color format' });
         }
 
-        const id = 'cat-' + crypto.randomBytes(8).toString('hex');
+        // Generate unique id with collision detection (retry on collision)
+        const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        const shortRand = (n = 8) => Array.from(crypto.randomBytes(n)).map(b => B62[b % 62]).join('');
+
+        let id;
+        for (let tries = 0; tries < 5; tries++) {
+            const candidate = `category-${shortRand(8)}`;
+            const existing = await Category.findByPk(candidate);
+            if (!existing) {
+                id = candidate;
+                break;
+            }
+        }
+        if (!id) {
+            return res.status(500).json({ error: 'Could not generate unique category id' });
+        }
         const category = await Category.create({
             id,
             name: trimmedName,
@@ -80,14 +95,13 @@ export async function updateCategory(req, res) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        const { name, description, color, isActive } = req.body || {};
+        const { name, description, color } = req.body || {};
 
         // Store original values for audit
         const originalValues = {
             name: category.name,
             description: category.description,
-            color: category.color,
-            isActive: category.isActive
+            color: category.color
         };
 
         const patch = {};
@@ -140,12 +154,6 @@ export async function updateCategory(req, res) {
             }
         }
 
-        if (isActive !== undefined) {
-            patch.isActive = Boolean(isActive);
-            if (originalValues.isActive !== patch.isActive) {
-                changes.isActive = { from: originalValues.isActive, to: patch.isActive };
-            }
-        }
 
         await category.update(patch);
 
@@ -223,7 +231,6 @@ export async function categoriesPage(req, res) {
             name: cat.name,
             description: cat.description,
             color: cat.color,
-            isActive: cat.isActive,
             createdAt: cat.createdAt,
             updatedAt: cat.updatedAt
         }));

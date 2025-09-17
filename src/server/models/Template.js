@@ -31,11 +31,6 @@ export const Template = sequelize.define('Template', {
         allowNull: false,
         defaultValue: []
     },
-    isActive: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
-    },
     createdBy: {
         type: DataTypes.STRING(64),
         allowNull: true

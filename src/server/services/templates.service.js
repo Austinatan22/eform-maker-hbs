@@ -5,10 +5,12 @@ import { Category } from '../models/Category.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Generate a unique template ID
+ * Generate a unique template ID (template-XXXXXXXX format, 8 base62 characters)
  */
+const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const shortRand = (n = 8) => Array.from(crypto.randomBytes(n)).map(b => B62[b % 62]).join('');
 export function generateTemplateId() {
-    return 'tpl_' + crypto.randomBytes(16).toString('hex');
+    return `template-${shortRand(8)}`;
 }
 
 /**
@@ -41,7 +43,17 @@ export async function isTemplateNameTaken(name, excludeId = null) {
  */
 export async function createTemplate(name, description, fields, categoryId, createdBy = null) {
     try {
-        const templateId = generateTemplateId();
+        // Generate unique id with collision detection (retry on collision)
+        let templateId;
+        for (let tries = 0; tries < 5; tries++) {
+            const candidate = generateTemplateId();
+            const existing = await Template.findByPk(candidate);
+            if (!existing) {
+                templateId = candidate;
+                break;
+            }
+        }
+        if (!templateId) throw new Error('Could not generate unique template id');
 
         const template = await Template.create({
             id: templateId,
@@ -69,7 +81,7 @@ export async function updateTemplate(templateId, updates) {
             return { notFound: true };
         }
 
-        const allowedUpdates = ['name', 'description', 'fields', 'categoryId', 'isActive'];
+        const allowedUpdates = ['name', 'description', 'fields', 'categoryId'];
         const updateData = {};
 
         for (const key of allowedUpdates) {
@@ -118,7 +130,6 @@ export async function getAllTemplates() {
                 color: template.category.color
             } : null,
             fields: template.fields || [],
-            isActive: template.isActive,
             createdBy: template.createdBy,
             createdAt: template.createdAt,
             updatedAt: template.updatedAt
@@ -156,7 +167,6 @@ export async function getTemplateById(templateId) {
                 color: template.category.color
             } : null,
             fields: template.fields || [],
-            isActive: template.isActive,
             createdBy: template.createdBy,
             createdAt: template.createdAt,
             updatedAt: template.updatedAt
@@ -186,12 +196,11 @@ export async function deleteTemplate(templateId) {
 }
 
 /**
- * Get active templates only
+ * Get all templates (replaces getActiveTemplates)
  */
-export async function getActiveTemplates() {
+export async function getAllTemplatesForSelection() {
     try {
         const templates = await Template.findAll({
-            where: { isActive: true },
             include: [
                 { model: Category, as: 'category' }
             ],
@@ -212,7 +221,7 @@ export async function getActiveTemplates() {
             fields: template.fields || []
         }));
     } catch (err) {
-        logger.error('Error getting active templates:', err);
+        logger.error('Error getting templates for selection:', err);
         throw err;
     }
 }
