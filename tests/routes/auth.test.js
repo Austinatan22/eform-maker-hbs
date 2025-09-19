@@ -91,6 +91,7 @@ describe('Authentication Routes', () => {
 
             expect(response.headers.location).toBe('/login');
         });
+
     });
 
     describe('POST /api/auth/login', () => {
