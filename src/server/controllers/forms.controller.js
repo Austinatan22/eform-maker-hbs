@@ -606,14 +606,19 @@ export async function deleteForm(req, res) {
   try {
     let formTitle = null;
     let formCategory = null;
+    let formFound = false;
 
     await sequelize.transaction(async (t) => {
       const form = await Form.findByPk(req.params.id, {
         include: [{ model: FormField, as: 'fields' }],
         transaction: t
       });
-      if (!form) return res.status(404).json({ error: 'Not found' });
+      if (!form) {
+        formFound = false;
+        return;
+      }
 
+      formFound = true;
       // Store form data for audit logging outside transaction
       formTitle = form.title;
       formCategory = form.categoryId;
@@ -629,17 +634,27 @@ export async function deleteForm(req, res) {
       await form.destroy({ transaction: t });
     });
 
+    if (!formFound) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
     // Log audit after successful deletion (outside transaction)
-    await logAudit(req, {
-      entity: 'form',
-      action: 'delete',
-      entityId: req.params.id,
-      meta: {
-        title: formTitle,
-        category: formCategory,
-        deletedAt: new Date().toISOString()
-      }
-    });
+    try {
+      await logAudit(req, {
+        entity: 'form',
+        action: 'delete',
+        entityId: req.params.id,
+        meta: {
+          title: formTitle,
+          category: formCategory,
+          deletedAt: new Date().toISOString()
+        }
+      });
+    } catch (auditErr) {
+      // Log audit error but don't fail the request
+      logger.error('Audit logging failed for form deletion:', auditErr);
+    }
+
     res.json({ ok: true });
   } catch (err) {
     logger.error('Delete form error:', err);

@@ -204,6 +204,23 @@ export const formFieldValidation = {
         return validate.pattern(value, /^[a-zA-Z][a-zA-Z0-9_]*$/, 'Field name', 'must start with a letter and contain only letters, numbers, and underscores');
     },
 
+    type: (value) => {
+        const required = validate.required(value, 'Field type');
+        if (required) return required;
+
+        const validTypes = [
+            'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
+            'checkboxes', 'number', 'name', 'email', 'phone', 'password',
+            'date', 'time', 'datetime', 'url', 'file', 'richText'
+        ];
+
+        if (!validTypes.includes(value)) {
+            return `Field type must be one of: ${validTypes.join(', ')}`;
+        }
+
+        return null;
+    },
+
     placeholder: (value) => {
         if (!value) return null;
         return validate.length(value, 0, 255, 'Placeholder');

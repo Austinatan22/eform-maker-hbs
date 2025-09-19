@@ -142,6 +142,26 @@ export async function setupTestDatabase() {
     await Template.sync({ force: true });
     await AuditLog.sync({ force: true });
 
+    // Re-establish model associations after sequelize instance replacement
+    // The associations defined in model files are lost when we replace the sequelize instance
+    // Only define associations if they don't already exist
+    if (!Form.associations.category) {
+        Form.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+    }
+    if (!Category.associations.forms) {
+        Category.hasMany(Form, { foreignKey: 'categoryId', as: 'forms' });
+    }
+
+    if (!Template.associations.category) {
+        Template.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+    }
+    if (!Category.associations.templates) {
+        Category.hasMany(Template, { foreignKey: 'categoryId', as: 'templates' });
+    }
+
+    // FormField associations are already defined in the model file, but we need to ensure they work with the test sequelize instance
+    // The associations should still work since we replaced the sequelize instance
+
     return { testSequelize, testSubmissionsSequelize, TestUser, TestUserLockout, TestRefreshToken };
 }
 

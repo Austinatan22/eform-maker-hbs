@@ -52,6 +52,9 @@ export function isValidField(field) {
     const nameError = formFieldValidation.name(field.name);
     if (nameError) return false;
 
+    const typeError = formFieldValidation.type(field.type);
+    if (typeError) return false;
+
     // Check options for fields that need them
     const optionsError = formFieldValidation.options(field.options, field.type);
     if (optionsError) return false;
@@ -72,6 +75,9 @@ export function validateFields(fields) {
 
         const nameError = formFieldValidation.name(field.name);
         if (nameError) fieldErrors.push(`Field ${i + 1}: ${nameError}`);
+
+        const typeError = formFieldValidation.type(field.type);
+        if (typeError) fieldErrors.push(`Field ${i + 1}: ${typeError}`);
 
         const placeholderError = formFieldValidation.placeholder(field.placeholder);
         if (placeholderError) fieldErrors.push(`Field ${i + 1}: ${placeholderError}`);
