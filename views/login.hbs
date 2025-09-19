@@ -3,7 +3,7 @@
     <div class="card">
       <div class="card-body">
         <div class="app-brand mb-4 d-flex align-items-center">
-          <img src="/assets/img/favicon/favicon.ico" alt="logo" width="28" height="28" class="me-2"/>
+          <img src="/assets/img/favicon/favicon.ico" alt="logo" width="28" height="28" class="me-2" />
           <h4 class="mb-0">Eform Maker</h4>
         </div>
 
@@ -11,11 +11,11 @@
         <p class="mb-4 text-body-secondary">Sign in to continue to Eform Maker</p>
 
         {{#if error}}
-          <div class="alert alert-danger" role="alert">{{error}}</div>
+        <div class="alert alert-danger" role="alert">{{error}}</div>
         {{/if}}
 
         <form method="post" action="/login" class="mb-3">
-          <input type="hidden" name="_csrf" value="{{csrfToken}}"/>
+          <input type="hidden" name="_csrf" value="{{csrfToken}}" />
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
@@ -23,14 +23,17 @@
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
             <div class="input-group input-group-merge">
-              <input type="password" id="password" class="form-control" name="password" placeholder="••••••••" aria-describedby="passwordToggle" required>
-              <span class="input-group-text cursor-pointer" id="passwordToggle"><i class="icon-base ti tabler-eye"></i></span>
+              <input type="password" id="password" class="form-control" name="password" placeholder="••••••••"
+                aria-describedby="passwordToggle" required>
+              <span class="input-group-text cursor-pointer" id="passwordToggle"><i
+                  class="icon-base ti tabler-eye"></i></span>
             </div>
           </div>
           <button class="btn btn-primary d-grid w-100" type="submit">Sign in</button>
         </form>
 
-        <small class="text-body-secondary d-block">Tip: first run seeds admin <code>admin@example.com</code> / <code>admin123</code> (dev)</small>
+        <small class="text-body-secondary d-block">Tip: admin credentials <code>admin@example.com</code> /
+          <code>Admin123!</code> (dev)</small>
       </div>
     </div>
   </div>
@@ -38,7 +41,7 @@
 
 {{#section 'scripts'}}
 <script>
-  (function(){
+  (function () {
     const toggle = document.getElementById('passwordToggle');
     const input = document.getElementById('password');
     toggle?.addEventListener('click', () => {
@@ -49,4 +52,3 @@
   })();
 </script>
 {{/section}}
-

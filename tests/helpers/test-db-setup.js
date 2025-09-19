@@ -238,7 +238,7 @@ export async function createTestAdmin(userData = {}) {
     const defaultData = {
         id: 'u-admin-' + crypto.randomBytes(6).toString('hex'),
         email: 'admin@example.com',
-        passwordHash: await bcrypt.hash('admin123', 10),
+        passwordHash: await bcrypt.hash('Admin123!', 10),
         role: 'admin'
     };
 

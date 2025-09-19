@@ -552,7 +552,7 @@ async function ensureSchema() {
       if (!count) {
         const bcrypt = await import('bcryptjs');
         const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-        const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+        const adminPass = process.env.ADMIN_PASSWORD || 'Admin123!';
         const hash = bcrypt.hashSync(adminPass, 10);
         await User.create({ id: 'u-admin', email: adminEmail, username: 'admin', passwordHash: hash, role: 'admin' });
         logger.info(`Seeded admin user: ${adminEmail} / ${adminPass}`);

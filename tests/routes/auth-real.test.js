@@ -36,7 +36,7 @@ describe('Authentication Routes - Real Application Tests', () => {
 
         testAdmin = await createTestAdmin({
             email: 'admin@example.com',
-            passwordHash: await bcrypt.hash('admin123', 10),
+            passwordHash: await bcrypt.hash('Admin123!', 10),
             role: 'admin'
         });
 
@@ -134,7 +134,7 @@ describe('Authentication Routes - Real Application Tests', () => {
                 .post('/login')
                 .send({
                     email: 'admin@example.com',
-                    password: 'admin123'
+                    password: 'Admin123!'
                 })
                 .expect(302);
 

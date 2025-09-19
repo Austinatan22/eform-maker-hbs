@@ -45,7 +45,7 @@ describe('Form CRUD Operations - Real Application Tests', () => {
 
         testAdmin = await createTestAdmin({
             email: 'admin@example.com',
-            passwordHash: await bcrypt.hash('admin123', 10),
+            passwordHash: await bcrypt.hash('Admin123!', 10),
             role: 'admin'
         });
 
