@@ -7,10 +7,7 @@
     "dev": "cross-env AUTH_ENABLED=1 nodemon src/server/app.js",
     "test": "npx --node-options=\"--experimental-vm-modules\" jest",
     "test:watch": "npx --node-options=\"--experimental-vm-modules\" jest --watch",
-    "test:coverage": "npx --node-options=\"--experimental-vm-modules\" jest --coverage",
-    "test:integration": "node tests/run-tests.js",
-    "test:unit": "npx --node-options=\"--experimental-vm-modules\" jest --testPathPattern=unit",
-    "test:all": "npm run test:unit && npm run test:integration"
+    "test:coverage": "npx --node-options=\"--experimental-vm-modules\" jest --coverage"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
