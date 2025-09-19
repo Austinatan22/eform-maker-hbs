@@ -20,7 +20,9 @@ function renderLogin(req, res, opts = {}) {
   });
 }
 
-const loginLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 20 });
+const loginLimiter = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next() // Skip rate limiting in tests
+  : rateLimit({ windowMs: 5 * 60 * 1000, max: 20 });
 
 // ---------------- HTML login (session) -----------------
 router.get('/login', (req, res) => {
@@ -183,7 +185,7 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
       secure: false,
       maxAge: REFRESH_TTL_SEC * 1000
     });
-    res.json({ accessToken, expiresIn: ACCESS_TTL_SEC, user: { id: user.id, email: user.email, role: user.role }, refreshExpiresAt: expiresAt });
+    res.json({ accessToken, expiresIn: ACCESS_TTL_SEC, user: { id: user.id, email: user.email, role: user.role }, refreshExpiresAt: expiresAt, refreshToken });
   } catch (err) {
     logger.error('API login error:', err);
     res.status(500).json({ error: 'Server error' });

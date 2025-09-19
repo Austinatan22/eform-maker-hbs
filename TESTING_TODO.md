@@ -3,14 +3,14 @@
 ## 🎯 **CRITICAL CORE FUNCTIONALITY** (Must Test First)
 
 ### **Priority 1: Authentication & Security** ⭐⭐⭐
-- [ ] **User login with valid credentials**
-- [ ] **User login with invalid credentials** 
-- [ ] **Account lockout after failed attempts**
-- [ ] **JWT token validation (Bearer auth)**
-- [ ] **Session management (login/logout)**
-- [ ] **Role-based access control (admin/editor/viewer)**
-- [ ] **Unauthorized access attempts**
-- [ ] **Password hashing verification**
+- [x] **User login with valid credentials**
+- [x] **User login with invalid credentials** 
+- [x] **Account lockout after failed attempts**
+- [x] **JWT token validation (Bearer auth)**
+- [x] **Session management (login/logout)**
+- [x] **Role-based access control (admin/editor/viewer)**
+- [x] **Unauthorized access attempts**
+- [x] **Password hashing verification**
 
 ### **Priority 2: Form CRUD Operations** ⭐⭐⭐
 - [ ] **Create form with valid data**

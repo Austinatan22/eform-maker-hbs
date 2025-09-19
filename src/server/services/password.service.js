@@ -32,6 +32,12 @@ export function validatePassword(password) {
 
     const pwd = password.trim();
 
+    // Check for empty password after trimming
+    if (pwd.length === 0) {
+        errors.push('Password is required');
+        return { valid: false, errors };
+    }
+
     if (pwd.length < PASSWORD_POLICY.minLength) {
         errors.push(`Password must be at least ${PASSWORD_POLICY.minLength} characters long`);
     }
@@ -52,11 +58,9 @@ export function validatePassword(password) {
         errors.push('Password must contain at least one number');
     }
 
-    if (PASSWORD_POLICY.requireSpecialChars && !new RegExp(`[${SPECIAL_CHARS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]`).test(pwd)) {
-        errors.push(`Password must contain at least one special character (${SPECIAL_CHARS})`);
+    if (PASSWORD_POLICY.requireSpecialChars && !/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pwd)) {
+        errors.push('Password must contain at least one special character');
     }
-
-    // Removed hidden requirements for better user experience
 
     return {
         valid: errors.length === 0,

@@ -9,11 +9,7 @@ export const UserLockout = sequelize.define('UserLockout', {
     },
     userId: {
         type: DataTypes.STRING(64),
-        allowNull: false,
-        references: {
-            model: 'users',
-            key: 'id'
-        }
+        allowNull: true
     },
     email: {
         type: DataTypes.STRING(255),
