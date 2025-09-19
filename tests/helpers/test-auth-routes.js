@@ -134,7 +134,7 @@ function createTestAuthRoutes(TestUser, TestRefreshToken, TestUserLockout) {
             await TestRefreshToken.create({
                 id: 'rt-' + crypto.randomBytes(9).toString('base64url'),
                 userId: user.id,
-                token: refreshToken,
+                tokenHash: refreshToken,
                 expiresAt
             });
 

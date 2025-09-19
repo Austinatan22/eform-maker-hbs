@@ -82,7 +82,7 @@ export async function setupTestDatabase() {
     const TestRefreshToken = testSequelize.define('RefreshToken', {
         id: { type: 'STRING(64)', primaryKey: true },
         userId: { type: 'STRING(64)', allowNull: false },
-        token: { type: 'TEXT', allowNull: false },
+        tokenHash: { type: 'STRING(128)', allowNull: false },
         expiresAt: { type: 'DATE', allowNull: false }
     }, {
         tableName: 'refresh_tokens',
@@ -116,11 +116,31 @@ export async function setupTestDatabase() {
     const { User } = await import('../../src/server/models/User.js');
     const { RefreshToken } = await import('../../src/server/models/RefreshToken.js');
     const { UserLockout } = await import('../../src/server/models/UserLockout.js');
+    const { Form } = await import('../../src/server/models/Form.js');
+    const { FormField } = await import('../../src/server/models/FormField.js');
+    const { Category } = await import('../../src/server/models/Category.js');
+    const { Template } = await import('../../src/server/models/Template.js');
+    const { AuditLog } = await import('../../src/server/models/AuditLog.js');
 
     // Replace the sequelize instance in the models
     User.sequelize = testSequelize;
     RefreshToken.sequelize = testSequelize;
     UserLockout.sequelize = testSequelize;
+    Form.sequelize = testSequelize;
+    FormField.sequelize = testSequelize;
+    Category.sequelize = testSequelize;
+    Template.sequelize = testSequelize;
+    AuditLog.sequelize = testSequelize;
+
+    // Sync all models to create tables
+    await User.sync({ force: true });
+    await RefreshToken.sync({ force: true });
+    await UserLockout.sync({ force: true });
+    await Form.sync({ force: true });
+    await FormField.sync({ force: true });
+    await Category.sync({ force: true });
+    await Template.sync({ force: true });
+    await AuditLog.sync({ force: true });
 
     return { testSequelize, testSubmissionsSequelize, TestUser, TestUserLockout, TestRefreshToken };
 }
@@ -163,7 +183,7 @@ export async function clearTestData() {
         await testSequelize.query('PRAGMA foreign_keys = OFF');
 
         // Clear all tables (only clear tables that exist)
-        const tables = ['refresh_tokens', 'user_lockouts', 'users'];
+        const tables = ['refresh_tokens', 'user_lockouts', 'users', 'form_fields', 'forms', 'categories', 'templates', 'audit_logs'];
         for (const table of tables) {
             try {
                 await testSequelize.query(`DELETE FROM ${table}`);
