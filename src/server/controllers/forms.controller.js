@@ -82,7 +82,7 @@ export async function createOrUpdateForm(req, res) {
 
   // Validate categoryId if provided
   let category = null;
-  if (categoryId) {
+  if (categoryId && categoryId.trim() !== '') {
     category = await Category.findByPk(categoryId);
     if (!category) {
       return res.status(400).json({
@@ -121,7 +121,8 @@ export async function createOrUpdateForm(req, res) {
     if (!id) {
       const reqUser = req.session?.user || req.user || null;
       const createdBy = process.env.AUTH_ENABLED === '1' ? (reqUser?.id || null) : null;
-      const { form, rows } = await createFormWithFields(normalizedTitle, clean, categoryId, createdBy);
+      const normalizedCategoryId = (categoryId && categoryId.trim() !== '') ? categoryId : null;
+      const { form, rows } = await createFormWithFields(normalizedTitle, clean, normalizedCategoryId, createdBy);
       await logAudit(req, {
         entity: 'form',
         action: 'create',
@@ -144,7 +145,8 @@ export async function createOrUpdateForm(req, res) {
       if (!currentForm) return res.status(404).json({ error: 'Not found' });
 
       // Ownership restrictions removed - editors can now edit any form
-      const out = await updateFormWithFields(id, normalizedTitle, clean, categoryId);
+      const normalizedCategoryId = (categoryId && categoryId.trim() !== '') ? categoryId : null;
+      const out = await updateFormWithFields(id, normalizedTitle, clean, normalizedCategoryId);
       if (out?.notFound) return res.status(404).json({ error: 'Not found' });
 
       const withFields = await Form.findByPk(id, {
@@ -352,7 +354,7 @@ export async function updateForm(req, res) {
 
   // Validate categoryId if provided
   let category = null;
-  if (categoryId) {
+  if (categoryId && categoryId.trim() !== '') {
     category = await Category.findByPk(categoryId);
     if (!category) {
       return res.status(400).json({
@@ -391,7 +393,7 @@ export async function updateForm(req, res) {
     }
 
     if (categoryId !== undefined) {
-      form.categoryId = categoryId;
+      form.categoryId = (categoryId && categoryId.trim() !== '') ? categoryId : null;
     }
 
     if (fields !== undefined) {
