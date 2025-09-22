@@ -2,6 +2,7 @@
 // Simple logging utility to replace console statements
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
+const isTest = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID;
 
 class Logger {
     constructor() {
@@ -9,6 +10,10 @@ class Logger {
     }
 
     _shouldLog(level) {
+        // Don't log during tests unless explicitly enabled
+        if (isTest && !process.env.ENABLE_TEST_LOGGING) {
+            return false;
+        }
         const levels = { error: 0, warn: 1, info: 2, debug: 3 };
         return levels[level] <= levels[this.logLevel];
     }

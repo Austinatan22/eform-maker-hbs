@@ -56,7 +56,10 @@ describe('Categories & Templates Tests', () => {
 
         // Global error handler
         app.use((err, req, res, next) => {
-            console.error('Unhandled error:', err);
+            // Use logger instead of direct console.error
+            if (process.env.ENABLE_TEST_LOGGING) {
+                console.error('Unhandled error:', err);
+            }
             const isDevelopment = process.env.NODE_ENV !== 'production';
 
             if (req.path.startsWith('/api/')) {
@@ -1030,10 +1033,6 @@ describe('Categories & Templates Tests', () => {
 
             // Note: This test reveals current behavior - categories with templates can be deleted
             // This might be intended behavior or a bug depending on requirements
-            console.log('📊 CATEGORY DELETION WITH TEMPLATES RESPONSE:', {
-                status: deleteResponse.status,
-                body: deleteResponse.body
-            });
 
             // The test documents current behavior without assuming it's correct
             expect([200, 400]).toContain(deleteResponse.status); // Either works or fails

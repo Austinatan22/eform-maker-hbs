@@ -59,7 +59,10 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
 
         // Global error handler
         app.use((err, req, res, next) => {
-            console.error('Unhandled error:', err);
+            // Use logger instead of direct console.error
+            if (process.env.ENABLE_TEST_LOGGING) {
+                console.error('Unhandled error:', err);
+            }
             const isDevelopment = process.env.NODE_ENV !== 'production';
 
             if (req.path.startsWith('/api/')) {
@@ -160,10 +163,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                     ]
                 });
 
-            console.log('📊 VALIDATION ERROR RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Document current behavior
             expect(response.status).toBe(400);
@@ -196,10 +195,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                     ]
                 });
 
-            console.log('📊 DUPLICATE FIELD NAMES RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 400 with specific message
             expect(response.status).toBe(400);
@@ -243,10 +238,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                     ]
                 });
 
-            console.log('📊 UNIQUE CONSTRAINT VIOLATION RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 409 with specific message
             expect(response.status).toBe(409);
@@ -262,10 +253,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 .get('/api/forms')
                 .set('Authorization', 'Bearer invalid-token');
 
-            console.log('📊 AUTHENTICATION ERROR RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 200 (authentication not enforced)
             // Intended: Should return 401 for unauthorized access
@@ -281,10 +268,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 .set('Content-Type', 'application/json')
                 .send('{ invalid json }');
 
-            console.log('📊 MALFORMED JSON RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 500 (unhandled error)
             // Intended: Should return 400 for bad request
@@ -311,10 +294,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                     ]
                 });
 
-            console.log('📊 OVERSIZED REQUEST RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 500 (unhandled error)
             // Intended: Should return 413 (payload too large)
@@ -331,10 +310,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 .get('/api/forms')
                 .set('Authorization', `Bearer ${authToken}`);
 
-            console.log('📊 DATABASE CONNECTION ERROR RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 500 (unhandled error)
             // Intended: Should return 503 (service unavailable)
@@ -350,10 +325,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 .get('/api/forms/non-existent-form-id')
                 .set('Authorization', `Bearer ${authToken}`);
 
-            console.log('📊 NOT FOUND RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 404 with proper error message
             // Intended: Should return 404 (this is correct)
@@ -379,10 +350,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                     ]
                 });
 
-            console.log('📊 INVALID CATEGORY ID RESPONSE:', {
-                status: response.status,
-                body: response.body
-            });
 
             // Current behavior: Returns 400 with proper error message
             // Intended: Should return 400 (this is correct)
@@ -407,7 +374,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Service Unavailable': 503
             };
 
-            console.log('🎯 INTENDED HTTP STATUS CODES:', intendedStatusCodes);
 
             // This test documents the intended behavior
             expect(Object.keys(intendedStatusCodes)).toHaveLength(9);
@@ -423,7 +389,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 requestId: 'string' // For tracking errors across logs
             };
 
-            console.log('🎯 INTENDED ERROR RESPONSE FORMAT:', intendedErrorFormat);
 
             // This test documents the intended behavior
             expect(Object.keys(intendedErrorFormat)).toHaveLength(6);
@@ -439,7 +404,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Performance impact tracking'
             ];
 
-            console.log('🎯 INTENDED LOGGING FEATURES:', intendedLoggingFeatures);
 
             // This test documents the intended behavior
             expect(intendedLoggingFeatures).toHaveLength(6);
@@ -454,7 +418,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Consistent database state after errors'
             ];
 
-            console.log('🎯 INTENDED TRANSACTION BEHAVIOR:', intendedTransactionBehavior);
 
             // This test documents the intended behavior
             expect(intendedTransactionBehavior).toHaveLength(5);
@@ -472,7 +435,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Implement 503 for service unavailable'
             ];
 
-            console.log('📝 PRIORITY 1 FIXES:', priority1Fixes);
             expect(priority1Fixes).toHaveLength(5);
         });
 
@@ -485,7 +447,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Add timestamp to error responses'
             ];
 
-            console.log('📝 PRIORITY 2 FIXES:', priority2Fixes);
             expect(priority2Fixes).toHaveLength(5);
         });
 
@@ -498,7 +459,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Implement error monitoring and alerting'
             ];
 
-            console.log('📝 PRIORITY 3 FIXES:', priority3Fixes);
             expect(priority3Fixes).toHaveLength(5);
         });
 
@@ -511,7 +471,6 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 'Add database connection pooling and error recovery'
             ];
 
-            console.log('📝 PRIORITY 4 FIXES:', priority4Fixes);
             expect(priority4Fixes).toHaveLength(5);
         });
     });
