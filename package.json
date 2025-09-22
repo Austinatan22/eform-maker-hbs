@@ -7,7 +7,8 @@
     "dev": "cross-env AUTH_ENABLED=1 nodemon src/server/app.js",
     "test": "npx --node-options=\"--experimental-vm-modules\" jest",
     "test:watch": "npx --node-options=\"--experimental-vm-modules\" jest --watch",
-    "test:coverage": "npx --node-options=\"--experimental-vm-modules\" jest --coverage"
+    "test:coverage": "npx --node-options=\"--experimental-vm-modules\" jest --coverage",
+    "cleanup:test-dbs": "node scripts/cleanup-test-dbs.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
