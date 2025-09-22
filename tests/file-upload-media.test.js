@@ -97,6 +97,43 @@ describe('File Upload & Media', () => {
     });
 
     afterAll(async () => {
+        // Final cleanup of any remaining test files
+        if (fs.existsSync(UPLOADS_DIR)) {
+            const files = fs.readdirSync(UPLOADS_DIR);
+            for (const file of files) {
+                // Remove ALL test-related files as final cleanup
+                if (file.includes('test') ||
+                    file.includes('sample') ||
+                    file.includes('concurrent') ||
+                    file.includes('cleanup') ||
+                    file.includes('metadata') ||
+                    file.includes('audit') ||
+                    file.includes('passwd') ||
+                    file.includes('large-file') ||
+                    file.includes('document') ||
+                    file.includes('image') ||
+                    file.includes('text') ||
+                    file.includes('spreadsheet') ||
+                    file.includes('file with spaces') ||
+                    file.match(/^file[1-5]-/) ||
+                    file.match(/^cleanup-test-/) ||
+                    file.match(/^metadata-test-/) ||
+                    file.match(/^audit-test-/) ||
+                    file.match(/^large-file-/) ||
+                    file.match(/^document-/) ||
+                    file.match(/^image-/) ||
+                    file.match(/^text-/) ||
+                    file.match(/^spreadsheet-/) ||
+                    file.match(/^concurrent-[0-9]-/)) {
+                    try {
+                        fs.unlinkSync(path.join(UPLOADS_DIR, file));
+                    } catch (error) {
+                        // Ignore errors
+                    }
+                }
+            }
+        }
+
         // Clean up test data
         await User.destroy({ where: { id: testUser.id } });
         await Category.destroy({ where: { id: testCategory.id } });
@@ -142,12 +179,39 @@ describe('File Upload & Media', () => {
             await Form.destroy({ where: { id: testForm.id } });
         }
 
-        // Clean up any uploaded test files
+        // Clean up ALL uploaded test files (comprehensive cleanup)
         if (fs.existsSync(UPLOADS_DIR)) {
             const files = fs.readdirSync(UPLOADS_DIR);
             for (const file of files) {
-                if (file.includes('test') || file.includes('sample')) {
-                    fs.unlinkSync(path.join(UPLOADS_DIR, file));
+                // Remove files with test-related names or patterns
+                if (file.includes('test') ||
+                    file.includes('sample') ||
+                    file.includes('concurrent') ||
+                    file.includes('cleanup') ||
+                    file.includes('metadata') ||
+                    file.includes('audit') ||
+                    file.includes('passwd') ||
+                    file.includes('large-file') ||
+                    file.includes('document') ||
+                    file.includes('image') ||
+                    file.includes('text') ||
+                    file.includes('spreadsheet') ||
+                    file.includes('file with spaces') ||
+                    file.match(/^file[1-5]-/) ||
+                    file.match(/^cleanup-test-/) ||
+                    file.match(/^metadata-test-/) ||
+                    file.match(/^audit-test-/) ||
+                    file.match(/^large-file-/) ||
+                    file.match(/^document-/) ||
+                    file.match(/^image-/) ||
+                    file.match(/^text-/) ||
+                    file.match(/^spreadsheet-/) ||
+                    file.match(/^concurrent-[0-9]-/)) {
+                    try {
+                        fs.unlinkSync(path.join(UPLOADS_DIR, file));
+                    } catch (error) {
+                        // Ignore errors (file might already be deleted)
+                    }
                 }
             }
         }
