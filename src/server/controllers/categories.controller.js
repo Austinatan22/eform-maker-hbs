@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { Category } from '../models/Category.js';
 import { Form } from '../models/Form.js';
+import { Template } from '../models/Template.js';
 import { logAudit } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
 import { handleError, asyncHandler, validationError } from '../utils/error-handler.js';
@@ -181,12 +182,18 @@ export async function deleteCategory(req, res) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        // Check if category is in use by any forms
+        // Check if category is in use by any forms or templates
         const formsUsingCategory = await Form.count({ where: { categoryId: category.id } });
-        if (formsUsingCategory > 0) {
+        const templatesUsingCategory = await Template.count({ where: { categoryId: category.id } });
+
+        if (formsUsingCategory > 0 || templatesUsingCategory > 0) {
+            const details = [];
+            if (formsUsingCategory > 0) details.push(`${formsUsingCategory} form(s)`);
+            if (templatesUsingCategory > 0) details.push(`${templatesUsingCategory} template(s)`);
+
             return res.status(400).json({
-                error: 'Cannot delete category that is in use by forms',
-                details: `${formsUsingCategory} form(s) are using this category`
+                error: 'Cannot delete category that is in use',
+                details: `${details.join(' and ')} are using this category`
             });
         }
 

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { Template } from '../models/Template.js';
 import { Category } from '../models/Category.js';
 import { logger } from '../utils/logger.js';
+import { sequelize } from '../db.js';
 
 /**
  * Generate a unique template ID (template-XXXXXXXX format, 8 base62 characters)
@@ -18,23 +19,20 @@ export function generateTemplateId() {
  */
 export async function isTemplateNameTaken(name, excludeId = null) {
     try {
-        const whereClause = {
-            name: {
-                [require('sequelize').Op.iLike]: name.trim()
-            }
-        };
+        const normalizedName = String(name || '').trim();
+        let sql = `SELECT id FROM templates WHERE name = ? COLLATE NOCASE LIMIT 1`;
+        let replacements = [normalizedName];
 
         if (excludeId) {
-            whereClause.id = {
-                [require('sequelize').Op.ne]: excludeId
-            };
+            sql = `SELECT id FROM templates WHERE name = ? COLLATE NOCASE AND id <> ? LIMIT 1`;
+            replacements = [normalizedName, String(excludeId)];
         }
 
-        const existing = await Template.findOne({ where: whereClause });
-        return !!existing;
+        const [rows] = await sequelize.query(sql, { replacements });
+        return Array.isArray(rows) && rows.length > 0;
     } catch (err) {
         logger.error('Error checking template name:', err);
-        return false;
+        return false; // Assume not taken on error to avoid blocking operations
     }
 }
 

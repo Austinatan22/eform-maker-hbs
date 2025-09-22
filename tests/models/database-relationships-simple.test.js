@@ -335,16 +335,13 @@ describe('Database Relationships - Simplified Tests', () => {
         it('should handle foreign key constraint violations gracefully', async () => {
             const { Form } = await import('../../src/server/models/Form.js');
 
-            // Note: SQLite doesn't enforce foreign key constraints by default
-            // This test documents the current behavior
-            const form = await Form.create({
+            // Note: Foreign key constraints are enabled in the test database
+            // This test documents the current behavior - foreign key violations throw errors
+            await expect(Form.create({
                 id: 'form-test-1',
                 title: 'Test Form',
                 categoryId: 'non-existent-category'
-            });
-
-            // The form is created successfully (current behavior)
-            expect(form.categoryId).toBe('non-existent-category');
+            })).rejects.toThrow();
         });
     });
 

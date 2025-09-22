@@ -246,6 +246,23 @@ describe('Database Models & Relationships - Real Application Tests', () => {
     describe('Form Model', () => {
         it('should create a form with valid data', async () => {
             const { Form } = await import('../../src/server/models/Form.js');
+            const { User } = await import('../../src/server/models/User.js');
+            const { Category } = await import('../../src/server/models/Category.js');
+
+            // Create required foreign key records first
+            await User.create({
+                id: 'user-test-1',
+                email: 'test@example.com',
+                passwordHash: '$2b$10$test.hash.for.user',
+                role: 'editor'
+            });
+
+            await Category.create({
+                id: 'cat-test-1',
+                name: 'Test Category',
+                description: 'Test category for form',
+                color: '#FF0000'
+            });
 
             const formData = {
                 id: 'form-test-1',
@@ -308,6 +325,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
     describe('FormField Model', () => {
         it('should create a form field with valid data', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const fieldData = {
                 id: 'field-test-1',
@@ -338,6 +364,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
         it('should accept all valid field types', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const validTypes = [
                 'singleLine', 'paragraph', 'dropdown', 'multipleChoice',
@@ -362,6 +397,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
         it('should reject invalid field types', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const fieldData = {
                 id: 'field-test-1',
@@ -410,6 +454,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
         it('should default boolean fields correctly', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const fieldData = {
                 id: 'field-test-1',
@@ -428,6 +481,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
         it('should default string fields correctly', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const fieldData = {
                 id: 'field-test-1',
@@ -446,6 +508,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
         it('should default position to 0', async () => {
             const { FormField } = await import('../../src/server/models/FormField.js');
+            const { Form } = await import('../../src/server/models/Form.js');
+
+            // Create required form first
+            await Form.create({
+                id: 'form-test-1',
+                title: 'Test Form',
+                createdBy: null,
+                categoryId: null
+            });
 
             const fieldData = {
                 id: 'field-test-1',
@@ -464,6 +535,15 @@ describe('Database Models & Relationships - Real Application Tests', () => {
     describe('Template Model', () => {
         it('should create a template with valid data', async () => {
             const { Template } = await import('../../src/server/models/Template.js');
+            const { Category } = await import('../../src/server/models/Category.js');
+
+            // Create required category first
+            await Category.create({
+                id: 'cat-test-1',
+                name: 'Test Category',
+                description: 'Test category for template',
+                color: '#FF0000'
+            });
 
             const templateData = {
                 id: 'template-test-1',

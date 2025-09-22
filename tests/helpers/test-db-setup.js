@@ -106,11 +106,15 @@ export async function setupTestDatabase() {
 
     // Override the main database connection for tests
     // This ensures auth routes use our test database
-    const { sequelize } = await import('../../src/server/db.js');
+    const { sequelize, submissionsSequelize } = await import('../../src/server/db.js');
 
     // Replace the sequelize instance with our test instance
     Object.setPrototypeOf(sequelize, testSequelize);
     Object.assign(sequelize, testSequelize);
+
+    // Replace the submissions sequelize instance with our test instance
+    Object.setPrototypeOf(submissionsSequelize, testSubmissionsSequelize);
+    Object.assign(submissionsSequelize, testSubmissionsSequelize);
 
     // Update the models to use our test database
     const { User } = await import('../../src/server/models/User.js');
@@ -121,6 +125,7 @@ export async function setupTestDatabase() {
     const { Category } = await import('../../src/server/models/Category.js');
     const { Template } = await import('../../src/server/models/Template.js');
     const { AuditLog } = await import('../../src/server/models/AuditLog.js');
+    const { FormSubmission } = await import('../../src/server/models/FormSubmission.js');
 
     // Replace the sequelize instance in the models
     User.sequelize = testSequelize;
@@ -131,6 +136,7 @@ export async function setupTestDatabase() {
     Category.sequelize = testSequelize;
     Template.sequelize = testSequelize;
     AuditLog.sequelize = testSequelize;
+    FormSubmission.sequelize = testSubmissionsSequelize;
 
     // Sync all models to create tables
     await User.sync({ force: true });
@@ -141,6 +147,7 @@ export async function setupTestDatabase() {
     await Category.sync({ force: true });
     await Template.sync({ force: true });
     await AuditLog.sync({ force: true });
+    await FormSubmission.sync({ force: true });
 
     // Re-establish model associations after sequelize instance replacement
     // The associations defined in model files are lost when we replace the sequelize instance
@@ -176,12 +183,22 @@ export async function teardownTestDatabase() {
             testSubmissionsSequelize = null;
         }
 
-        // Clean up test database files
-        if (fs.existsSync(TEST_DB_FILE)) {
-            fs.unlinkSync(TEST_DB_FILE);
-        }
-        if (fs.existsSync(TEST_SUBMISSIONS_DB_FILE)) {
-            fs.unlinkSync(TEST_SUBMISSIONS_DB_FILE);
+        // Clean up test database files with retry logic
+        const filesToDelete = [TEST_DB_FILE, TEST_SUBMISSIONS_DB_FILE];
+        for (const file of filesToDelete) {
+            if (fs.existsSync(file)) {
+                try {
+                    fs.unlinkSync(file);
+                } catch (error) {
+                    // File might be locked, try again after a short delay
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    try {
+                        fs.unlinkSync(file);
+                    } catch (retryError) {
+                        console.warn(`Could not delete test database file ${file}:`, retryError.message);
+                    }
+                }
+            }
         }
 
         // Clear global references
@@ -212,8 +229,12 @@ export async function clearTestData() {
             }
         }
 
-        // Reset auto-increment sequences
-        await testSequelize.query('DELETE FROM sqlite_sequence');
+        // Reset auto-increment sequences (only if the table exists)
+        try {
+            await testSequelize.query('DELETE FROM sqlite_sequence');
+        } catch (error) {
+            // sqlite_sequence table doesn't exist, which is fine for our test models
+        }
 
         // Re-enable foreign keys
         await testSequelize.query('PRAGMA foreign_keys = ON');
@@ -283,6 +304,31 @@ export async function generateTestJWT(user) {
         secret,
         { expiresIn: '15m' }
     );
+}
+
+// Clean up any leftover test database files from previous runs
+export function cleanupLeftoverTestFiles() {
+    try {
+        const dataDir = path.join(ROOT, 'data');
+        if (!fs.existsSync(dataDir)) return;
+
+        const files = fs.readdirSync(dataDir);
+        const testFiles = files.filter(file =>
+            file.startsWith('test-') && file.endsWith('.sqlite')
+        );
+
+        for (const file of testFiles) {
+            const filePath = path.join(dataDir, file);
+            try {
+                fs.unlinkSync(filePath);
+                console.log(`Cleaned up leftover test file: ${file}`);
+            } catch (error) {
+                console.warn(`Could not delete leftover test file ${file}:`, error.message);
+            }
+        }
+    } catch (error) {
+        console.warn('Error cleaning up leftover test files:', error.message);
+    }
 }
 
 // Export the test database connections for use in tests

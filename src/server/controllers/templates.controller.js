@@ -34,6 +34,14 @@ export async function createOrUpdateTemplate(req, res) {
         }
     }
 
+    // Check field count limit
+    if (fields.length > 100) {
+        return res.status(413).json({
+            error: 'Too many fields',
+            details: `Maximum 100 fields allowed, received ${fields.length}`
+        });
+    }
+
     // Validate fields
     const { clean, fieldErrors } = validateFields(fields);
     if (fieldErrors.length > 0) {
@@ -214,6 +222,14 @@ export async function updateTemplateById(req, res) {
         if (fields !== undefined) {
             if (!Array.isArray(fields)) {
                 return res.status(400).json({ error: 'fields must be an array' });
+            }
+
+            // Check field count limit
+            if (fields.length > 100) {
+                return res.status(413).json({
+                    error: 'Too many fields',
+                    details: `Maximum 100 fields allowed, received ${fields.length}`
+                });
             }
 
             const { clean, fieldErrors } = validateFields(fields);
