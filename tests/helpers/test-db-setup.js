@@ -30,6 +30,7 @@ let testSubmissionsSequelize = null;
 export async function setupTestDatabase() {
     // Set test environment
     process.env.NODE_ENV = 'test';
+    process.env.AUTH_ENABLED = '1';
     process.env.DB_FILE = TEST_DB_FILE;
     process.env.SUBMISSIONS_DB_FILE = TEST_SUBMISSIONS_DB_FILE;
 

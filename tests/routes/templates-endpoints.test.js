@@ -1,7 +1,15 @@
 // tests/routes/templates-endpoints.test.js
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../helpers/test-db-setup.js';
+import { app } from '../../src/server/app.js';
+import {
+    setupTestDatabase,
+    teardownTestDatabase,
+    clearTestData,
+    createTestUser,
+    createTestAdmin,
+    createTestViewer
+} from '../helpers/test-db-setup.js';
 import { User } from '../../src/server/models/User.js';
 import { Template } from '../../src/server/models/Template.js';
 import { Category } from '../../src/server/models/Category.js';
@@ -17,16 +25,11 @@ describe('Templates API Endpoints', () => {
     let testTemplate;
 
     beforeEach(async () => {
-        // Clean up test data
-        await Template.destroy({ where: {} });
-        await Category.destroy({ where: {} });
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Setup isolated test database
+        await setupTestDatabase();
 
-        // Create test users
-        const passwordHash = bcrypt.hashSync('testpassword123', 10);
-
-        const adminUser = await User.create({
+        // Create test users using helper functions
+        const adminUser = await createTestAdmin({
             id: 'u-test-admin',
             email: 'admin@test.com',
             username: 'testadmin',
@@ -112,11 +115,8 @@ describe('Templates API Endpoints', () => {
     });
 
     afterEach(async () => {
-        // Clean up test data
-        await Template.destroy({ where: {} });
-        await Category.destroy({ where: {} });
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Clean up test database
+        await teardownTestDatabase();
     });
 
     describe('POST /api/templates', () => {

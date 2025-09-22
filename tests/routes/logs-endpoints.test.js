@@ -1,7 +1,15 @@
 // tests/routes/logs-endpoints.test.js
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../helpers/test-db-setup.js';
+import { app } from '../../src/server/app.js';
+import {
+    setupTestDatabase,
+    teardownTestDatabase,
+    clearTestData,
+    createTestUser,
+    createTestAdmin,
+    createTestViewer
+} from '../helpers/test-db-setup.js';
 import { User } from '../../src/server/models/User.js';
 import { AuditLog } from '../../src/server/models/AuditLog.js';
 import { Form } from '../../src/server/models/Form.js';
@@ -15,21 +23,14 @@ describe('Audit Logs API Endpoints', () => {
     let testAuditLogs;
 
     beforeEach(async () => {
-        // Clean up test data
-        await Form.destroy({ where: {} });
-        await Category.destroy({ where: {} });
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Setup isolated test database
+        await setupTestDatabase();
 
-        // Create test admin user
-        const passwordHash = bcrypt.hashSync('testpassword123', 10);
-
-        const adminUser = await User.create({
+        // Create test admin user using helper function
+        const adminUser = await createTestAdmin({
             id: 'u-test-admin',
             email: 'admin@test.com',
-            username: 'testadmin',
-            passwordHash,
-            role: 'admin'
+            username: 'testadmin'
         });
 
         // Create JWT token
@@ -40,6 +41,7 @@ describe('Audit Logs API Endpoints', () => {
         );
 
         // Create test user
+        const passwordHash = bcrypt.hashSync('testpassword123', 10);
         testUser = await User.create({
             id: 'u-test-user',
             email: 'testuser@example.com',
@@ -104,11 +106,8 @@ describe('Audit Logs API Endpoints', () => {
     });
 
     afterEach(async () => {
-        // Clean up test data
-        await Form.destroy({ where: {} });
-        await Category.destroy({ where: {} });
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Clean up test database
+        await teardownTestDatabase();
     });
 
     describe('GET /api/logs', () => {

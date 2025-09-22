@@ -567,24 +567,29 @@ async function ensureSchema() {
   }
 }
 
-// Start
+// Start server only if not in test mode
 const port = process.env.PORT || 3000;
-(async () => {
-  try {
-    // Initialize main application database
-    await sequelize.authenticate();
-    await sequelize.query('PRAGMA foreign_keys = ON;');
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    try {
+      // Initialize main application database
+      await sequelize.authenticate();
+      await sequelize.query('PRAGMA foreign_keys = ON;');
 
-    // Initialize submissions database
-    await submissionsSequelize.authenticate();
-    await submissionsSequelize.query('PRAGMA foreign_keys = ON;');
+      // Initialize submissions database
+      await submissionsSequelize.authenticate();
+      await submissionsSequelize.query('PRAGMA foreign_keys = ON;');
 
-    await ensureSchema();
-    app.listen(port, () => {
-      logger.info(`Listening on http://localhost:${port}`);
-    });
-  } catch (err) {
-    logger.error('DB boot error:', err);
-    process.exit(1);
-  }
-})();
+      await ensureSchema();
+      app.listen(port, () => {
+        logger.info(`Listening on http://localhost:${port}`);
+      });
+    } catch (err) {
+      logger.error('DB boot error:', err);
+      process.exit(1);
+    }
+  })();
+}
+
+// Export the app for testing
+export { app };

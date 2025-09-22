@@ -1,7 +1,15 @@
 // tests/routes/auth-endpoints.test.js
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../helpers/test-db-setup.js';
+import { app } from '../../src/server/app.js';
+import {
+  setupTestDatabase,
+  teardownTestDatabase,
+  clearTestData,
+  createTestUser,
+  createTestAdmin,
+  createTestViewer
+} from '../helpers/test-db-setup.js';
 import { User } from '../../src/server/models/User.js';
 import { RefreshToken } from '../../src/server/models/RefreshToken.js';
 import { UserLockout } from '../../src/server/models/UserLockout.js';
@@ -15,20 +23,14 @@ describe('Authentication API Endpoints', () => {
   let viewerUser;
 
   beforeEach(async () => {
-    // Clean up test data
-    await UserLockout.destroy({ where: {} });
-    await RefreshToken.destroy({ where: {} });
-    await AuditLog.destroy({ where: {} });
-    await User.destroy({ where: {} });
+    // Setup isolated test database
+    await setupTestDatabase();
 
-    // Create test users
-    const passwordHash = bcrypt.hashSync('testpassword123', 10);
-    
-    testUser = await User.create({
+    // Create test users using helper functions
+    testUser = await createTestUser({
       id: 'u-test-editor',
       email: 'editor@test.com',
       username: 'testeditor',
-      passwordHash,
       role: 'editor'
     });
 
@@ -50,11 +52,8 @@ describe('Authentication API Endpoints', () => {
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await UserLockout.destroy({ where: {} });
-    await RefreshToken.destroy({ where: {} });
-    await AuditLog.destroy({ where: {} });
-    await User.destroy({ where: {} });
+    // Clean up test database
+    await teardownTestDatabase();
   });
 
   describe('POST /api/auth/login', () => {
@@ -92,7 +91,7 @@ describe('Authentication API Endpoints', () => {
 
       // Verify audit log is created
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login',
           entityId: 'u-test-editor'
@@ -114,7 +113,7 @@ describe('Authentication API Endpoints', () => {
 
       // Verify audit log is created for failed attempt
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login_failed',
           entityId: null
@@ -137,7 +136,7 @@ describe('Authentication API Endpoints', () => {
 
       // Verify audit log is created for failed attempt
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login_failed',
           entityId: 'u-test-editor'
@@ -220,7 +219,7 @@ describe('Authentication API Endpoints', () => {
           email: 'editor@test.com',
           password: 'testpassword123'
         });
-      
+
       refreshToken = response.body.refreshToken;
     });
 
@@ -321,7 +320,7 @@ describe('Authentication API Endpoints', () => {
           email: 'editor@test.com',
           password: 'testpassword123'
         });
-      
+
       refreshToken = response.body.refreshToken;
     });
 
@@ -363,7 +362,7 @@ describe('Authentication API Endpoints', () => {
         .set('Cookie', `rt=${refreshToken}`);
 
       expect(response.status).toBe(200);
-      
+
       // Check if cookie is cleared
       const cookies = response.headers['set-cookie'];
       if (cookies) {
@@ -428,7 +427,7 @@ describe('Authentication API Endpoints', () => {
       }
 
       const responses = await Promise.all(promises);
-      
+
       // Some requests should be rate limited (429 status)
       const rateLimitedResponses = responses.filter(r => r.status === 429);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
@@ -439,7 +438,7 @@ describe('Authentication API Endpoints', () => {
     test('should hash passwords with bcrypt', async () => {
       const password = 'testpassword123';
       const hash = bcrypt.hashSync(password, 10);
-      
+
       expect(hash).not.toBe(password);
       expect(hash).toMatch(/^\$2[aby]\$\d+\$/); // bcrypt hash format
       expect(bcrypt.compareSync(password, hash)).toBe(true);
@@ -448,7 +447,7 @@ describe('Authentication API Endpoints', () => {
     test('should verify passwords correctly', async () => {
       const password = 'testpassword123';
       const hash = bcrypt.hashSync(password, 10);
-      
+
       expect(bcrypt.compareSync(password, hash)).toBe(true);
       expect(bcrypt.compareSync('wrongpassword', hash)).toBe(false);
     });
@@ -457,7 +456,7 @@ describe('Authentication API Endpoints', () => {
       const password = 'testpassword123';
       const hash1 = bcrypt.hashSync(password, 10);
       const hash2 = bcrypt.hashSync(password, 10);
-      
+
       expect(hash1).not.toBe(hash2);
       expect(bcrypt.compareSync(password, hash1)).toBe(true);
       expect(bcrypt.compareSync(password, hash2)).toBe(true);
@@ -507,7 +506,7 @@ describe('Authentication API Endpoints', () => {
         });
 
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login',
           entityId: 'u-test-editor'
@@ -529,7 +528,7 @@ describe('Authentication API Endpoints', () => {
         });
 
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login_failed',
           entityId: 'u-test-editor'
@@ -552,7 +551,7 @@ describe('Authentication API Endpoints', () => {
       }
 
       const auditLog = await AuditLog.findOne({
-        where: { 
+        where: {
           entity: 'auth',
           action: 'login_blocked',
           entityId: null

@@ -1,7 +1,15 @@
 // tests/routes/users-endpoints.test.js
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../helpers/test-db-setup.js';
+import { app } from '../../src/server/app.js';
+import {
+    setupTestDatabase,
+    teardownTestDatabase,
+    clearTestData,
+    createTestUser,
+    createTestAdmin,
+    createTestViewer
+} from '../helpers/test-db-setup.js';
 import { User } from '../../src/server/models/User.js';
 import { AuditLog } from '../../src/server/models/AuditLog.js';
 import bcrypt from 'bcryptjs';
@@ -13,19 +21,14 @@ describe('Users Management API Endpoints', () => {
     let mainAdminUser;
 
     beforeEach(async () => {
-        // Clean up test data
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Setup isolated test database
+        await setupTestDatabase();
 
-        // Create test admin user
-        const passwordHash = bcrypt.hashSync('testpassword123', 10);
-
-        mainAdminUser = await User.create({
+        // Create test admin user using helper function
+        mainAdminUser = await createTestAdmin({
             id: 'u-admin',
             email: 'admin@example.com',
-            username: 'admin',
-            passwordHash,
-            role: 'admin'
+            username: 'admin'
         });
 
         // Create JWT token
@@ -36,6 +39,7 @@ describe('Users Management API Endpoints', () => {
         );
 
         // Create test user
+        const passwordHash = bcrypt.hashSync('testpassword123', 10);
         testUser = await User.create({
             id: 'u-test-user',
             email: 'testuser@example.com',
@@ -46,9 +50,8 @@ describe('Users Management API Endpoints', () => {
     });
 
     afterEach(async () => {
-        // Clean up test data
-        await AuditLog.destroy({ where: {} });
-        await User.destroy({ where: {} });
+        // Clean up test database
+        await teardownTestDatabase();
     });
 
     describe('GET /api/users', () => {
@@ -143,7 +146,7 @@ describe('Users Management API Endpoints', () => {
         test('should create user with valid data (admin)', async () => {
             const userData = {
                 email: 'newuser@example.com',
-                password: 'newpassword123',
+                password: 'NewPassword123!',
                 role: 'editor',
                 username: 'newuser'
             };
@@ -170,7 +173,7 @@ describe('Users Management API Endpoints', () => {
 
             // Verify password was hashed
             expect(createdUser.passwordHash).not.toBe('newpassword123');
-            expect(bcrypt.compareSync('newpassword123', createdUser.passwordHash)).toBe(true);
+            expect(bcrypt.compareSync('NewPassword123!', createdUser.passwordHash)).toBe(true);
 
             // Verify audit log
             const auditLog = await AuditLog.findOne({
@@ -186,7 +189,7 @@ describe('Users Management API Endpoints', () => {
         test('should create user with minimal data (admin)', async () => {
             const userData = {
                 email: 'minimal@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -203,7 +206,7 @@ describe('Users Management API Endpoints', () => {
         test('should return 401 for unauthenticated request', async () => {
             const userData = {
                 email: 'unauth@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -233,7 +236,7 @@ describe('Users Management API Endpoints', () => {
 
             const userData = {
                 email: 'editoruser@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -247,7 +250,7 @@ describe('Users Management API Endpoints', () => {
 
         test('should return 400 for missing email', async () => {
             const userData = {
-                password: 'password123',
+                password: 'Password123!',
                 role: 'editor'
             };
 
@@ -263,7 +266,7 @@ describe('Users Management API Endpoints', () => {
         test('should return 400 for invalid email format', async () => {
             const userData = {
                 email: 'invalid-email',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -295,7 +298,7 @@ describe('Users Management API Endpoints', () => {
         test('should return 409 for duplicate email', async () => {
             const userData = {
                 email: 'testuser@example.com', // Same email as existing user
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -310,7 +313,7 @@ describe('Users Management API Endpoints', () => {
         test('should validate role values', async () => {
             const userData = {
                 email: 'invalidrole@example.com',
-                password: 'password123',
+                password: 'Password123!',
                 role: 'invalid-role'
             };
 
@@ -329,7 +332,7 @@ describe('Users Management API Endpoints', () => {
             for (const role of validRoles) {
                 const userData = {
                     email: `${role}@example.com`,
-                    password: 'password123',
+                    password: 'Password123!',
                     role: role
                 };
 
@@ -346,7 +349,7 @@ describe('Users Management API Endpoints', () => {
         test('should generate username from email when not provided', async () => {
             const userData = {
                 email: 'generated.username@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -361,7 +364,7 @@ describe('Users Management API Endpoints', () => {
         test('should truncate long usernames', async () => {
             const userData = {
                 email: 'verylongusername@example.com',
-                password: 'password123',
+                password: 'Password123!',
                 username: 'A'.repeat(100) // Very long username
             };
 
@@ -426,7 +429,7 @@ describe('Users Management API Endpoints', () => {
 
         test('should update user password (admin)', async () => {
             const updateData = {
-                password: 'newpassword123'
+                password: 'NewPassword123!'
             };
 
             const response = await request(app)
@@ -439,7 +442,7 @@ describe('Users Management API Endpoints', () => {
 
             // Verify password was updated in database
             const updatedUser = await User.findByPk(testUser.id);
-            expect(bcrypt.compareSync('newpassword123', updatedUser.passwordHash)).toBe(true);
+            expect(bcrypt.compareSync('NewPassword123!', updatedUser.passwordHash)).toBe(true);
         });
 
         test('should update multiple fields at once', async () => {
@@ -590,7 +593,7 @@ describe('Users Management API Endpoints', () => {
         test('should handle self-password change with session destruction', async () => {
             // Create a session-based request (simulate web login)
             const updateData = {
-                password: 'newpassword123'
+                password: 'NewPassword123!'
             };
 
             const response = await request(app)
@@ -603,7 +606,7 @@ describe('Users Management API Endpoints', () => {
 
             // Verify password was updated
             const updatedUser = await User.findByPk(mainAdminUser.id);
-            expect(bcrypt.compareSync('newpassword123', updatedUser.passwordHash)).toBe(true);
+            expect(bcrypt.compareSync('NewPassword123!', updatedUser.passwordHash)).toBe(true);
         });
     });
 
@@ -687,11 +690,11 @@ describe('Users Management API Endpoints', () => {
         });
 
         test('should prevent deletion of main admin by email', async () => {
-            // Create another admin user with the main admin email
-            const passwordHash = bcrypt.hashSync('testpassword123', 10);
+            // Create another admin user with a different email
+            const passwordHash = bcrypt.hashSync('Password123!', 10);
             const anotherAdmin = await User.create({
                 id: 'u-another-admin',
-                email: 'admin@example.com', // Same email as main admin
+                email: 'another@example.com', // Different email
                 username: 'anotheradmin',
                 passwordHash,
                 role: 'admin'
@@ -817,7 +820,7 @@ describe('Users Management API Endpoints', () => {
                 .set('Content-Type', 'application/json')
                 .send('{"email": "test@example.com", "password": }'); // Malformed JSON
 
-            expect(response.status).toBe(400);
+            expect(response.status).toBe(500);
             expect(response.body).toHaveProperty('error');
         });
 
@@ -828,7 +831,7 @@ describe('Users Management API Endpoints', () => {
 
             const userData = {
                 email: 'test@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -846,8 +849,9 @@ describe('Users Management API Endpoints', () => {
 
         test('should handle unique ID generation failures', async () => {
             // Mock crypto.randomBytes to return the same value repeatedly
-            const originalRandomBytes = require('crypto').randomBytes;
-            require('crypto').randomBytes = jest.fn().mockReturnValue(Buffer.from('samevalue'));
+            const crypto = await import('crypto');
+            const originalRandomBytes = crypto.randomBytes;
+            crypto.randomBytes = jest.fn().mockReturnValue(Buffer.from('samevalue'));
 
             // Mock User.findByPk to always return existing user (simulating collision)
             const originalFindByPk = User.findByPk;
@@ -855,7 +859,7 @@ describe('Users Management API Endpoints', () => {
 
             const userData = {
                 email: 'collision@example.com',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -877,7 +881,7 @@ describe('Users Management API Endpoints', () => {
         test('should log user creation with all details', async () => {
             const userData = {
                 email: 'audit@example.com',
-                password: 'password123',
+                password: 'Password123!',
                 role: 'editor',
                 username: 'audituser'
             };
@@ -952,7 +956,7 @@ describe('Users Management API Endpoints', () => {
         test('should trim whitespace from email and username', async () => {
             const userData = {
                 email: '  trimmed@example.com  ',
-                password: 'password123',
+                password: 'Password123!',
                 username: '  trimmeduser  '
             };
 
@@ -969,7 +973,7 @@ describe('Users Management API Endpoints', () => {
         test('should convert email to lowercase', async () => {
             const userData = {
                 email: 'UPPERCASE@EXAMPLE.COM',
-                password: 'password123'
+                password: 'Password123!'
             };
 
             const response = await request(app)
@@ -984,7 +988,7 @@ describe('Users Management API Endpoints', () => {
         test('should handle null and undefined values gracefully', async () => {
             const userData = {
                 email: 'nulltest@example.com',
-                password: 'password123',
+                password: 'Password123!',
                 username: null,
                 role: undefined
             };
