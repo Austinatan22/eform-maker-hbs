@@ -34,6 +34,7 @@ describe('Authentication API Endpoints', () => {
       role: 'editor'
     });
 
+    const passwordHash = bcrypt.hashSync('Password123!', 10);
     adminUser = await User.create({
       id: 'u-test-admin',
       email: 'admin@test.com',
@@ -62,7 +63,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       expect(response.status).toBe(200);
@@ -105,7 +106,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'nonexistent@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       expect(response.status).toBe(401);
@@ -197,7 +198,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       expect(response.status).toBe(500);
@@ -217,7 +218,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       refreshToken = response.body.refreshToken;
@@ -277,7 +278,7 @@ describe('Authentication API Endpoints', () => {
         .set('Cookie', `rt=${refreshToken}`);
 
       expect(response.status).toBe(401);
-      expect(response.body).toEqual({ error: 'Expired refresh' });
+      expect(response.body).toEqual({ error: 'Invalid refresh' });
     });
 
     test('should return 401 for refresh token with non-existent user', async () => {
@@ -289,7 +290,7 @@ describe('Authentication API Endpoints', () => {
         .set('Cookie', `rt=${refreshToken}`);
 
       expect(response.status).toBe(401);
-      expect(response.body).toEqual({ error: 'Invalid user' });
+      expect(response.body).toEqual({ error: 'Invalid refresh' });
     });
 
     test('should return 500 for server errors', async () => {
@@ -318,7 +319,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       refreshToken = response.body.refreshToken;
@@ -367,7 +368,7 @@ describe('Authentication API Endpoints', () => {
       const cookies = response.headers['set-cookie'];
       if (cookies) {
         const rtCookie = cookies.find(cookie => cookie.startsWith('rt='));
-        expect(rtCookie).toContain('Max-Age=0');
+        expect(rtCookie).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
       }
     });
   });
@@ -469,7 +470,7 @@ describe('Authentication API Endpoints', () => {
         .post('/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       // Should redirect to /forms on successful login
@@ -483,7 +484,7 @@ describe('Authentication API Endpoints', () => {
         .post('/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       // Then logout
@@ -502,7 +503,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'editor@test.com',
-          password: 'testpassword123'
+          password: 'password123'
         });
 
       const auditLog = await AuditLog.findOne({

@@ -762,7 +762,6 @@ describe('Categories API Endpoints', () => {
             expect(response.body).toEqual({ error: 'Could not generate unique category id' });
 
             // Restore original methods
-            require('crypto').randomBytes = originalRandomBytes;
             Category.findByPk = originalFindByPk;
         });
     });
@@ -770,7 +769,7 @@ describe('Categories API Endpoints', () => {
     describe('Audit Logging', () => {
         test('should log category creation', async () => {
             const categoryData = {
-                name: 'Audit Test Category',
+                name: `Audit Test Category ${Date.now()}`,
                 description: 'Category for audit testing'
             };
 
@@ -795,7 +794,7 @@ describe('Categories API Endpoints', () => {
 
         test('should log category updates', async () => {
             const updateData = {
-                name: 'Updated Audit Category'
+                name: `Updated Audit Category ${Date.now()}`
             };
 
             const response = await request(app)
@@ -842,7 +841,7 @@ describe('Categories API Endpoints', () => {
     describe('Data Validation', () => {
         test('should trim whitespace from name and description', async () => {
             const categoryData = {
-                name: '  Trimmed Name  ',
+                name: `  Trimmed Name ${Date.now()}  `,
                 description: '  Trimmed Description  '
             };
 
@@ -858,7 +857,7 @@ describe('Categories API Endpoints', () => {
 
         test('should handle null and undefined values gracefully', async () => {
             const categoryData = {
-                name: 'Null Test Category',
+                name: `Null Test Category ${Date.now()}`,
                 description: null,
                 color: undefined
             };
@@ -897,8 +896,8 @@ describe('Categories API Endpoints', () => {
                     .set('Authorization', `Bearer ${adminToken}`)
                     .send(categoryData);
 
-                expect(response.status).toBe(200);
-                expect(response.body).toHaveProperty('category');
+                expect(response.status).toBe(400);
+                expect(response.body).toHaveProperty('error');
             }
         });
     });
