@@ -8,6 +8,7 @@ import { engine } from 'express-handlebars';
 import { sequelize, submissionsSequelize } from './db.js';
 import { DataTypes } from 'sequelize';
 import formsRouter from './routes/forms.routes.js';
+import adminRouter from './routes/admin.routes.js';
 import authRouter from './routes/auth.routes.js';
 import usersRouter from './routes/users.routes.js';
 import logsRouter from './routes/logs.routes.js';
@@ -145,6 +146,8 @@ app.use((req, res, next) => {
       href: 'javascript:void(0)',
       icon: 'ti tabler-settings',
       children: [
+        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
+        { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
         { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
         { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
       ]

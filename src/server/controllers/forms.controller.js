@@ -42,6 +42,7 @@ const PARTIAL_FOR = {
   date: 'fields/date',
   time: 'fields/time',
   datetime: 'fields/datetime',
+  month: 'fields/month',
   url: 'fields/url',
   file: 'fields/file',
   richText: 'fields/rich-text'
