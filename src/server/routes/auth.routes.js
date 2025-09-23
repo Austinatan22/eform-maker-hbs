@@ -172,13 +172,81 @@ router.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { email = '', password = '' } = req.body || {};
     const e = String(email).trim().toLowerCase();
+
+    // Check if user is locked out
+    const lockoutStatus = await isUserLockedOut(e);
+    if (lockoutStatus.locked) {
+      const lockoutTime = new Date(lockoutStatus.lockedUntil).toLocaleString();
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_blocked',
+        entityId: null,
+        meta: {
+          email: e,
+          reason: 'account_locked',
+          lockoutUntil: lockoutTime,
+          failedAttempts: lockoutStatus.failedAttempts || 0
+        }
+      });
+      return res.status(401).json({ error: `Account is locked until ${lockoutTime}. Too many failed login attempts.` });
+    }
+
     const bcrypt = await import('bcryptjs');
     const user = await User.findOne({ where: { email: e } });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      const attemptResult = await recordFailedAttempt(e);
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_failed',
+        entityId: null,
+        meta: {
+          email: e,
+          reason: 'user_not_found',
+          failedAttempts: attemptResult.failedAttempts
+        }
+      });
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
     const ok = bcrypt.compareSync(String(password), user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) {
+      const attemptResult = await recordFailedAttempt(e, user.id);
+      await logAudit(req, {
+        entity: 'auth',
+        action: 'login_failed',
+        entityId: user.id,
+        meta: {
+          email: e,
+          reason: 'invalid_password',
+          failedAttempts: attemptResult.failedAttempts
+        }
+      });
+
+      if (attemptResult.locked) {
+        const lockoutTime = new Date(attemptResult.lockedUntil).toLocaleString();
+        return res.status(401).json({ error: `Account locked until ${lockoutTime}. Too many failed login attempts.` });
+      }
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Successful login - clear failed attempts
+    await clearFailedAttempts(e);
     const accessToken = signAccess(user);
     const { token: refreshToken, expiresAt } = await issueRefresh(user.id);
+
+    // Enhanced successful login audit
+    await logAudit(req, {
+      entity: 'auth',
+      action: 'login',
+      entityId: user.id,
+      meta: {
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        loginTime: new Date().toISOString()
+      }
+    });
+
     res.cookie?.('rt', refreshToken, {
       httpOnly: true,
       sameSite: 'lax',

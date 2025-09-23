@@ -15,12 +15,8 @@ import request from 'supertest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import express from 'express';
-import session from 'express-session';
-import { engine } from 'express-handlebars';
-import formsRoutes from '../src/server/routes/forms.routes.js';
-import authRoutes from '../src/server/routes/auth.routes.js';
-import { sequelize, submissionsSequelize } from '../src/server/db.js';
+import { setupTestDatabase, teardownTestDatabase, clearTestData, createTestAdmin, cleanupTestUploadFiles } from './helpers/test-db-setup.js';
+import { generateTestJWT } from './helpers/test-setup-utils.js';
 import { Form } from '../src/server/models/Form.js';
 import { FormField } from '../src/server/models/FormField.js';
 import { Category } from '../src/server/models/Category.js';
@@ -29,31 +25,26 @@ import { User } from '../src/server/models/User.js';
 import { deleteFile } from '../src/server/middleware/upload.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { app } from '../src/server/app.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_DIR = path.join(__dirname, '..', 'src', 'uploads');
 
 describe('File Upload & Media', () => {
-    let app;
     let testUser;
     let testForm;
     let testCategory;
     let authToken;
 
     beforeAll(async () => {
-        // Enable authentication for tests
-        process.env.AUTH_ENABLED = '1';
-        process.env.JWT_SECRET = 'dev_jwt_secret_change_me';
+        // Setup test database
+        await setupTestDatabase();
 
-        // Create test user with real password hash
-        testUser = await User.create({
+        // Create test user using helper
+        testUser = await createTestAdmin({
             id: 'test-user-file-upload',
-            email: 'test@fileupload.com',
-            passwordHash: await bcrypt.hash('password123', 10),
-            role: 'admin',
-            isActive: true,
-            emailVerified: true
+            email: 'test@fileupload.com'
         });
 
         // Create test category
@@ -64,84 +55,30 @@ describe('File Upload & Media', () => {
             color: '#ff0000'
         });
 
-        // Setup Express app for testing
-        app = express();
-        app.use(express.json());
-        app.use(express.urlencoded({ extended: true }));
-        app.use(session({
-            secret: 'test-session-secret',
-            resave: false,
-            saveUninitialized: false,
-            cookie: { secure: false }
-        }));
-
-        // Configure Handlebars view engine for tests
-        app.engine('hbs', engine({
-            extname: '.hbs',
-            defaultLayout: false,
-            layoutsDir: path.join(__dirname, '../views/layouts')
-        }));
-        app.set('view engine', 'hbs');
-        app.set('views', path.join(__dirname, '../views'));
-
-        // Use routes
-        app.use('/', authRoutes);
-        app.use('/', formsRoutes);
-
         // Generate JWT token for API testing
-        authToken = jwt.sign(
-            { sub: testUser.id, role: testUser.role, email: testUser.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+        authToken = generateTestJWT(testUser);
     });
 
     afterAll(async () => {
-        // Final cleanup of any remaining test files
-        if (fs.existsSync(UPLOADS_DIR)) {
-            const files = fs.readdirSync(UPLOADS_DIR);
-            for (const file of files) {
-                // Remove ALL test-related files as final cleanup
-                if (file.includes('test') ||
-                    file.includes('sample') ||
-                    file.includes('concurrent') ||
-                    file.includes('cleanup') ||
-                    file.includes('metadata') ||
-                    file.includes('audit') ||
-                    file.includes('passwd') ||
-                    file.includes('large-file') ||
-                    file.includes('document') ||
-                    file.includes('image') ||
-                    file.includes('text') ||
-                    file.includes('spreadsheet') ||
-                    file.includes('file with spaces') ||
-                    file.match(/^file[1-5]-/) ||
-                    file.match(/^cleanup-test-/) ||
-                    file.match(/^metadata-test-/) ||
-                    file.match(/^audit-test-/) ||
-                    file.match(/^large-file-/) ||
-                    file.match(/^document-/) ||
-                    file.match(/^image-/) ||
-                    file.match(/^text-/) ||
-                    file.match(/^spreadsheet-/) ||
-                    file.match(/^concurrent-[0-9]-/)) {
-                    try {
-                        fs.unlinkSync(path.join(UPLOADS_DIR, file));
-                    } catch (error) {
-                        // Ignore errors
-                    }
-                }
-            }
-        }
+        // Clean up all test files from uploads directory
+        cleanupTestUploadFiles();
 
-        // Clean up test data
-        await User.destroy({ where: { id: testUser.id } });
-        await Category.destroy({ where: { id: testCategory.id } });
-        await sequelize.close();
-        await submissionsSequelize.close();
+        // Clean up test database and files
+        await teardownTestDatabase();
     });
 
     beforeEach(async () => {
+        // Clear test data before each test
+        await clearTestData();
+
+        // Recreate test category after clearing data
+        testCategory = await Category.create({
+            id: 'test-category-file-upload',
+            name: 'File Upload Tests',
+            description: 'Test category for file upload tests',
+            color: '#ff0000'
+        });
+
         // Create test form with file field
         testForm = await Form.create({
             id: 'test-form-file-upload',
@@ -174,47 +111,13 @@ describe('File Upload & Media', () => {
     });
 
     afterEach(async () => {
-        // Clean up test form and files
+        // Clean up test form
         if (testForm) {
             await Form.destroy({ where: { id: testForm.id } });
         }
 
-        // Clean up ALL uploaded test files (comprehensive cleanup)
-        if (fs.existsSync(UPLOADS_DIR)) {
-            const files = fs.readdirSync(UPLOADS_DIR);
-            for (const file of files) {
-                // Remove files with test-related names or patterns
-                if (file.includes('test') ||
-                    file.includes('sample') ||
-                    file.includes('concurrent') ||
-                    file.includes('cleanup') ||
-                    file.includes('metadata') ||
-                    file.includes('audit') ||
-                    file.includes('passwd') ||
-                    file.includes('large-file') ||
-                    file.includes('document') ||
-                    file.includes('image') ||
-                    file.includes('text') ||
-                    file.includes('spreadsheet') ||
-                    file.includes('file with spaces') ||
-                    file.match(/^file[1-5]-/) ||
-                    file.match(/^cleanup-test-/) ||
-                    file.match(/^metadata-test-/) ||
-                    file.match(/^audit-test-/) ||
-                    file.match(/^large-file-/) ||
-                    file.match(/^document-/) ||
-                    file.match(/^image-/) ||
-                    file.match(/^text-/) ||
-                    file.match(/^spreadsheet-/) ||
-                    file.match(/^concurrent-[0-9]-/)) {
-                    try {
-                        fs.unlinkSync(path.join(UPLOADS_DIR, file));
-                    } catch (error) {
-                        // Ignore errors (file might already be deleted)
-                    }
-                }
-            }
-        }
+        // Clean up uploaded test files
+        cleanupTestUploadFiles();
     });
 
     describe('File Upload API (/api/upload)', () => {
@@ -265,11 +168,7 @@ describe('File Upload & Media', () => {
                 });
 
                 // Generate JWT token for viewer
-                const viewerToken = jwt.sign(
-                    { sub: viewerUser.id, role: viewerUser.role, email: viewerUser.email },
-                    process.env.JWT_SECRET,
-                    { expiresIn: '1h' }
-                );
+                const viewerToken = generateTestJWT(viewerUser);
 
                 const response = await request(app)
                     .post('/api/upload')

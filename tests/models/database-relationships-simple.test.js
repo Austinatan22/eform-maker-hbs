@@ -2,7 +2,7 @@
 // Simplified Database Relationships Tests - Real Application Tests
 // Tests the core database relationships that can be verified in the test environment
 
-import { setupTestDatabase, clearTestData } from '../helpers/test-db-setup.js';
+import { setupTestDatabase, teardownTestDatabase, clearTestData } from '../helpers/test-db-setup.js';
 
 describe('Database Relationships - Simplified Tests', () => {
     beforeAll(async () => {
@@ -11,7 +11,7 @@ describe('Database Relationships - Simplified Tests', () => {
     });
 
     afterAll(async () => {
-        await clearTestData();
+        await teardownTestDatabase();
     });
 
     beforeEach(async () => {

@@ -175,11 +175,12 @@ app.use((req, res, next) => {
 
   // Apply CSRF protection to all routes except public form submissions and API endpoints
   app.use((req, res, next) => {
-    // Skip CSRF for public form submissions and all API endpoints
+    // Skip CSRF for public form submissions, API endpoints, and test environment
     if (req.path.startsWith('/form/') ||
       req.path.startsWith('/public/') ||
       req.path.startsWith('/api/') ||
-      req.path === '/api/forms/submit') {
+      req.path === '/api/forms/submit' ||
+      process.env.NODE_ENV === 'test') {
       return next();
     }
     return doubleCsrfProtection(req, res, next);

@@ -35,6 +35,9 @@ export const FormField = sequelize.define('FormField', {
   // Options (for dropdown/multipleChoice/checkboxes)
   options: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }, // comma-separated
 
+  // Content for rich text fields
+  content: { type: DataTypes.TEXT, allowNull: true },
+
   // Ordering within form
   position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 }, {

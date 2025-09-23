@@ -2,7 +2,7 @@
 // Database Models & Relationships Tests - Real Application Tests
 // Tests the actual database models, their structure, validation, and relationships
 
-import { setupTestDatabase, clearTestData } from '../helpers/test-db-setup.js';
+import { setupTestDatabase, teardownTestDatabase, clearTestData } from '../helpers/test-db-setup.js';
 
 describe('Database Models & Relationships - Real Application Tests', () => {
     let testSequelize;
@@ -17,7 +17,7 @@ describe('Database Models & Relationships - Real Application Tests', () => {
     });
 
     afterAll(async () => {
-        await clearTestData();
+        await teardownTestDatabase();
     });
 
     beforeEach(async () => {
@@ -67,7 +67,7 @@ describe('Database Models & Relationships - Real Application Tests', () => {
 
             await User.create(userData1);
 
-            await expect(User.create(userData2)).rejects.toThrow();
+            await expect(User.create(userData2)).rejects.toThrow(/Validation error/i);
         });
 
         it('should require email field', async () => {
@@ -80,7 +80,7 @@ describe('Database Models & Relationships - Real Application Tests', () => {
                 role: 'editor'
             };
 
-            await expect(User.create(userData)).rejects.toThrow();
+            await expect(User.create(userData)).rejects.toThrow(/cannot be null/i);
         });
 
         it('should require passwordHash field', async () => {
@@ -93,7 +93,7 @@ describe('Database Models & Relationships - Real Application Tests', () => {
                 role: 'editor'
             };
 
-            await expect(User.create(userData)).rejects.toThrow();
+            await expect(User.create(userData)).rejects.toThrow(/cannot be null/i);
         });
 
         it('should default role to editor when not specified', async () => {

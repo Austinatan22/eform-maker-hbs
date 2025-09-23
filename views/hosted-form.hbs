@@ -39,7 +39,7 @@
 <body class="container py-4">
   <h1 class="h3 mb-4">{{title}}</h1>
 
-  <form id="form" class="vstack gap-2">
+  <form id="form" class="form-container vstack gap-2">
     {{#each fields}}
     {{> (lookup this "partial") this}}
     {{/each}}
@@ -55,6 +55,13 @@
   </form>
 
   <div id="status" class="mt-2 small text-muted"></div>
+
+  <!-- Validation feedback -->
+  <div id="validation" class="mt-2" style="display: none;">
+    <div class="alert alert-danger">
+      Please fill in all required fields.
+    </div>
+  </div>
 
   <script>
     // --- autoresize → tell parent iframe our height ---

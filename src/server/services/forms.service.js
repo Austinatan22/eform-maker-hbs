@@ -47,8 +47,10 @@ export async function createFormWithFields(title, cleanFields, categoryId = null
       required: !!f.required,
       doNotStore: !!f.doNotStore,
       options: f.options || '',
-      position: idx
+      content: f.content || null,
+      position: f.position !== undefined ? f.position : idx
     }));
+
 
     await FormField.bulkCreate(rows, { transaction: t });
     return { form, rows };
@@ -83,7 +85,8 @@ export async function updateFormWithFields(id, titleOrNull, cleanFieldsOrNull, c
         required: !!f.required,
         doNotStore: !!f.doNotStore,
         options: f.options || '',
-        position: idx
+        content: f.content || null,
+        position: f.position !== undefined ? f.position : idx
       }));
       await FormField.bulkCreate(rows, { transaction: t });
       // Update the form's updated_at timestamp when fields change

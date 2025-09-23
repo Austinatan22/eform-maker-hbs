@@ -10,13 +10,13 @@ import {
     createTestAdmin,
     createTestViewer
 } from '../helpers/test-db-setup.js';
+import { generateTestJWT } from '../helpers/test-setup-utils.js';
 import { User } from '../../src/server/models/User.js';
 import { Category } from '../../src/server/models/Category.js';
 import { Form } from '../../src/server/models/Form.js';
 import { Template } from '../../src/server/models/Template.js';
 import { AuditLog } from '../../src/server/models/AuditLog.js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 describe('Categories API Endpoints', () => {
     let adminToken;
@@ -36,11 +36,7 @@ describe('Categories API Endpoints', () => {
         });
 
         // Create JWT token
-        adminToken = jwt.sign(
-            { sub: adminUser.id, role: 'admin', email: adminUser.email },
-            process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-            { expiresIn: '15m' }
-        );
+        adminToken = generateTestJWT(adminUser);
 
         // Create test category
         testCategory = await Category.create({
@@ -113,11 +109,7 @@ describe('Categories API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .get('/api/categories')
@@ -205,11 +197,7 @@ describe('Categories API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const categoryData = {
                 name: 'Editor Category'
@@ -410,11 +398,7 @@ describe('Categories API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const updateData = {
                 name: 'Editor Update'
@@ -548,10 +532,10 @@ describe('Categories API Endpoints', () => {
                 where: {
                     entity: 'category',
                     action: 'delete',
-                    entityId: testCategory.id
+                    entityId: deleteCategory.id
                 }
             });
-            expect(auditLog).toBeFalsy();
+            expect(auditLog).toBeTruthy();
         });
 
         test('should return 401 for unauthenticated request', async () => {
@@ -573,11 +557,7 @@ describe('Categories API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .delete(`/api/categories/${testCategory.id}`)
@@ -691,11 +671,7 @@ describe('Categories API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .get('/categories')

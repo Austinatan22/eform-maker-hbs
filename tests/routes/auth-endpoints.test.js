@@ -100,7 +100,7 @@ describe('Authentication API Endpoints', () => {
           entityId: 'u-test-editor'
         }
       });
-      expect(auditLog).toBeFalsy();
+      expect(auditLog).toBeTruthy();
     });
 
     test('should return 401 for invalid email', async () => {
@@ -122,7 +122,7 @@ describe('Authentication API Endpoints', () => {
           entityId: null
         }
       });
-      expect(auditLog).toBeFalsy();
+      expect(auditLog).toBeTruthy();
     });
 
     test('should return 401 for invalid password', async () => {
@@ -144,7 +144,7 @@ describe('Authentication API Endpoints', () => {
           entityId: 'u-test-editor'
         }
       });
-      expect(auditLog).toBeFalsy();
+      expect(auditLog).toBeTruthy();
     });
 
     test('should return 401 for empty credentials', async () => {
@@ -183,7 +183,7 @@ describe('Authentication API Endpoints', () => {
       const lockout = await UserLockout.findOne({
         where: { email: 'editor@test.com' }
       });
-      expect(lockout).toBeFalsy();
+      expect(lockout).toBeTruthy();
     });
 
     test('should return 500 for server errors', async () => {
@@ -471,7 +471,8 @@ describe('Authentication API Endpoints', () => {
         });
 
       // Should redirect to /forms on successful login
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('/forms');
     });
 
     test('should destroy session on logout', async () => {
@@ -488,7 +489,8 @@ describe('Authentication API Endpoints', () => {
         .post('/logout');
 
       // Should redirect to /login
-      expect(logoutResponse.status).toBe(500);
+      expect(logoutResponse.status).toBe(302);
+      expect(logoutResponse.headers.location).toBe('/login');
     });
   });
 
@@ -509,7 +511,7 @@ describe('Authentication API Endpoints', () => {
         }
       });
 
-      expect(auditLog).toBeFalsy();
+      expect(auditLog).toBeTruthy();
     });
 
     test('should log failed login attempts', async () => {
@@ -528,12 +530,12 @@ describe('Authentication API Endpoints', () => {
         }
       });
 
-      expect(auditLog).toBeFalsy();
+      expect(auditLog).toBeTruthy();
     });
 
     test('should log account lockout', async () => {
       // Make multiple failed attempts to trigger lockout
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         await request(app)
           .post('/api/auth/login')
           .send({
@@ -542,15 +544,92 @@ describe('Authentication API Endpoints', () => {
           });
       }
 
-      const auditLog = await AuditLog.findOne({
+      // Check for any audit logs related to this email
+      const auditLogs = await AuditLog.findAll({
         where: {
           entity: 'auth',
-          action: 'login_blocked',
-          entityId: null
+          action: 'login_blocked'
         }
       });
 
-      expect(auditLog).toBeFalsy();
+      expect(auditLogs.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('HTML Form Authentication', () => {
+    test('should render login page successfully', async () => {
+      const response = await request(app)
+        .get('/login');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('login'); // Basic check for login page content
+    });
+
+    test('should handle invalid credentials gracefully', async () => {
+      const response = await request(app)
+        .post('/login')
+        .send({
+          email: 'nonexistent@example.com',
+          password: 'wrongpassword'
+        });
+
+      // Should render login page with error message (not redirect)
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('Invalid credentials');
+    });
+
+    test('should handle empty credentials gracefully', async () => {
+      const response = await request(app)
+        .post('/login')
+        .send({
+          email: '',
+          password: ''
+        });
+
+      // Should render login page with error message (not redirect)
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('Invalid credentials');
+    });
+
+    test('should handle logout for unauthenticated user', async () => {
+      const response = await request(app)
+        .post('/logout');
+
+      // Should redirect to login page
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('/login');
+    });
+
+    test('should redirect authenticated user to /forms', async () => {
+      // First login to create session
+      const loginResponse = await request(app)
+        .post('/login')
+        .send({
+          email: 'editor@test.com',
+          password: 'password123'
+        });
+
+      // Should redirect to /forms on successful login
+      expect(loginResponse.status).toBe(302);
+      expect(loginResponse.headers.location).toBe('/forms');
+    });
+
+    test('should login with valid credentials and create session', async () => {
+      const response = await request(app)
+        .post('/login')
+        .send({
+          email: 'editor@test.com',
+          password: 'password123'
+        });
+
+      // Should redirect to /forms on successful login
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('/forms');
+
+      // Check that session cookie is set
+      const cookies = response.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+      expect(cookies.some(cookie => cookie.startsWith('sid='))).toBe(true);
     });
   });
 });

@@ -79,6 +79,7 @@ router.post('/public/forms/:id/submissions', publicSubmit);
 // Place specific routes before dynamic to avoid conflicts
 router.get('/builder/template/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderTemplatePage);
 router.get('/builder/new', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderNewPage);
+router.get('/builder', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderNewPage);
 router.get('/builder/:id', ensureAuth, requireRole('admin', 'editor', 'viewer'), builderPage);
 
 // UI pages (optional)

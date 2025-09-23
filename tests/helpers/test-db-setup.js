@@ -332,5 +332,52 @@ export function cleanupLeftoverTestFiles() {
     }
 }
 
+// Clean up test files from uploads directory
+export function cleanupTestUploadFiles() {
+    try {
+        const uploadsDir = path.join(ROOT, 'src', 'uploads');
+        if (!fs.existsSync(uploadsDir)) return;
+
+        const files = fs.readdirSync(uploadsDir);
+        const testFiles = files.filter(file =>
+            file.includes('test') ||
+            file.includes('sample') ||
+            file.includes('concurrent') ||
+            file.includes('cleanup') ||
+            file.includes('metadata') ||
+            file.includes('audit') ||
+            file.includes('passwd') ||
+            file.includes('large-file') ||
+            file.includes('document') ||
+            file.includes('image') ||
+            file.includes('text') ||
+            file.includes('spreadsheet') ||
+            file.includes('file with spaces') ||
+            file.match(/^file[1-5]-/) ||
+            file.match(/^cleanup-test-/) ||
+            file.match(/^metadata-test-/) ||
+            file.match(/^audit-test-/) ||
+            file.match(/^large-file-/) ||
+            file.match(/^document-/) ||
+            file.match(/^image-/) ||
+            file.match(/^text-/) ||
+            file.match(/^spreadsheet-/) ||
+            file.match(/^concurrent-[0-9]-/)
+        );
+
+        for (const file of testFiles) {
+            const filePath = path.join(uploadsDir, file);
+            try {
+                fs.unlinkSync(filePath);
+                console.log(`Cleaned up test upload file: ${file}`);
+            } catch (error) {
+                console.warn(`Could not delete test upload file ${file}:`, error.message);
+            }
+        }
+    } catch (error) {
+        console.warn('Error cleaning up test upload files:', error.message);
+    }
+}
+
 // Export the test database connections for use in tests
 export { testSequelize, testSubmissionsSequelize };

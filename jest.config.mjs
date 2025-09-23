@@ -29,5 +29,15 @@ export default {
     globalSetup: '<rootDir>/tests/helpers/global-setup.js',
 
     // Verbose output
-    verbose: true
+    verbose: true,
+
+    // Environment variables for tests
+    setupFilesAfterEnv: ['<rootDir>/tests/helpers/test-env-setup.js'],
+
+    // Test environment variables
+    testEnvironmentOptions: {
+        NODE_ENV: 'test',
+        AUTH_ENABLED: '1',
+        JWT_SECRET: 'test_jwt_secret_key'
+    }
 };

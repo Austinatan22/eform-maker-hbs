@@ -17,6 +17,26 @@ export const sanitize = {
             .replace(/on\w+\s*=/gi, '');
     },
 
+    // Sanitize rich text content - allow safe HTML tags but remove dangerous ones
+    richText: (input) => {
+        if (typeof input !== 'string') return input;
+
+        // Remove dangerous script tags and event handlers
+        let sanitized = input
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/on\w+\s*=/gi, '');
+
+        // Remove dangerous tags but keep safe formatting tags
+        const dangerousTags = ['script', 'object', 'embed', 'applet', 'form', 'input', 'button', 'iframe'];
+        for (const tag of dangerousTags) {
+            const regex = new RegExp(`<\\/?${tag}\\b[^>]*>`, 'gi');
+            sanitized = sanitized.replace(regex, '');
+        }
+
+        return sanitized;
+    },
+
     // Sanitize for database storage
     database: (input) => {
         if (typeof input !== 'string') return input;

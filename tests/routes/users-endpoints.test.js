@@ -10,10 +10,10 @@ import {
     createTestAdmin,
     createTestViewer
 } from '../helpers/test-db-setup.js';
+import { generateTestJWT } from '../helpers/test-setup-utils.js';
 import { User } from '../../src/server/models/User.js';
 import { AuditLog } from '../../src/server/models/AuditLog.js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 describe('Users Management API Endpoints', () => {
     let adminToken;
@@ -32,11 +32,7 @@ describe('Users Management API Endpoints', () => {
         });
 
         // Create JWT token
-        adminToken = jwt.sign(
-            { sub: mainAdminUser.id, role: 'admin', email: mainAdminUser.email },
-            process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-            { expiresIn: '15m' }
-        );
+        adminToken = generateTestJWT(mainAdminUser);
 
         // Create test user
         const passwordHash = bcrypt.hashSync('testpassword123', 10);
@@ -130,11 +126,7 @@ describe('Users Management API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .get('/api/users')
@@ -231,11 +223,7 @@ describe('Users Management API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const userData = {
                 email: 'editoruser@example.com',
@@ -493,11 +481,7 @@ describe('Users Management API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const updateData = {
                 role: 'admin'
@@ -656,11 +640,7 @@ describe('Users Management API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .delete(`/api/users/${testUser.id}`)
@@ -745,11 +725,7 @@ describe('Users Management API Endpoints', () => {
                 role: 'editor'
             });
 
-            const editorToken = jwt.sign(
-                { sub: editorUser.id, role: 'editor', email: editorUser.email },
-                process.env.JWT_SECRET || 'dev_jwt_secret_change_me',
-                { expiresIn: '15m' }
-            );
+            const editorToken = generateTestJWT(editorUser);
 
             const response = await request(app)
                 .get('/admin/users')

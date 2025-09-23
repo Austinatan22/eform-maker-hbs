@@ -38,6 +38,19 @@ export function sanitizeFields(fields = []) {
             delete cleaned.options;
         }
 
+        // Handle content for rich text fields
+        if (cleaned.type === 'richText' && cleaned.content) {
+            cleaned.content = sanitize.richText(cleaned.content);
+        } else if (cleaned.type !== 'richText') {
+            delete cleaned.content;
+        }
+
+        // Handle order property - convert to position (0-based)
+        if (cleaned.order !== undefined) {
+            cleaned.position = Math.max(0, parseInt(cleaned.order) - 1);
+            delete cleaned.order;
+        }
+
         // Remove auto-generated fields
         delete cleaned.autoName;
 

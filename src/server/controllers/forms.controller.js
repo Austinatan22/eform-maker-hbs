@@ -98,8 +98,10 @@ export async function createOrUpdateForm(req, res) {
 
   if (fieldErrors.length > 0) {
     logger.error('Field validation failed:', { fieldErrors, fields });
+    const hasTypeError = fieldErrors.some(error => error.toLowerCase().includes('field type'));
+    const errorMessage = hasTypeError ? 'Invalid field type provided' : 'Field validation failed';
     return res.status(400).json({
-      error: 'Field validation failed',
+      error: errorMessage,
       details: fieldErrors
     });
   }
@@ -133,7 +135,15 @@ export async function createOrUpdateForm(req, res) {
           fields: clean.map(f => ({ type: f.type, label: f.label, required: f.required }))
         }
       });
-      return res.json({ ok: true, form: { id: form.id, title: form.title, fields: rows } });
+      const fieldsOut = rows.map(f => ({
+        id: f.id, type: f.type, label: f.label, name: f.name,
+        placeholder: f.placeholder,
+        required: f.required, doNotStore: f.doNotStore,
+        options: f.options,
+        content: f.content,
+        order: f.position + 1
+      }));
+      return res.json({ ok: true, form: { id: form.id, title: form.title, fields: fieldsOut } });
     } else {
       // Enforce uniqueness on update (when using POST /api/forms with id)
       if (await isTitleTaken(normalizedTitle, String(id))) {
@@ -159,8 +169,11 @@ export async function createOrUpdateForm(req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options
+        options: f.options,
+        content: f.content,
+        order: f.position + 1
       }));
+
 
       // Enhanced audit logging with before/after states
       const changes = {};
@@ -299,7 +312,9 @@ export async function listForms(_req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options
+        options: f.options,
+        content: f.content,
+        order: f.position + 1
       })),
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
@@ -326,7 +341,9 @@ export async function readForm(req, res) {
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
-      options: f.options
+      options: f.options,
+      content: f.content,
+      order: f.position + 1
     }));
     res.json({
       ok: true,
@@ -433,7 +450,9 @@ export async function updateForm(req, res) {
       id: f.id, type: f.type, label: f.label, name: f.name,
       placeholder: f.placeholder,
       required: f.required, doNotStore: f.doNotStore,
-      options: f.options
+      options: f.options,
+      content: f.content,
+      order: f.position + 1
     }));
 
     // Enhanced audit logging with before/after states
@@ -730,7 +749,9 @@ export async function builderPage(req, res) {
         id: f.id, type: f.type, label: f.label, name: f.name,
         placeholder: f.placeholder,
         required: f.required, doNotStore: f.doNotStore,
-        options: f.options
+        options: f.options,
+        content: f.content,
+        order: f.position + 1
       }));
 
     const preload = { id: formPlain.id, title: formPlain.title || '', category: formPlain.category || 'survey', fields };
