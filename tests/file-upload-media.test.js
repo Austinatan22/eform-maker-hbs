@@ -22,10 +22,8 @@ import { FormField } from '../src/server/models/FormField.js';
 import { Category } from '../src/server/models/Category.js';
 import { FormSubmission } from '../src/server/models/FormSubmission.js';
 import { User } from '../src/server/models/User.js';
-import { deleteFile } from '../src/server/middleware/upload.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { app } from '../src/server/app.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,8 +34,16 @@ describe('File Upload & Media', () => {
     let testForm;
     let testCategory;
     let authToken;
+    let app;
+    let deleteFile;
 
     beforeAll(async () => {
+        // Import app and deleteFile dynamically to avoid teardown issues
+        const { app: importedApp } = await import('../src/server/app.js');
+        const { deleteFile: importedDeleteFile } = await import('../src/server/middleware/upload.js');
+        app = importedApp;
+        deleteFile = importedDeleteFile;
+
         // Setup test database
         await setupTestDatabase();
 

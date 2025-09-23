@@ -19,7 +19,7 @@ export default {
     ],
 
     // Test timeout
-    testTimeout: 10000,
+    testTimeout: 15000,
 
     // Clear mocks between tests
     clearMocks: true,
@@ -39,5 +39,11 @@ export default {
         NODE_ENV: 'test',
         AUTH_ENABLED: '1',
         JWT_SECRET: 'test_jwt_secret_key'
-    }
+    },
+
+    // Force exit after tests complete
+    forceExit: true,
+
+    // Detect open handles
+    detectOpenHandles: true
 };

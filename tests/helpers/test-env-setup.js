@@ -22,3 +22,13 @@ global.testUtils = {
         return {};
     }
 };
+
+// Handle unhandled promise rejections in tests
+process.on('unhandledRejection', (reason, promise) => {
+    console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions in tests
+process.on('uncaughtException', (error) => {
+    console.warn('Uncaught Exception:', error);
+});

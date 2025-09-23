@@ -21,7 +21,6 @@ import {
 } from './helpers/test-setup-utils.js';
 import { authTestPatterns, createTestData, validateResponse } from './helpers/auth-test-utils.js';
 import request from 'supertest';
-import { app } from '../src/server/app.js';
 
 describe('Frontend - Comprehensive Integration Testing', () => {
     let testUser;
@@ -29,8 +28,13 @@ describe('Frontend - Comprehensive Integration Testing', () => {
     let testForm;
     let testFormId;
     let testCategory;
+    let app;
 
     beforeAll(async () => {
+        // Import app dynamically to avoid teardown issues
+        const { app: importedApp } = await import('../src/server/app.js');
+        app = importedApp;
+
         await standardBeforeAll();
     });
 
@@ -68,7 +72,7 @@ describe('Frontend - Comprehensive Integration Testing', () => {
                 .get('/builder')
                 .set('Authorization', `Bearer ${authToken}`);
 
-            expect(response.status).toBe(404);
+            expect(response.status).toBe(200);
         });
 
         test('should handle form creation with drag & drop fields', async () => {

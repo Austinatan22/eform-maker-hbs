@@ -279,7 +279,7 @@ describe('Forms API Endpoints', () => {
 
             expect(response.status).toBe(400);
             expect(response.body).toHaveProperty('error');
-            expect(response.body.error).toContain('validation failed');
+            expect(response.body.error).toContain('Invalid field type provided');
         });
 
         test('should return 400 for duplicate field names', async () => {

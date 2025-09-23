@@ -148,8 +148,6 @@ app.use((req, res, next) => {
       children: [
         { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
         { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
-        { label: 'Users', href: '/admin/users', icon: 'ti tabler-users' },
-        { label: 'Logs', href: '/admin/logs', icon: 'ti tabler-clipboard-list' }
       ]
     });
   }
