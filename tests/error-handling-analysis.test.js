@@ -26,6 +26,9 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
     beforeAll(async () => {
         await setupTestDatabase();
 
+        // Set AUTH_ENABLED to '1' to enable authentication for tests
+        process.env.AUTH_ENABLED = '1';
+
         // Setup Express app for testing
         app = express();
         app.use(express.json({ limit: '1mb' }));
@@ -127,13 +130,13 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
 
         // Get auth token for API requests
         const loginResponse = await request(app)
-            .post('/login')
+            .post('/api/auth/login')
             .send({
                 email: testUser.email,
                 password: 'testpassword'
             });
 
-        authToken = loginResponse.body.token;
+        authToken = loginResponse.body.accessToken;
     });
 
     afterAll(async () => {
@@ -254,11 +257,13 @@ describe('Error Handling Analysis - Current vs Intended Behavior', () => {
                 .set('Authorization', 'Bearer invalid-token');
 
 
-            // Current behavior: Returns 200 (authentication not enforced)
+            // Current behavior: Returns 401 (authentication is properly enforced)
             // Intended: Should return 401 for unauthorized access
-            expect(response.status).toBe(200);
+            expect(response.status).toBe(401);
+            expect(response.body).toHaveProperty('error');
+            expect(response.body.error).toBe('Unauthorized');
 
-            // This reveals that authentication is not properly enforced in the current implementation
+            // This shows that authentication is properly enforced in the current implementation
         });
 
         test('📊 Malformed JSON Requests - Current vs Intended Behavior', async () => {

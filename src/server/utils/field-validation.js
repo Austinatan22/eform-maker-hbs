@@ -6,6 +6,9 @@ import { formFieldValidation, sanitize } from '../services/validation.service.js
  */
 
 export function sanitizeFields(fields = []) {
+    if (!Array.isArray(fields)) {
+        throw new Error('Fields must be an array');
+    }
     return fields.map(field => {
         const cleaned = { ...field };
 

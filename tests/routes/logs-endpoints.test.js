@@ -1,5 +1,5 @@
 // tests/routes/logs-endpoints.test.js
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import request from 'supertest';
 import { app } from '../../src/server/app.js';
 import {
