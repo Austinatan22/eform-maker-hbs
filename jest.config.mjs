@@ -25,9 +25,8 @@ export default {
     clearMocks: true,
     restoreMocks: true,
 
-    // Global setup and teardown
+    // Global setup (no global teardown - tests handle their own cleanup)
     globalSetup: '<rootDir>/tests/helpers/global-setup.js',
-    globalTeardown: '<rootDir>/tests/helpers/global-teardown.js',
 
     // Verbose output
     verbose: true

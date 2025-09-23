@@ -1,8 +1,8 @@
-﻿# Eform Project â€" Working TODOs
+﻿# Eform Project - Working TODOs
 
-This file tracks a comprehensive set of tasks derived from the requirements doc. Items are grouped and marked with status. This TODO is maintained as we implement features â€" whenever we complete a task, we update the status here.
+This file tracks a comprehensive set of tasks derived from the requirements document. Items are grouped and marked with status. This TODO is maintained as we implement features - whenever we complete a task, we update the status here.
 
-Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
+Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 
 ## Accounts, Auth, RBAC
 
@@ -89,10 +89,10 @@ Legend: [x] done Â· [>] inâ€'progress Â· [ ] pending Â· [~] partial
 
 ### Immediate Next Steps (suggested order)
 
-1) ✅ Fix RBAC middleware syntax error in forms.routes.js line 40 (COMPLETED)
-2) ✅ File upload backend handling with storage (COMPLETED - multer middleware, validation, storage)
-3) ✅ Enhanced password policy and account lockout (COMPLETED - comprehensive policy with 5-attempt lockout)
-4) ❌ Form versioning and draft functionality (REMOVED - unused code cleaned up)
+1) [x] Fix RBAC middleware syntax error in forms.routes.js line 40 (COMPLETED)
+2) [x] File upload backend handling with storage (COMPLETED - multer middleware, validation, storage)
+3) [x] Enhanced password policy and account lockout (COMPLETED - comprehensive policy with 5-attempt lockout)
+4) [x] Form versioning and draft functionality (REMOVED - unused code cleaned up)
 5) Add export API endpoints for form submissions (JSON/CSV download)
 6) Add rate limiting to other POST APIs (form writes, submissions)
 7) Implement password reset flow (token email + change password)

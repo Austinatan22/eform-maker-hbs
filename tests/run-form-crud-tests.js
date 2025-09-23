@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🧪 Running Form CRUD Operations Tests...\n');
+console.log('Running Form CRUD Operations Tests...\n');
 
 // Test files to run
 const testFiles = [
@@ -24,7 +24,7 @@ async function runTests() {
     let failedTests = 0;
 
     for (const testFile of testFiles) {
-        console.log(`📋 Running ${testFile}...`);
+        console.log(`Running ${testFile}...`);
 
         try {
             const result = await runTestFile(testFile);
@@ -33,12 +33,12 @@ async function runTests() {
             failedTests += result.failed;
 
             if (result.failed > 0) {
-                console.log(`❌ ${testFile} - ${result.failed} failed, ${result.passed} passed\n`);
+                console.log(`FAILED: ${testFile} - ${result.failed} failed, ${result.passed} passed\n`);
             } else {
-                console.log(`✅ ${testFile} - All ${result.passed} tests passed\n`);
+                console.log(`PASSED: ${testFile} - All ${result.passed} tests passed\n`);
             }
         } catch (error) {
-            console.error(`💥 Error running ${testFile}:`, error.message);
+            console.error(`Error running ${testFile}:`, error.message);
             failedTests++;
         }
     }
@@ -51,10 +51,10 @@ async function runTests() {
     console.log(`   Success Rate: ${totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0}%`);
 
     if (failedTests === 0) {
-        console.log('\n🎉 All Form CRUD tests passed!');
+        console.log('\nAll Form CRUD tests passed!');
         process.exit(0);
     } else {
-        console.log('\n❌ Some tests failed. Please review the output above.');
+        console.log('\nSome tests failed. Please review the output above.');
         process.exit(1);
     }
 }

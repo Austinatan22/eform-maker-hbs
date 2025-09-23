@@ -4,7 +4,7 @@
 import { cleanupLeftoverTestFiles } from './test-db-setup.js';
 
 export default async function globalSetup() {
-    console.log('🧹 Cleaning up leftover test database files...');
+    console.log('Cleaning up leftover test database files...');
     cleanupLeftoverTestFiles();
-    console.log('✅ Global setup completed');
+    console.log('Global setup completed');
 }
