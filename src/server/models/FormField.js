@@ -51,5 +51,4 @@ export const FormField = sequelize.define('FormField', {
 });
 
 
-Form.hasMany(FormField, { foreignKey: 'formId', as: 'fields', onDelete: 'CASCADE' });
-FormField.belongsTo(Form, { foreignKey: 'formId', as: 'form' });
+// Associations will be defined in app.js after all models are loaded

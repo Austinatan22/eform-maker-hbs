@@ -433,6 +433,9 @@ async function ensureSchema() {
     Form.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
     Category.hasMany(Form, { foreignKey: 'categoryId', as: 'forms' });
 
+    Form.hasMany(FormField, { foreignKey: 'formId', as: 'fields', onDelete: 'CASCADE' });
+    FormField.belongsTo(Form, { foreignKey: 'formId', as: 'form' });
+
     Template.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
     Category.hasMany(Template, { foreignKey: 'categoryId', as: 'templates' });
 
@@ -483,6 +486,23 @@ async function ensureSchema() {
       }
     } catch (e) {
       logger.warn('Index ensure failed (forms.title unique):', e.message || e);
+    }
+
+    // Ensure form_fields table has all required columns
+    try {
+      const [ffCols] = await sequelize.query("PRAGMA table_info('form_fields')");
+      const ffColNames = Array.isArray(ffCols) ? ffCols.map(c => String(c.name).toLowerCase()) : [];
+
+      // Add content column if missing
+      if (!ffColNames.includes('content')) {
+        await sequelize.getQueryInterface().addColumn('form_fields', 'content', {
+          type: DataTypes.TEXT,
+          allowNull: true
+        });
+        logger.info('Added missing column form_fields.content');
+      }
+    } catch (e) {
+      logger.warn('Form fields column ensure failed:', e.message || e);
     }
 
     // Ensure indexes on form_fields (including unique(formId,name))
