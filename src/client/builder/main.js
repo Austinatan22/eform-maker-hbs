@@ -1229,94 +1229,95 @@ export class Builder {
                 });
             }
         }
+    }
 
-        // ---- Select2 Initialization ----
-        _initSelect2In(rootEl) {
-            if (!rootEl || !window.jQuery || !window.jQuery.fn.select2) return;
-            const select2Elements = rootEl.querySelectorAll?.('.select2') || [];
-            select2Elements.forEach(element => {
-                // Destroy existing Select2 instance if it exists
-                if ($(element).hasClass('select2-hidden-accessible')) {
-                    $(element).select2('destroy');
-                }
-                // Initialize Select2
-                $(element).select2({
-                    placeholder: 'Select value',
-                    dropdownParent: $(element).parent(),
-                    allowClear: true
-                });
-            });
-        }
-
-        _initSelect2() {
-            if (!this.$.preview || !window.jQuery || !window.jQuery.fn.select2) return;
-            const select2Elements = this.$.preview.querySelectorAll('.select2') || [];
-            select2Elements.forEach(element => {
-                // Destroy existing Select2 instance if it exists
-                if ($(element).hasClass('select2-hidden-accessible')) {
-                    $(element).select2('destroy');
-                }
-                // Initialize Select2
-                $(element).select2({
-                    placeholder: 'Select value',
-                    dropdownParent: $(element).parent(),
-                    allowClear: true
-                });
-            });
-        }
-
-        initSortable() {
-            if (this._sortableReady) return;
-            const host = this.$.preview;
-            if (!host || typeof window.Sortable === 'undefined') return;
-            try {
-                // eslint-disable-next-line no-new
-                new window.Sortable(host, {
-                    animation: 150,
-                    draggable: '[data-fid]',
-                    // Allow interacting with form controls inside cards without blocking focus/click
-                    filter: 'input,textarea,select,button,label,a',
-                    preventOnFilter: false,
-                    ghostClass: 'sortable-ghost',
-                    chosenClass: 'sortable-chosen',
-                    dragClass: 'dragging',
-                    fallbackOnBody: true,
-                    swapThreshold: 0.5,
-                    onStart: (evt) => {
-                        const el = evt.item;
-                        this.dnd.draggingId = el?.dataset?.fid || null;
-                        this.dnd.fromIndex = (evt.oldIndex != null ? evt.oldIndex : -1);
-                    },
-                    onEnd: (evt) => {
-                        const from = (evt.oldIndex != null ? evt.oldIndex : -1);
-                        const to = (evt.newIndex != null ? evt.newIndex : -1);
-                        this.dnd.draggingId = null;
-                        this.dnd.fromIndex = -1;
-                        if (from < 0 || to < 0 || from === to) return;
-                        if (from >= this.fields.length || to >= this.fields.length) return;
-                        const id = this.fields[from]?.id;
-                        const [moved] = this.fields.splice(from, 1);
-                        this.fields.splice(to, 0, moved);
-                        this.persist();
-                        this.setDirty();
-                        this.renderPreview();
-                        if (id) {
-                            this.select(id);
-                            const el = this.$.preview?.querySelector(`[data-fid="${id}"]`);
-                            flash(el);
-                        }
-                        if (this.$.btnSave) {
-                            this.$.btnSave.disabled = false;
-                            this.$.btnSave.textContent = 'Save';
-                        }
-                    }
-                });
-                this._sortableReady = true;
-            } catch (e) {
-                // Sortable init failed - handled silently
+    // ---- Select2 Initialization ----
+    _initSelect2In(rootEl) {
+        if (!rootEl || !window.jQuery || !window.jQuery.fn.select2) return;
+        const select2Elements = rootEl.querySelectorAll?.('.select2') || [];
+        select2Elements.forEach(element => {
+            // Destroy existing Select2 instance if it exists
+            if ($(element).hasClass('select2-hidden-accessible')) {
+                $(element).select2('destroy');
             }
+            // Initialize Select2
+            $(element).select2({
+                placeholder: 'Select value',
+                dropdownParent: $(element).parent(),
+                allowClear: true
+            });
+        });
+    }
+
+    _initSelect2() {
+        if (!this.$.preview || !window.jQuery || !window.jQuery.fn.select2) return;
+        const select2Elements = this.$.preview.querySelectorAll('.select2') || [];
+        select2Elements.forEach(element => {
+            // Destroy existing Select2 instance if it exists
+            if ($(element).hasClass('select2-hidden-accessible')) {
+                $(element).select2('destroy');
+            }
+            // Initialize Select2
+            $(element).select2({
+                placeholder: 'Select value',
+                dropdownParent: $(element).parent(),
+                allowClear: true
+            });
+        });
+    }
+
+    initSortable() {
+        if (this._sortableReady) return;
+        const host = this.$.preview;
+        if (!host || typeof window.Sortable === 'undefined') return;
+        try {
+            // eslint-disable-next-line no-new
+            new window.Sortable(host, {
+                animation: 150,
+                draggable: '[data-fid]',
+                // Allow interacting with form controls inside cards without blocking focus/click
+                filter: 'input,textarea,select,button,label,a',
+                preventOnFilter: false,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'dragging',
+                fallbackOnBody: true,
+                swapThreshold: 0.5,
+                onStart: (evt) => {
+                    const el = evt.item;
+                    this.dnd.draggingId = el?.dataset?.fid || null;
+                    this.dnd.fromIndex = (evt.oldIndex != null ? evt.oldIndex : -1);
+                },
+                onEnd: (evt) => {
+                    const from = (evt.oldIndex != null ? evt.oldIndex : -1);
+                    const to = (evt.newIndex != null ? evt.newIndex : -1);
+                    this.dnd.draggingId = null;
+                    this.dnd.fromIndex = -1;
+                    if (from < 0 || to < 0 || from === to) return;
+                    if (from >= this.fields.length || to >= this.fields.length) return;
+                    const id = this.fields[from]?.id;
+                    const [moved] = this.fields.splice(from, 1);
+                    this.fields.splice(to, 0, moved);
+                    this.persist();
+                    this.setDirty();
+                    this.renderPreview();
+                    if (id) {
+                        this.select(id);
+                        const el = this.$.preview?.querySelector(`[data-fid="${id}"]`);
+                        flash(el);
+                    }
+                    if (this.$.btnSave) {
+                        this.$.btnSave.disabled = false;
+                        this.$.btnSave.textContent = 'Save';
+                    }
+                }
+            });
+            this._sortableReady = true;
+        } catch (e) {
+            // Sortable init failed - handled silently
         }
     }
+}
 
 export async function startBuilder() {
     try {
