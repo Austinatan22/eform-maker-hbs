@@ -1,17 +1,15 @@
-<div class="mb-4">
-  <label class="form-label">
-    {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
-  </label>
-  <form action="/upload" class="dropzone needsclick file-dropzone" id="file-{{name}}">
-    <div class="dz-message needsclick">
-      <div class="d-flex flex-column align-items-center">
-        <span class="fw-medium">Drop files here or click to upload</span>
-        <small class="text-muted mt-1">Multiple files supported • Images, PDF, Text, Word, Excel (max 5MB each)</small>
-      </div>
+<label class="form-label">
+  {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+</label>
+<form action="/upload" class="dropzone needsclick file-dropzone" id="file-{{name}}">
+  <div class="dz-message needsclick">
+    <div class="d-flex flex-column align-items-center">
+      <span class="fw-medium">Drop files here or click to upload</span>
+      <small class="text-muted mt-1">Multiple files supported • Images, PDF, Text, Word, Excel (max 5MB each)</small>
     </div>
-    <div class="fallback">
-      <input name="{{name}}" type="file" multiple {{#if required}}required{{/if}}
-        accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx">
-    </div>
-  </form>
-</div>
+  </div>
+  <div class="fallback">
+    <input name="{{name}}" type="file" multiple {{#if required}}required{{/if}}
+      accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx">
+  </div>
+</form>

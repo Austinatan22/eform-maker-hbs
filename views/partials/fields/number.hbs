@@ -1,7 +1,4 @@
-<div class="mb-4">
-  <label class="form-label">
-    {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
-  </label>
-  <input class="form-control" type="number" name="{{name}}" placeholder="{{placeholder}}" {{#if
-    required}}required{{/if}}>
-</div>
+<label class="form-label">
+  {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+</label>
+<input class="form-control" type="number" name="{{name}}" placeholder="{{placeholder}}" {{#if required}}required{{/if}}>

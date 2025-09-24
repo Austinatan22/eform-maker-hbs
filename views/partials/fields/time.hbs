@@ -1,7 +1,5 @@
-<div class="mb-4">
-  <label class="form-label">
-    {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
-  </label>
-  <input class="form-control" type="time" name="{{name}}" {{#if required}}required{{/if}}>
-  {{#if placeholder}}<small class="text-muted">{{placeholder}}</small>{{/if}}
-</div>
+<label class="form-label">
+  {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+</label>
+<input class="form-control" type="time" name="{{name}}" {{#if required}}required{{/if}}>
+{{#if placeholder}}<small class="text-muted">{{placeholder}}</small>{{/if}}

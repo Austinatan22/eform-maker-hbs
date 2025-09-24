@@ -1,11 +1,9 @@
-<div class="mb-4">
-  <label class="form-label d-block">
-    {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
-  </label>
-  {{#each options}}
-  <div class="form-check{{#if @first}} mt-4{{else}} mb-2{{/if}}">
-    <input class="form-check-input" type="checkbox" name="{{../name}}" id="{{../name}}_{{@index}}" value="{{this}}">
-    <label class="form-check-label" for="{{../name}}_{{@index}}">{{this}}</label>
-  </div>
-  {{/each}}
+<label class="form-label d-block">
+  {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+</label>
+{{#each options}}
+<div class="form-check{{#if @first}} mt-4{{else}} mb-2{{/if}}">
+  <input class="form-check-input" type="checkbox" name="{{../name}}" id="{{../name}}_{{@index}}" value="{{this}}">
+  <label class="form-check-label" for="{{../name}}_{{@index}}">{{this}}</label>
 </div>
+{{/each}}
