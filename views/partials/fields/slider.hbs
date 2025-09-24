@@ -1,0 +1,9 @@
+<div class="mb-4">
+    <label class="form-label">
+        {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+    </label>
+    <div class="slider-container" id="slider-{{name}}">
+        <!-- Hidden input to store the slider value -->
+        <input type="hidden" name="{{name}}" value="10" {{#if required}}required{{/if}}>
+    </div>
+</div>

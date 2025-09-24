@@ -1094,7 +1094,7 @@ export class Builder {
     // ---- Picker Initialization (Flatpickr & Pickr) ----
     initPickersIn(rootEl) {
         if (!rootEl) return;
-        const nodes = rootEl.querySelectorAll?.('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone') || [];
+        const nodes = rootEl.querySelectorAll?.('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone, .slider-container') || [];
         nodes.forEach(element => this._initOnePicker(element));
         // Initialize Select2 elements
         this._initSelect2In(rootEl);
@@ -1102,7 +1102,7 @@ export class Builder {
 
     initPickers() {
         if (!this.$.preview) return;
-        const nodes = this.$.preview?.querySelectorAll('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone') || [];
+        const nodes = this.$.preview?.querySelectorAll('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone, .slider-container') || [];
         nodes.forEach(element => this._initOnePicker(element));
         // Initialize Select2 elements
         this._initSelect2();
@@ -1231,6 +1231,59 @@ export class Builder {
                         });
                     }
                 });
+            }
+        } else if (element.classList.contains('slider-container')) {
+            if (window.noUiSlider) {
+                // Destroy existing slider instance if it exists
+                if (element.noUiSlider) {
+                    element.noUiSlider.destroy();
+                }
+
+                // Initialize noUiSlider with scale and pips
+                window.noUiSlider.create(element, {
+                    start: [10],
+                    behaviour: 'tap-drag',
+                    step: 10,
+                    tooltips: true,
+                    range: {
+                        min: 0,
+                        max: 100
+                    },
+                    pips: {
+                        mode: 'steps',
+                        stepped: true,
+                        density: 5
+                    },
+                    direction: 'ltr' // Default to LTR, could be made dynamic
+                });
+
+                // Update the hidden input when slider value changes
+                const hiddenInput = element.querySelector('input[type="hidden"]');
+                if (hiddenInput) {
+                    element.noUiSlider.on('update', (values, handle) => {
+                        hiddenInput.value = Math.round(values[handle]);
+                        // Update field data
+                        if (field) {
+                            field.value = hiddenInput.value;
+                            this.persist();
+                        }
+                    });
+                }
+
+                // Prevent card drag/drop when interacting with slider
+                const preventCardDrag = (e) => {
+                    e.stopPropagation();
+                };
+
+                // Add event listeners to prevent card drag/drop interference
+                ['mousedown', 'mousemove', 'mouseup', 'dragstart', 'dragover', 'drop'].forEach(eventType => {
+                    element.addEventListener(eventType, preventCardDrag, { passive: false });
+                });
+
+                // Also prevent on child elements
+                element.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                }, true); // Use capture phase
             }
         }
     }

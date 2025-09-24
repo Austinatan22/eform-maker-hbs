@@ -44,7 +44,7 @@
               <div class="col-6 d-flex"><button type="button"
                   class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
                   data-type="multipleSelect"><i class="icon-base ti tabler-select-all icon-sm me-2"></i><span
-                    class="text-start">Multiple Select</span></button></div>
+                    class="text-start">Select</span></button></div>
               <div class="col-6 d-flex"><button type="button"
                   class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
                   data-type="multipleChoice"><i class="icon-base ti tabler-list-check icon-sm me-2"></i><span
@@ -98,11 +98,15 @@
               <div class="col-6 d-flex"><button type="button"
                   class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
                   data-type="file"><i class="icon-base ti tabler-file-upload icon-sm me-2"></i><span
-                    class="text-start">Multiple File Upload</span></button></div>
+                    class="text-start">File Upload</span></button></div>
               <div class="col-6 d-flex"><button type="button"
                   class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
                   data-type="rangePicker"><i class="icon-base ti tabler-adjustments-horizontal icon-sm me-2"></i><span
                     class="text-start">Date Range</span></button></div>
+              <div class="col-6 d-flex"><button type="button"
+                  class="btn btn-outline-primary w-100 h-100 d-flex justify-content-start align-items-start text-start"
+                  data-type="slider"><i class="icon-base ti tabler-adjustments icon-sm me-2"></i><span
+                    class="text-start">Slider</span></button></div>
             </div>
           </div>
 
@@ -227,6 +231,9 @@
 
 <!-- Select2 CSS -->
 <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css" />
+
+<!-- noUiSlider CSS -->
+<link rel="stylesheet" href="/assets/vendor/libs/nouislider/nouislider.css" />
 {{/section}}
 
 {{#section 'scripts'}}
@@ -267,6 +274,9 @@
 
 <!-- Select2 JS -->
 <script src="/assets/vendor/libs/select2/select2.js"></script>
+
+<!-- noUiSlider JS -->
+<script src="/assets/vendor/libs/nouislider/nouislider.js"></script>
 
 <!-- Quill Rich Text Editor JS -->
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
