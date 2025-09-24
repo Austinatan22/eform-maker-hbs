@@ -133,7 +133,10 @@
       dt_forms = new DataTable(formsTable, {
         ajax: {
           url: '/api/forms',
-          headers: { 'CSRF-Token': CSRF }
+          headers: { 'CSRF-Token': CSRF },
+          xhrFields: {
+            withCredentials: true
+          }
         },
         columns: [
           { data: 'title' },
@@ -285,7 +288,8 @@
         async function loadTemplates(retryCount = 0) {
           try {
             const res = await fetch('/api/templates/active', {
-              headers: { 'CSRF-Token': CSRF }
+              headers: { 'CSRF-Token': CSRF },
+              credentials: 'include'
             });
             const result = await res.json();
             if (!res.ok) {
@@ -421,6 +425,7 @@
               const categoryId = selCat?.value || '';
               const res = await fetch('/api/forms', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                credentials: 'include',
                 body: JSON.stringify({ title, categoryId, fields: (Array.isArray(selectedFields) ? selectedFields : []) })
               });
               const out = await res.json();
@@ -558,7 +563,7 @@
             btn.textContent = 'Deleting...';
           }
 
-          const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+          const res = await fetch('/api/forms/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF }, credentials: 'include' });
           if (!res.ok) throw new Error('Delete failed');
 
           dt_forms.ajax.reload();
@@ -592,6 +597,7 @@
           const res = await fetch('/api/forms/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            credentials: 'include',
             body: JSON.stringify({ title: newTitle, categoryId: newCategoryId })
           });
           const out = await res.json().catch(() => ({}));

@@ -159,7 +159,10 @@
             dt_templates = new DataTable(templatesTable, {
                 ajax: {
                     url: '/api/templates',
-                    headers: { 'CSRF-Token': CSRF }
+                    headers: { 'CSRF-Token': CSRF },
+                    xhrFields: {
+                        withCredentials: true
+                    }
                 },
                 columns: [
                     { data: 'name' },
@@ -358,7 +361,8 @@
 
                     try {
                         const res = await fetch('/api/templates/' + id, {
-                            headers: { 'CSRF-Token': CSRF }
+                            headers: { 'CSRF-Token': CSRF },
+                            credentials: 'include'
                         });
                         const result = await res.json();
                         if (!res.ok) throw new Error(result?.error || 'Failed to get template');
@@ -369,6 +373,7 @@
                         const createRes = await fetch('/api/templates', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                            credentials: 'include',
                             body: JSON.stringify({
                                 name: duplicateName,
                                 description: template.description,
@@ -406,7 +411,7 @@
                         btn.textContent = 'Deleting...';
                     }
 
-                    const res = await fetch('/api/templates/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+                    const res = await fetch('/api/templates/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF }, credentials: 'include' });
                     if (!res.ok) throw new Error('Delete failed');
 
                     dt_templates.ajax.reload();
@@ -439,6 +444,7 @@
                     const res = await fetch('/api/templates', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        credentials: 'include',
                         body: JSON.stringify({ name, description, fields: [], categoryId })
                     });
                     const result = await res.json();
@@ -476,6 +482,7 @@
                     const res = await fetch('/api/templates/' + id, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+                        credentials: 'include',
                         body: JSON.stringify({ name, description, categoryId })
                     });
                     const result = await res.json();

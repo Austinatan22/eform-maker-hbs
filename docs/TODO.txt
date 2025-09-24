@@ -20,7 +20,7 @@ Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 - [x] User management (admin UI/API): create user, set role, reset password (full admin interface implemented)
 - [x] Password policy + account lockout on repeated failures (comprehensive policy with complexity requirements, 5-attempt lockout for 30 minutes, full implementation)
 - [ ] Password reset (token email) + change password flows
-- [ ] JWT refresh rotation + logout-all-sessions
+- [ ] JWT refresh rotation + logout-all-sessions (RefreshToken model exists but not implemented)
 - [x] CSRF tokens for session-based POSTs (enabled for HTML routes; APIs/public submissions exempt)
 
 ## Backend Security & Compliance
@@ -35,8 +35,8 @@ Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 ## Forms: Features & Builder (from doc)
 
 - [x] Types & categories UI (survey/quiz/feedback; category label editing)
-- [x] Elements: text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file (all field types implemented)
-- [x] Attributes: label, placeholder, required, options, position (all core attributes implemented)
+- [x] Elements: text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file, password, richText (all field types implemented)
+- [x] Attributes: label, placeholder, required, options, position, doNotStore (all core attributes implemented)
 - [x] Validation: required/options; email/number formatting; real-time feedback present in builder
 - [x] Drag-and-drop reorder; duplicate; delete elements
 - [x] Responsive builder layout (desktop/mobile)
@@ -50,16 +50,16 @@ Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 ## API & Data
 
 - [x] REST API for forms CRUD (JSON)
-- [x] Public submission endpoint + store
-- [ ] Export submissions (JSON/CSV) (submissions service implemented with CRUD operations, but no export API endpoints yet)
+- [x] Public submission endpoint + store (submissions service with full CRUD operations implemented)
+- [ ] Export submissions (JSON/CSV) (submissions service exists with CRUD operations, but no export API endpoints)
 
 ## Database Schema (from doc)
 
-- [x] Form table: has `created_by`, `category` (form_type equivalent), missing `version_number`
+- [x] Form table: has `created_by`, `categoryId` (form_type equivalent), timestamps (version_number not needed)
 - [x] Elements table: FormField model with all attributes, position (order_index equivalent) - fully implemented
 - [ ] Rules table: `rule_id`, `condition`, `action` (conditional logic not implemented)
-- [x] Submissions table (FormSubmission model implemented)
-- [x] Submission answers table (normalized) â€" stored as JSON in FormSubmission.payloadJson with proper service layer
+- [x] Submissions table (FormSubmission model implemented with separate database)
+- [x] Submission answers table (normalized) - stored as JSON in FormSubmission.payloadJson with proper service layer
 - [ ] Drafts table: `draft_id`, `form_id`, `user_id`, `draft_data`, `last_saved_at` (not implemented)
 - [ ] Versioning storage & rollback support (not implemented)
 - [x] Indexes (form_id/submission_id) implemented where needed
@@ -109,18 +109,20 @@ Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 **COMPLETED MAJOR FEATURES:**
 - Full authentication system with JWT and session support
 - Complete RBAC with user management admin interface
-- Comprehensive form builder with all field types (text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file)
+- Comprehensive form builder with all field types (text, textarea, dropdown, radios, checkboxes, number, name, email, phone, date, time, datetime, url, file, password, richText)
 - Form validation and real-time feedback
 - Drag-and-drop form builder interface
 - Public form hosting and submission handling
 - Full audit logging system with admin interface
 - Security headers, CORS, CSRF protection
 - Rate limiting for authentication endpoints
-- Form versioning and draft functionality (removed - unused code)
+- File upload system with multer middleware and validation
+- Submissions service with full CRUD operations
 
 **PARTIALLY IMPLEMENTED:**
 - Export functionality (submissions service exists, but no export API endpoints)
 - Rate limiting (only authentication endpoints, other POST APIs not rate limited)
+- JWT refresh tokens (RefreshToken model exists but not implemented in auth flow)
 
 **NOT YET IMPLEMENTED:**
 - Conditional logic/rules engine for forms
@@ -130,3 +132,4 @@ Legend: [x] done · [>] in-progress · [ ] pending · [~] partial
 - Rate limiting for non-auth endpoints
 - HTTPS enforcement in production
 - Malware scanning for file uploads
+- Form drafts and versioning system

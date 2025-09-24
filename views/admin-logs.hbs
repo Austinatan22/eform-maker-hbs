@@ -68,7 +68,10 @@
             dt_logs = new DataTable(logsTable, {
                 ajax: {
                     url: '/api/logs',
-                    headers: { 'CSRF-Token': CSRF }
+                    headers: { 'CSRF-Token': CSRF },
+                    xhrFields: {
+                        withCredentials: true
+                    }
                 },
                 columns: [
                     { data: 'createdAt' },

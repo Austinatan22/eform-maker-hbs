@@ -103,7 +103,10 @@
       dt_users = new DataTable(usersTable, {
         ajax: {
           url: '/api/users',
-          headers: { 'CSRF-Token': CSRF }
+          headers: { 'CSRF-Token': CSRF },
+          xhrFields: {
+            withCredentials: true
+          }
         },
         columns: [
           { data: 'email' },
@@ -278,7 +281,7 @@
           if (!confirm('Delete this user?')) return;
 
           try {
-            const res = await fetch('/api/users/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF } });
+            const res = await fetch('/api/users/' + id, { method: 'DELETE', headers: { 'CSRF-Token': CSRF }, credentials: 'include' });
             if (!res.ok) throw new Error('Delete failed');
             dt_users.ajax.reload();
           } catch (err) { alert(err?.message || 'Could not delete user'); }
@@ -320,7 +323,7 @@
         }
 
         try {
-          const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, body: JSON.stringify({ email, username, password, role }) });
+          const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF }, credentials: 'include', body: JSON.stringify({ email, username, password, role }) });
           const out = await res.json();
           if (!res.ok || !out?.user) throw new Error(out?.error || 'Create failed');
           dt_users.ajax.reload();
@@ -340,6 +343,7 @@
           const res = await fetch('/api/users/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            credentials: 'include',
             body: JSON.stringify({ username, role })
           });
           const out = await res.json().catch(() => ({}));
@@ -401,6 +405,7 @@
           const res = await fetch('/api/users/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'CSRF-Token': CSRF },
+            credentials: 'include',
             body: JSON.stringify({ password })
           });
           const out = await res.json().catch(() => ({}));
