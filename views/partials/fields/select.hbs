@@ -2,7 +2,9 @@
   <label class="form-label">
     {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
   </label>
-  <select class="form-select" name="{{name}}" {{#if required}}required{{/if}}>
-    {{#each options}}<option value="{{this}}">{{this}}</option>{{/each}}
-  </select>
+  <div class="position-relative">
+    <select class="select2 form-select" name="{{name}}" {{#if required}}required{{/if}} data-allow-clear="true">
+      {{#each options}}<option value="{{this}}">{{this}}</option>{{/each}}
+    </select>
+  </div>
 </div>

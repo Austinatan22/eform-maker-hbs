@@ -1,7 +1,7 @@
 // src/client/builder/constants.js
 
 // Field types that actually have options
-export const OPTION_TYPES = new Set(['dropdown', 'multipleChoice', 'checkboxes']);
+export const OPTION_TYPES = new Set(['dropdown', 'multipleChoice', 'checkboxes', 'multipleSelect']);
 
 // Only keep these keys when saving
 export const CLEAN_KEYS = new Set([
@@ -14,6 +14,7 @@ export const PARTIAL_FOR = {
     singleLine: 'text',
     paragraph: 'textarea',
     dropdown: 'select',
+    multipleSelect: 'multiple-select',
     multipleChoice: 'radios',
     checkboxes: 'checkboxes',
     number: 'number',
@@ -24,6 +25,11 @@ export const PARTIAL_FOR = {
     date: 'date',
     time: 'time',
     datetime: 'datetime',
+    datePicker: 'date-picker',
+    timePicker: 'time-picker',
+    datetimePicker: 'datetime-picker',
+    rangePicker: 'range-picker',
+    colorPicker: 'color-picker',
     url: 'url',
     file: 'file',
     richText: 'rich-text'
@@ -35,6 +41,7 @@ export const FIELDS_DEFAULTS = {
         singleLine: 'Single Line Text',
         paragraph: 'Paragraph Text',
         dropdown: 'Dropdown',
+        multipleSelect: 'Multiple Select',
         multipleChoice: 'Multiple Choice',
         checkboxes: 'Checkboxes',
         number: 'Number',
@@ -45,8 +52,13 @@ export const FIELDS_DEFAULTS = {
         datetime: 'Datetime',
         date: 'Date',
         time: 'Time',
+        datePicker: 'Date',
+        timePicker: 'Time',
+        datetimePicker: 'Datetime',
+        rangePicker: 'Date Range',
+        colorPicker: 'Color',
         url: 'URL',
-        file: 'File Upload',
+        file: 'Multiple File Upload',
         richText: 'Rich Text Editor'
     }[t] || (t || '')),
     options: (t) => OPTION_TYPES.has(t) ? 'Option 1, Option 2' : '',
@@ -62,8 +74,13 @@ export const FIELDS_DEFAULTS = {
         phone: 'Phone number',
         password: 'Enter password',
         datetime: '',
-        date: '',
-        time: '',
+        date: 'YYYY-MM-DD',
+        time: 'HH:MM',
+        datePicker: 'YYYY-MM-DD',
+        timePicker: 'HH:MM',
+        datetimePicker: 'YYYY-MM-DD HH:MM',
+        rangePicker: 'YYYY-MM-DD to YYYY-MM-DD',
+        colorPicker: '#000000',
         url: 'https://example.com',
         file: '',
         richText: 'Type something...'

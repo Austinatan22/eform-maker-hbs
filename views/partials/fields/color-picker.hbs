@@ -1,0 +1,10 @@
+<div class="mb-3">
+    <label class="form-label">
+        {{label}}{{#if required}} <span class="text-danger">*</span>{{/if}}
+    </label>
+    <div class="d-flex align-items-center gap-2">
+        <div class="color-picker-widget p-1 border rounded" style="cursor: pointer;"></div>
+        <input class="form-control color-input flex-grow-1" type="text" name="{{name}}" placeholder="{{placeholder}}"
+            {{#if required}}required{{/if}} readonly>
+    </div>
+</div>

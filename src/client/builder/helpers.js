@@ -8,7 +8,7 @@ export function parseOptions(str = '') {
 }
 
 export function needsOptions(type) {
-    return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes';
+    return type === 'dropdown' || type === 'multipleChoice' || type === 'checkboxes' || type === 'multipleSelect';
 }
 
 export function whenIntlReady(cb, tries = 40) {

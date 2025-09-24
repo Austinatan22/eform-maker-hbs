@@ -16,6 +16,24 @@ import {
 } from './dnd.js';
 import { API } from './api.js';
 
+// Dropzone preview template
+const dropzonePreviewTemplate = `<div class="dz-preview dz-file-preview">
+<div class="dz-details">
+  <div class="dz-thumbnail">
+    <img data-dz-thumbnail>
+    <span class="dz-nopreview">No preview</span>
+    <div class="dz-success-mark"></div>
+    <div class="dz-error-mark"></div>
+    <div class="dz-error-message"><span data-dz-errormessage></span></div>
+    <div class="progress">
+      <div class="progress-bar progress-bar-primary" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-dz-uploadprogress></div>
+    </div>
+  </div>
+  <div class="dz-filename" data-dz-name></div>
+  <div class="dz-size" data-dz-size></div>
+</div>
+</div>`;
+
 const SELECTORS = {
     preview: '#preview',
     quickAddButtons: '#quickAddButtons',
@@ -125,6 +143,10 @@ export class Builder {
             // Delay Quill initialization to ensure DOM is ready
             setTimeout(() => this.initRichTextEditors(), 100);
         } catch { }
+        try {
+            // Initialize pickers after DOM is ready
+            setTimeout(() => this.initPickers(), 100);
+        } catch { }
     }
 
     appendOne(field, idx) {
@@ -170,6 +192,10 @@ export class Builder {
         try {
             // Delay Quill initialization to ensure DOM is ready
             setTimeout(() => this.initRichTextEditorsIn(card), 100);
+        } catch { }
+        try {
+            // Initialize pickers in the specific card
+            setTimeout(() => this.initPickersIn(card), 100);
         } catch { }
     }
 
@@ -749,6 +775,8 @@ export class Builder {
         this.initSortable?.();
         // init phone inputs after initial render
         try { whenIntlReady(() => this.initPhoneInputs()); } catch { }
+        // init pickers after initial render
+        try { setTimeout(() => { this.initPickers(); this._initSelect2(); }, 100); } catch { }
         this.installUnloadGuard();
         if (this.fields.length) {
             this.select(this.fields[this.fields.length - 1].id);
@@ -1061,6 +1089,185 @@ export class Builder {
         } catch (error) {
             // Rich text initialization error - handled silently
         }
+    }
+
+    // ---- Picker Initialization (Flatpickr & Pickr) ----
+    initPickersIn(rootEl) {
+        if (!rootEl) return;
+        const nodes = rootEl.querySelectorAll?.('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone') || [];
+        nodes.forEach(element => this._initOnePicker(element));
+        // Initialize Select2 elements
+        this._initSelect2In(rootEl);
+    }
+
+    initPickers() {
+        if (!this.$.preview) return;
+        const nodes = this.$.preview?.querySelectorAll('.flatpickr-date, .flatpickr-time, .flatpickr-datetime, .flatpickr-range, .color-picker-widget, .file-dropzone') || [];
+        nodes.forEach(element => this._initOnePicker(element));
+        // Initialize Select2 elements
+        this._initSelect2();
+    }
+
+    _initOnePicker(element) {
+        const card = element.closest('[data-fid]');
+        const field = this.fields.find(f => f.id === card?.dataset?.fid);
+        if (!field) return;
+
+        // Destroy existing instances
+        if (element._flatpickr) {
+            element._flatpickr.destroy();
+            delete element._flatpickr;
+        }
+        if (element._pickr) {
+            element._pickr.destroyAndRemove();
+            delete element._pickr;
+        }
+
+        // Initialize based on class
+        if (element.classList.contains('flatpickr-date')) {
+            if (window.flatpickr) {
+                element._flatpickr = element.flatpickr({
+                    monthSelectorType: 'static',
+                    static: true
+                });
+            }
+        } else if (element.classList.contains('flatpickr-time')) {
+            if (window.flatpickr) {
+                element._flatpickr = element.flatpickr({
+                    enableTime: true,
+                    noCalendar: true,
+                    static: true
+                });
+            }
+        } else if (element.classList.contains('flatpickr-datetime')) {
+            if (window.flatpickr) {
+                element._flatpickr = element.flatpickr({
+                    enableTime: true,
+                    dateFormat: 'Y-m-d H:i',
+                    static: true
+                });
+            }
+        } else if (element.classList.contains('flatpickr-range')) {
+            if (window.flatpickr) {
+                element._flatpickr = element.flatpickr({
+                    mode: 'range',
+                    static: true
+                });
+            }
+        } else if (element.classList.contains('color-picker-widget')) {
+            if (window.Pickr) {
+                const input = element.previousElementSibling;
+                element._pickr = new window.Pickr({
+                    el: element,
+                    theme: 'nano',
+                    default: field.value || '#000000',
+                    swatches: [
+                        '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
+                        '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'
+                    ],
+                    components: {
+                        preview: true,
+                        opacity: true,
+                        hue: true,
+                        interaction: {
+                            hex: true,
+                            rgba: true,
+                            hsla: true,
+                            hsva: true,
+                            cmyk: true,
+                            input: true,
+                            clear: true,
+                            save: true
+                        }
+                    }
+                });
+
+                // Update the input when color changes
+                element._pickr.on('change', (color) => {
+                    if (input) {
+                        input.value = color.toHEXA().toString();
+                        // Update field data
+                        if (field) {
+                            field.value = input.value;
+                            this.persist();
+                        }
+                    }
+                });
+
+                // Set initial value
+                if (input && input.value) {
+                    element._pickr.setColor(input.value);
+                }
+            }
+        } else if (element.classList.contains('file-dropzone')) {
+            if (window.Dropzone) {
+                // Destroy existing dropzone instance
+                if (element.dropzone) {
+                    element.dropzone.destroy();
+                }
+
+                // Initialize new dropzone
+                element.dropzone = new window.Dropzone(element, {
+                    previewTemplate: dropzonePreviewTemplate,
+                    parallelUploads: 1,
+                    maxFilesize: 5, // 5MB max per file
+                    addRemoveLinks: true,
+                    // Don't set maxFiles to allow unlimited multiple files
+                    dictRemoveFile: 'Remove file',
+                    dictCancelUpload: 'Cancel upload',
+                    dictDefaultMessage: '',
+                    init: function () {
+                        this.on('addedfile', function (file) {
+                            // Handle file added
+                            console.log('File added:', file.name);
+                        });
+                        this.on('removedfile', function (file) {
+                            // Handle file removed
+                            console.log('File removed:', file.name);
+                        });
+                        this.on('error', function (file, message) {
+                            // Handle upload error
+                            console.error('Upload error:', message);
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+    // ---- Select2 Initialization ----
+    _initSelect2In(rootEl) {
+        if (!rootEl || !window.jQuery || !window.jQuery.fn.select2) return;
+        const select2Elements = rootEl.querySelectorAll?.('.select2') || [];
+        select2Elements.forEach(element => {
+            // Destroy existing Select2 instance if it exists
+            if ($(element).hasClass('select2-hidden-accessible')) {
+                $(element).select2('destroy');
+            }
+            // Initialize Select2
+            $(element).select2({
+                placeholder: 'Select value',
+                dropdownParent: $(element).parent(),
+                allowClear: true
+            });
+        });
+    }
+
+    _initSelect2() {
+        if (!this.$.preview || !window.jQuery || !window.jQuery.fn.select2) return;
+        const select2Elements = this.$.preview.querySelectorAll('.select2') || [];
+        select2Elements.forEach(element => {
+            // Destroy existing Select2 instance if it exists
+            if ($(element).hasClass('select2-hidden-accessible')) {
+                $(element).select2('destroy');
+            }
+            // Initialize Select2
+            $(element).select2({
+                placeholder: 'Select value',
+                dropdownParent: $(element).parent(),
+                allowClear: true
+            });
+        });
     }
 
     initSortable() {
